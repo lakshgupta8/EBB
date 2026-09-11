@@ -75,6 +75,13 @@ func _draw() -> void:
 		# Riptide armed
 		if _player.riptide_t > 0.0:
 			_text(Vector2(x + 60, py + 4), "RIPTIDE", Color(0.7, 0.95, 1.0))
+		# Tidemarks owned: family-coloured pips
+		if _run and _run.state.tidemarks.size() > 0:
+			var ty := gy + 7
+			for i in _run.state.tidemarks.size():
+				var col: Color = Tidemarks.color_of(_run.state.tidemarks[i])
+				draw_rect(Rect2(x - 1 + i * 8, ty - 1, 7, 7), UI.INK)
+				draw_rect(Rect2(x + i * 8, ty, 5, 5), col)
 		# Heavy charge
 		var cf := _player.weapon.charge_fraction()
 		if cf > 0.0:

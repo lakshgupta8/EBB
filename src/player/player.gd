@@ -2,6 +2,7 @@ class_name Player
 extends CharacterBody2D
 ## The Tidekeeper. Movement, dash, damage intake, riptide (perfect dodge), the lantern
 ## glow meter and flare. Weapons are children and handle their own attacks.
+## `mods` is the bag of stat modifiers that tidemarks and the Ledger write into.
 
 const FLASH_SHADER := preload("res://src/combat/hit_flash.gdshader")
 const SHEET := preload("res://assets/sprites/player.png")
@@ -12,7 +13,6 @@ const DASH_DISTANCE := 3.0 * TILE  # 3 tiles
 const DASH_TIME := 0.15
 const DASH_CHARGES := 3
 const DASH_RECHARGE := 1.2
-const WATER_SPEED_MULT := 0.7
 const HURT_KNOCKBACK_DECAY := 10.0
 const LUNGE_WINDOW := 0.12         # seconds after a dash ends where attack = lunge
 const DASH_GRACE := 0.06           # i-frames linger this long after the dash
@@ -23,10 +23,18 @@ const GLOW_PER_KILL := 12.0
 const FLARE_RADIUS := 100.0
 const FLARE_DAMAGE := 6
 const FLARE_STUN := 1.5
-const RIPTIDE_WINDOW := 3.0
 
 const MASK_WORLD := 1
 const MASK_WORLD_AND_ENEMIES := 1 | 4
+
+var mods: Dictionary = {
+	"damage": 1.0, "heavy_damage": 1.0, "crit_chance": 0.0, "bleed": false,
+	"dash_guard": false, "kill_heal": 0, "dash_wake": false,
+	"speed": 1.0, "water_speed": 0.7,
+	"salt_mult": 1.0, "glow_mult": 1.0,
+	"riptide_window": 3.0, "riptide_crit": 2.0,
+	"second_chance": false,
+}
 
 var max_dash: int = DASH_CHARGES
 var dash_charges: int = DASH_CHARGES
@@ -53,6 +61,8 @@ var _knockback: Vector2 = Vector2.ZERO
 var _lunge_vel: Vector2 = Vector2.ZERO
 var _hurt_timer: float = 0.0
 var _dodge_cd: float = 0.0
+var _second_chance_used: bool = false
+var _wake: Hitbox
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var health: Health = $Health
@@ -75,7 +85,27 @@ func _ready() -> void:
 	hurtbox.dodged.connect(_on_dodged)
 	health.died.connect(_on_died)
 	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
-	EventBus.enemy_died.connect(func(_e): add_glow(GLOW_PER_KILL))
+	EventBus.enemy_died.connect(_on_enemy_died)
+	_build_wake()
+
+
+## Dash wake hitbox (used only with the Wake tidemark).
+func _build_wake() -> void:
+	_wake = Hitbox.new()
+	_wake.collision_layer = 0
+	_wake.collision_mask = 128  # enemy_hurtbox
+	_wake.damage = 2
+	_wake.knockback = 40.0
+	_wake.hitstop = 0.02
+	_wake.tags = PackedStringArray(["wake"])
+	_wake.source = self
+	var shape := CollisionShape2D.new()
+	var c := CircleShape2D.new()
+	c.radius = 10.0
+	shape.shape = c
+	_wake.add_child(shape)
+	add_child(_wake)
+	_wake.landed.connect(func(t, _i): FX.spark(t.global_position); add_glow(GLOW_PER_HIT * 0.5))
 
 
 func is_dashing() -> bool:
@@ -136,8 +166,10 @@ func _physics_process(delta: float) -> void:
 	elif is_dashing():
 		_dash_timer -= delta
 		velocity = _dash_dir * (DASH_DISTANCE / DASH_TIME)
+		if _dash_timer <= 0.0 and _wake.active:
+			_wake.deactivate()
 	else:
-		var speed := SPEED * (WATER_SPEED_MULT if in_water else 1.0) * weapon.move_mult()
+		var speed: float = SPEED * float(mods.speed) * (float(mods.water_speed) if in_water else 1.0) * weapon.move_mult()
 		velocity = input * speed + _knockback + _lunge_vel
 		if input != Vector2.ZERO:
 			facing = input.normalized()
@@ -153,6 +185,7 @@ func _physics_process(delta: float) -> void:
 	# A short grace after the dash keeps late dodges honest.
 	var ghosting := is_dashing() or is_yanked() or _since_dash < DASH_GRACE
 	health.invulnerable = ghosting
+	hurtbox.damage_mult = 0.7 if (mods.dash_guard and _since_dash < 1.0) else 1.0
 	collision_mask = MASK_WORLD if ghosting else MASK_WORLD_AND_ENEMIES
 	_recharge(delta)
 	move_and_slide()
@@ -165,6 +198,9 @@ func _start_dash(dir: Vector2) -> void:
 	_dash_dir = dir
 	weapon.cancel()
 	FX.burst(global_position + Vector2(0, 4), Color(0.9, 0.85, 0.7, 0.8), 6, 30.0)
+	if mods.dash_wake:
+		_wake.activate()
+		FX.burst(global_position, Color(0.6, 0.9, 1.0, 0.8), 6, 40.0)
 
 
 func _recharge(delta: float) -> void:
@@ -192,9 +228,11 @@ func _animate(input: Vector2) -> void:
 		sprite.speed_scale = -1.0 if signf(input.x) == -signf(aim.x) and input.x != 0.0 else 1.0
 	else:
 		sprite.speed_scale = 1.0
-	# Riptide armed: faint blue pulse. Glow full: warm pulse.
 	if riptide_t > 0.0:
 		sprite.modulate = Color(0.8, 0.95, 1.0).lerp(Color.WHITE, 0.5 + 0.5 * sin(riptide_t * 12.0))
+	elif weapon.is_charging():
+		var f := weapon.charge_fraction()
+		sprite.modulate = Color(1.0 + 0.3 * f, 1.0 + 0.2 * f, 1.0)
 	elif glow_full():
 		sprite.modulate = Color(1.0, 0.95, 0.8).lerp(Color.WHITE, 0.5 + 0.5 * sin(Time.get_ticks_msec() / 120.0))
 	else:
@@ -207,7 +245,7 @@ func _on_dodged(_info: DamageInfo) -> void:
 	if _dodge_cd > 0.0 or not (is_dashing() or _since_dash < DASH_GRACE):
 		return
 	_dodge_cd = 0.6
-	riptide_t = RIPTIDE_WINDOW
+	riptide_t = mods.riptide_window
 	dash_charges = mini(max_dash, dash_charges + 1)
 	Juice.slowmo(0.25, 0.28)
 	FX.ring(global_position, Color(0.6, 0.9, 1.0), 1.2)
@@ -226,7 +264,7 @@ func consume_riptide() -> bool:
 # --- lantern -------------------------------------------------------------------------
 func add_glow(amount: float) -> void:
 	var was_full := glow_full()
-	glow = minf(GLOW_MAX, glow + amount)
+	glow = minf(GLOW_MAX, glow + amount * mods.glow_mult)
 	if glow_full() and not was_full:
 		FX.burst(global_position + Vector2(-6, -2), Color(1.0, 0.9, 0.5), 8, 35.0)
 		FX.text(global_position, "LANTERN READY", Color(1.0, 0.9, 0.55))
@@ -242,12 +280,18 @@ func flare() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not (e is Enemy) or e.global_position.distance_to(global_position) > FLARE_RADIUS:
 			continue
-		var info := DamageInfo.make(FLARE_DAMAGE, self, e.global_position - global_position, 120.0)
+		var info := DamageInfo.make(int(FLARE_DAMAGE * mods.damage), self, e.global_position - global_position, 120.0)
 		info.tags = PackedStringArray(["flare", "lantern"])
 		info.hitstop = 0.0
 		e.hurtbox.receive(info)
 		e.stunned = maxf(e.stunned, FLARE_STUN if not e.is_boss else FLARE_STUN * 0.5)
 		FX.spark(e.global_position)
+
+
+func _on_enemy_died(_e: Node) -> void:
+	add_glow(GLOW_PER_KILL)
+	if mods.kill_heal > 0 and not dead:
+		health.heal(mods.kill_heal)
 
 
 # --- damage --------------------------------------------------------------------------
@@ -280,6 +324,17 @@ func _flash() -> void:
 
 
 func _on_died() -> void:
+	if mods.second_chance and not _second_chance_used:
+		# Keeper's Tether: the lantern holds you one more time.
+		_second_chance_used = true
+		health.hp = 30
+		health.changed.emit(health.hp, health.max_hp)
+		health._iframes = 1.5
+		Juice.slowmo(0.2, 0.5)
+		FX.flash_screen(Color(1.0, 0.95, 0.8, 0.7), 0.6)
+		FX.ring(global_position, Color(1.0, 0.9, 0.5), 3.0)
+		FX.text(global_position, "THE TETHER HOLDS", Color(1.0, 0.9, 0.55))
+		return
 	dead = true
 	sprite.play("hurt")
 	sprite.modulate = Color(0.6, 0.6, 0.7)
