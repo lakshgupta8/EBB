@@ -86,12 +86,12 @@ func _build() -> void:
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
-	box.custom_minimum_size = Vector2(330, 0)
+	box.custom_minimum_size = Vector2(440, 0)
 	panel.add_child(box)
 	box.add_child(UI.label("ORLA'S LEDGER", 16, Color(0.95, 0.85, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
 	var line := UI.label("\"%s\"" % orla_line(), 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.custom_minimum_size = Vector2(330, 0)
+	line.custom_minimum_size = Vector2(440, 0)
 	box.add_child(line)
 	box.add_child(UI.spacer(4))
 	_rows = []
@@ -99,19 +99,18 @@ func _build() -> void:
 		var u: Dictionary = Ledger.UPGRADES[i]
 		var b := UI.row_button()
 		var h := HBoxContainer.new()
-		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		h.add_theme_constant_override("separation", 8)
 		var a := UI.label("[%d] %s" % [i + 1, u.name], 8)
 		a.custom_minimum_size = Vector2(130, 0)
-		var d := UI.label(u.desc, 8, Color(0.7, 0.75, 0.8))
-		d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var d := UI.flex_label(u.desc)
 		var c := UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_RIGHT)
-		c.custom_minimum_size = Vector2(70, 0)
+		c.custom_minimum_size = Vector2(84, 0)
 		h.add_child(a)
 		h.add_child(d)
 		h.add_child(c)
 		b.add_child(h)
-		b.custom_minimum_size = Vector2(310, 18)
+		UI.fill(h, 6.0, 4.0)
+		b.custom_minimum_size = Vector2(420, 20)
 		b.pressed.connect(_buy.bind(i))
 		box.add_child(b)
 		_rows.append([a, d, c, b])

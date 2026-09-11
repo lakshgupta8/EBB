@@ -43,6 +43,14 @@ func test_ledger_tiers_and_costs() -> void:
 	SaveManager.use_path(SaveManager.PATH)
 
 
+func test_menu_texts_fit_their_rows() -> void:
+	# 6 px per glyph in the pixel font; keep descriptions inside the row's description column.
+	for u in Ledger.UPGRADES:
+		assert_true(u.desc.length() * 6 <= 200, "ledger desc too long: " + u.desc)
+	for it in Shop.ITEMS:
+		assert_true(it.desc.length() * 6 <= 150, "shop desc too long: " + it.desc)
+
+
 func test_room_graph_offers_altar_early() -> void:
 	var g := RoomGraph.new(3, 8)
 	assert_true(RoomGraph.ALTAR in g.options_for(1), "altar at depth 1")

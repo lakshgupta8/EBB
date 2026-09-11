@@ -75,12 +75,12 @@ func _build() -> void:
 		var col: Color = Tidemarks.FAMILY_COLOR[m.family]
 		var b := UI.row_button(col)
 		var inner := VBoxContainer.new()
-		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		inner.add_theme_constant_override("separation", 1)
+		inner.add_theme_constant_override("separation", 2)
 		inner.add_child(UI.label("[%d] %s   %s" % [i + 1, m.name.to_upper(), m.family], 8, col))
 		inner.add_child(UI.label(m.desc, 8, Color(0.85, 0.85, 0.9)))
 		b.add_child(inner)
-		b.custom_minimum_size = Vector2(250, 30)
+		UI.fill(inner, 6.0, 5.0)
+		b.custom_minimum_size = Vector2(250, 32)
 		b.pressed.connect(choose.bind(i))
 		box.add_child(b)
 	_root = center
