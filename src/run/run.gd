@@ -65,6 +65,7 @@ var _echo_queue: Array = []  # echo ids still to be found in this biome, in dept
 @onready var banner: Label = $HUD/Banner
 @onready var shop: Shop = $Shop
 @onready var altar_ui: AltarUI = $AltarUI
+@onready var codex_ui: CodexUI = $CodexUI
 
 
 func biome() -> Dictionary:
@@ -86,8 +87,11 @@ func _ready() -> void:
 	Atmosphere.build(self, Vector2(640, 368))
 	Audio.ambient("ambient_sea", -14.0)
 	Audio.gulls_enabled = true
-	# Dev / playtest aids: `-- --biome=1` starts in the streets, `--boss` at its boss.
+	# Dev / playtest aids: `-- --biome=1` starts in the streets, `--boss` at its boss,
+	# `--sim-save` keeps the real profile out of it.
 	var start_biome := 0
+	if "--sim-save" in OS.get_cmdline_user_args():
+		SaveManager.use_path("user://sim_save.json")
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--biome="):
 			start_biome = clampi(int(a.trim_prefix("--biome=")), 0, BIOMES.size() - 1)
@@ -140,12 +144,14 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	if night:
 		night.color = NIGHT_TINT[mini(index, NIGHT_TINT.size() - 1)]
 	Audio.gulls_enabled = index == 0
+	Codex.discover("place", ["flats", "streets", "hall"][mini(index, 2)])
 	if at_boss:
 		state.depth = b.length
 		_enter_room(RoomGraph.BOSS)
 		return
 	_enter_room(RoomGraph.COMBAT)
 	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
+	_whisper(["first_night", "streets", "hall"][mini(index, 2)], 3.6)
 
 
 ## Past a boss: the tide slackens, the next biome begins.
@@ -234,7 +240,10 @@ func _enter_room(type: int) -> void:
 		RoomGraph.ALTAR:
 			for cell in room.template.marker_cells("A"):
 				room.add_prop(Prop.Kind.ALTAR, cell).used.connect(func(_p):
-					altar_ui.open(Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))))
+					var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))
+					for id in offers:
+						Codex.discover("mark", id)
+					altar_ui.open(offers))
 			_set_cleared()
 		RoomGraph.SHOP:
 			shop.restock()
@@ -248,6 +257,7 @@ func _enter_room(type: int) -> void:
 			_show_banner(biome().boss_name, 2.2, Color(0.95, 0.75, 0.6), 20)
 			EventBus.request_shake.emit(0.6)
 			Audio.play("roar" if state.biome == 0 else "bell")
+			_whisper(["wreck", "bell", "ebb"][mini(state.biome, 2)], 2.8)
 
 	_show_room_label(biome().name, "%d / %d   %s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type]])
 	EventBus.room_entered.emit(room)
@@ -323,6 +333,7 @@ func _spawn_echo_room() -> void:
 		cage.used.connect(_on_cage_opened)
 	if cage_echo != "":
 		_show_banner("SOMEONE IS STILL HERE", 2.0, Color(0.75, 0.9, 1.0), 12)
+		_whisper("cage", 2.6)
 
 
 func _spawn_boss() -> void:
@@ -342,9 +353,22 @@ func _spawn_boss() -> void:
 			c.salt_drop = 1
 
 
+## The lantern's one-time lines, a moment after whatever they comment on.
+func _whisper(key: String, delay: float) -> void:
+	var text := Story.whisper(key)
+	if text == "":
+		return
+	await get_tree().create_timer(delay).timeout
+	if state.ended:
+		return
+	_show_banner("\"" + text + "\"", 5.5, Color(0.85, 0.85, 0.95), 8)
+
+
 func _show_banner(text: String, duration: float, color: Color, size: int = 14) -> void:
 	banner.text = text
 	banner.add_theme_font_size_override("font_size", size)
+	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if size <= 8 else TextServer.AUTOWRAP_OFF
+	banner.vertical_alignment = VERTICAL_ALIGNMENT_TOP if size <= 8 else VERTICAL_ALIGNMENT_CENTER
 	banner.modulate = Color(color.r, color.g, color.b, 0.0)
 	banner.visible = true
 	var tw := create_tween()
@@ -358,6 +382,7 @@ func _spawn(scene: PackedScene, at: Vector2) -> Enemy:
 	var e: Enemy = scene.instantiate()
 	e.global_position = at
 	content.add_child(e)
+	Codex.discover("enemy", Codex.enemy_id(e))
 	return e
 
 
@@ -411,6 +436,7 @@ func _on_cage_opened(p: Prop) -> void:
 func _on_enemy_died(enemy: Node) -> void:
 	state.kills += 1
 	if enemy is Enemy:
+		Codex.discover("enemy", Codex.enemy_id(enemy))
 		var pos: Vector2 = enemy.global_position
 		for i in int(round(enemy.salt_drop * player.mods.salt_mult)):
 			Pickup.spawn(content, pos, Pickup.Kind.SALT)
@@ -541,7 +567,11 @@ func _end_run() -> void:
 func _handle_screenshot_arg() -> void:
 	if not "--screenshot" in OS.get_cmdline_user_args():
 		return
-	for i in 40:
+	var frames := 40
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--wait="):
+			frames = int(a.trim_prefix("--wait="))
+	for i in frames:
 		await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)

@@ -25,6 +25,9 @@ func _input(event: InputEvent) -> void:
 	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_X:
 		_quit_game()
 		get_viewport().set_input_as_handled()
+	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C:
+		_open_codex()
+		get_viewport().set_input_as_handled()
 
 
 func toggle() -> void:
@@ -65,6 +68,9 @@ func _build() -> void:
 	var fs := UI.text_button("Fullscreen / window   [F11]")
 	fs.pressed.connect(func(): Game.toggle_fullscreen())
 	box.add_child(fs)
+	var codex := UI.text_button("Codex   [C]")
+	codex.pressed.connect(_open_codex)
+	box.add_child(codex)
 	if _in_run():
 		var give_up := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
 		give_up.pressed.connect(_quit_to_hub)
@@ -83,6 +89,14 @@ func _build() -> void:
 		box.add_child(UI.label("E talks to people; the shore leads down", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Pearls and rescues are already saved", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 	_root = center
+
+
+func _open_codex() -> void:
+	var c := get_tree().current_scene.get_node_or_null("CodexUI") as CodexUI
+	if c == null:
+		return
+	toggle()
+	c.open()
 
 
 ## Quit is two presses so a stray click cannot end the night.

@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/run/run.gd" id="1_run"]
 [ext_resource type="PackedScene" path="res://src/player/player.tscn" id="2_player"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="6_pause"]
 [ext_resource type="PackedScene" path="res://src/ui/shop.tscn" id="8_shop"]
 [ext_resource type="PackedScene" path="res://src/ui/altar_ui.tscn" id="9_altar"]
+[ext_resource type="PackedScene" path="res://src/ui/codex_ui.tscn" id="10_codex"]
 [ext_resource type="FontFile" path="res://assets/fonts/ebb.fnt" id="7_font"]
 
 [node name="Run" type="Node2D"]
@@ -83,6 +84,8 @@ vertical_alignment = 1
 [node name="Shop" parent="." instance=ExtResource("8_shop")]
 
 [node name="AltarUI" parent="." instance=ExtResource("9_altar")]
+
+[node name="CodexUI" parent="." instance=ExtResource("10_codex")]
 
 [node name="Fade" type="ColorRect" parent="HUD"]
 anchors_preset = 15

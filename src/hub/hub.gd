@@ -11,6 +11,8 @@ const WEAPON_COST := {"gaff": 0, "net": 0, "harpoon": 25, "lantern": 40}
 @onready var info: Label = $HUD/Info
 @onready var ledger_ui: LedgerUI = $LedgerUI
 @onready var choice_ui: ChoiceUI = $ChoiceUI
+@onready var codex_ui: CodexUI = $CodexUI
+@onready var ending_ui: EndingUI = $EndingUI
 
 var room: Room
 
@@ -48,6 +50,8 @@ func _ready() -> void:
 		tower.setup(Prop.Kind.LIGHTHOUSE, centre)
 	for cell in room.template.marker_cells("O"):
 		room.add_prop(Prop.Kind.ORLA, cell).used.connect(func(_p): ledger_ui.open())
+	for cell in room.template.marker_cells("K"):
+		room.add_prop(Prop.Kind.FEN, cell).used.connect(func(_p): open_fen())
 	if SaveManager.flag("echo_bram"):
 		for cell in room.template.marker_cells("B"):
 			room.add_prop(Prop.Kind.BRAM, cell).used.connect(func(_p): open_bram())
@@ -62,6 +66,8 @@ func _ready() -> void:
 			room.add_prop(Prop.Kind.MAREN, cell).used.connect(func(_p): open_maren())
 	ledger_ui.closed.connect(_refresh_info)
 	choice_ui.closed.connect(_refresh_info)
+	codex_ui.closed.connect(_refresh_info)
+	ending_ui.tide = room.set_tide
 	_refresh_info()
 	_handle_screenshot_arg()
 
@@ -87,12 +93,7 @@ func open_bram() -> void:
 		options.append({"name": Weapon.ALL[id].name, "desc": Weapon.ALL[id].desc,
 			"right": "" if id in owned else "%d pearls" % cost, "fail": "not enough pearls"})
 	var current := ids.find(Game.weapon_id())
-	var line := "I made every blade in Saltmere. The water took the rest. Take what suits your hands."
-	if int(SaveManager.data.runs) > 6:
-		line = "You keep coming back with the same weapon. Or a different one. Either way you come back. Good."
-	if owned.size() >= ids.size():
-		line = "That is everything I know how to make. The rest is in how you hold it."
-	choice_ui.open("BRAM'S FORGE", line, options, current, Color(0.95, 0.75, 0.55), func(i):
+	choice_ui.open("BRAM'S FORGE", Story.bram(), options, current, Color(0.95, 0.75, 0.55), func(i):
 		var id: String = ids[i]
 		if not id in owned:
 			var cost: int = WEAPON_COST.get(id, 0)
@@ -118,8 +119,7 @@ func open_wren() -> void:
 	for f in fams:
 		options.append({"name": Tidemarks.FAMILY_NAME[f], "desc": descs[f]})
 	var current := fams.find(str(SaveManager.data.get("blessed_family", "")))
-	choice_ui.open("SISTER WREN", "A prayer is only asking the same thing every night until the sea gets tired of hearing it. What shall we ask for?",
-		options, current, Color(0.8, 0.9, 1.0), func(i):
+	choice_ui.open("SISTER WREN", Story.wren(), options, current, Color(0.8, 0.9, 1.0), func(i):
 			SaveManager.data["blessed_family"] = fams[i]
 			SaveManager.save_profile()
 			return "every altar will carry %s" % fams[i]
@@ -133,28 +133,47 @@ func open_cartographer() -> void:
 	for t in RoomGraph.CHARTABLE:
 		options.append({"name": RoomGraph.NAMES[t], "desc": descs[t]})
 	var current := RoomGraph.CHARTABLE.find(int(SaveManager.data.get("charted_room", -1)))
-	choice_ui.open("THE CARTOGRAPHER", "The streets do not move. I can tell you what is two turnings down, every night. Not more. The water changes the rest.",
-		options, current, Color(0.75, 0.8, 1.0), func(i):
+	choice_ui.open("THE CARTOGRAPHER", Story.cartographer(), options, current, Color(0.75, 0.8, 1.0), func(i):
 			SaveManager.data["charted_room"] = RoomGraph.CHARTABLE[i]
 			SaveManager.save_profile()
 			return "charted: %s at depth 2" % RoomGraph.NAMES[RoomGraph.CHARTABLE[i]].to_lower()
 	)
 
 
-## Maren: the old keeper, back from under the hall. She only talks, for now.
+## Maren: the old keeper, back from under the hall. She holds the endings.
 func open_maren() -> void:
-	var wins := int(SaveManager.data.get("wins", 0))
-	var line := "Tam. You went all the way down and came back with me. Nobody has done that. The lantern is yours now, properly. What you do with the tide is the next question, and I do not have the answer either."
-	if wins >= 3:
-		line = "You keep going back. I did that too. Some night you will have to decide whether to break the lantern or walk out. I will be here either way."
-	choice_ui.open("MAREN", line, [], -1, Color(0.95, 0.9, 0.8))
+	var ids: Array = []
+	var options: Array = []
+	for id in Story.ENDING_ORDER:
+		if not Story.ending_visible(id):
+			continue
+		var e: Dictionary = Story.ENDINGS[id]
+		var reason := Story.ending_locked_reason(id)
+		var right := "seen" if Story.seen(id) else ("locked" if reason != "" else "")
+		ids.append(id)
+		options.append({"name": e.name, "desc": e.desc, "right": right, "fail": reason})
+	choice_ui.open("MAREN", Story.maren(), options, -1, Color(0.95, 0.9, 0.8), func(i):
+		var id: String = ids[i]
+		if not Story.ending_available(id):
+			return ""
+		choice_ui.close()
+		ending_ui.play.call_deferred(id)
+		return "..."
+	)
+
+
+## Fen: the village kid. Only ever has something to say.
+func open_fen() -> void:
+	choice_ui.open("FEN", Story.fen(), [], -1, Color(0.85, 0.95, 0.8))
 
 
 func _refresh_info() -> void:
 	var s := SaveManager.data
 	var echoes := int(s.get("echoes", 0))
-	info.text = "MARROW ROCK   %s\npearls %d   runs %d   best %d   wins %d   echoes %d" % [
-		Weapon.name_of(Game.weapon_id()).to_lower(), s.pearls, s.runs, s.best_depth, s.wins, echoes]
+	var endings := Story.endings_seen().size()
+	info.text = "MARROW ROCK   %s\npearls %d   runs %d   best %d   wins %d   echoes %d%s" % [
+		Weapon.name_of(Game.weapon_id()).to_lower(), s.pearls, s.runs, s.best_depth, s.wins, echoes,
+		"   endings %d/3" % endings if endings > 0 else ""]
 
 
 func _handle_screenshot_arg() -> void:
@@ -173,6 +192,18 @@ func _handle_screenshot_arg() -> void:
 		open_maren()
 	elif "--pause" in args:
 		$Pause.toggle()
+	elif "--fen" in args:
+		open_fen()
+	elif "--codex" in args:
+		codex_ui.open(0)
+	elif "--codex2" in args:
+		codex_ui.open(1)
+	else:
+		for a in args:
+			if a.begins_with("--ending="):
+				ending_ui.play(a.trim_prefix("--ending="))
+				for i in 220:
+					await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
