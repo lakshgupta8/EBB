@@ -40,6 +40,22 @@ offset_bottom = 360.0
 theme_override_font_sizes/font_size = 8
 text = "The Flats"
 
+[node name="Banner" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 52.0
+offset_right = 200.0
+offset_bottom = 80.0
+theme_override_colors/font_outline_color = Color(0.09, 0.08, 0.14, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "THE WAY OPENS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Fade" type="ColorRect" parent="HUD"]
 anchors_preset = 15
 anchor_right = 1.0

@@ -25,6 +25,7 @@ func _ready() -> void:
 		elif a.begins_with("--shot="): _shot_tick = int(a.trim_prefix("--shot="))
 		elif a.begins_with("--seed="): seed_val = int(a.trim_prefix("--seed="))
 	Engine.max_fps = 0
+	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
 	SaveManager.use_path("user://sim_save.json")
 	Game.run_seed = seed_val
 	run = RUN.instantiate()
@@ -57,6 +58,7 @@ func _nearest_enemy() -> Enemy:
 
 func _drive() -> void:
 	_release_all()
+	_stall_watch()
 	if run._transitioning or player.dead:
 		return
 	var target := _nearest_enemy()
@@ -74,7 +76,47 @@ func _drive() -> void:
 	for d in run.room.doors:
 		if d.is_open:
 			_walk_to(d.global_position, 2.0)
+			_stuck_report(d)
 			return
+
+
+var _no_progress: int = 0
+var _progress_depth: int = -1
+var _stall_depth: int = -1
+var _stall_ticks: int = 0
+
+
+## Dumps run state whenever depth has not advanced for 20 s, so a stall is diagnosable.
+func _stall_watch() -> void:
+	if run.state.depth != _stall_depth:
+		_stall_depth = run.state.depth
+		_stall_ticks = 0
+		return
+	_stall_ticks += 1
+	if _stall_ticks % 1200 == 0:
+		var enemies := get_tree().get_nodes_in_group("enemies")
+		var names := []
+		for e in enemies:
+			names.append("%s@%s:%s" % [e.display_name, e.global_position.round(), e.state])
+		var doors := []
+		for d in run.room.doors:
+			doors.append("%s:%s" % [d.cell, d.is_open])
+		print("sim_run: STALL tick=%d depth=%d room=%s transitioning=%s cleared=%s player=%s hp=%d enemies=%s doors=%s" % [
+			tick, run.state.depth, run.room.template.name, run._transitioning, run.room_cleared,
+			player.global_position.round(), player.health.hp, names, doors])
+
+
+func _stuck_report(door: Door) -> void:
+	if run.state.depth != _progress_depth:
+		_progress_depth = run.state.depth
+		_no_progress = 0
+	_no_progress += 1
+	if _no_progress % 600 == 0:
+		var path := run.room.nav_path(player.global_position, door.global_position)
+		print("sim_run: STUCK? tick=%d room=%s player=%s cell=%s door=%s cell=%s open=%s path=%d solid_here=%s" % [
+			tick, run.room.template.name, player.global_position.round(), run.room.world_to_cell(player.global_position),
+			door.global_position.round(), door.cell, door.is_open, path.size(),
+			run.room.template.is_solid(run.room.world_to_cell(player.global_position).x, run.room.world_to_cell(player.global_position).y)])
 
 
 func _fight(target: Enemy) -> void:
@@ -115,7 +157,8 @@ func _walk_to(pos: Vector2, tolerance: float) -> void:
 				goal = path[2]
 		elif path.size() == 1:
 			goal = pos
-		_press_dir(goal - player.global_position)
+		# Final approach: centre precisely so the body clears the door jambs.
+		_press_dir(goal - player.global_position, 0.12 if goal == pos else 0.35)
 	# Unstick: if we have not moved for a while, dash toward the goal.
 	if player.global_position.distance_to(_last_pos) < 0.5:
 		_stuck_t += 1
@@ -127,12 +170,12 @@ func _walk_to(pos: Vector2, tolerance: float) -> void:
 	_last_pos = player.global_position
 
 
-func _press_dir(dir: Vector2) -> void:
+func _press_dir(dir: Vector2, threshold: float = 0.35) -> void:
 	var n := dir.normalized()
-	if n.x > 0.35: Input.action_press("move_right")
-	elif n.x < -0.35: Input.action_press("move_left")
-	if n.y > 0.35: Input.action_press("move_down")
-	elif n.y < -0.35: Input.action_press("move_up")
+	if n.x > threshold: Input.action_press("move_right")
+	elif n.x < -threshold: Input.action_press("move_left")
+	if n.y > threshold: Input.action_press("move_down")
+	elif n.y < -threshold: Input.action_press("move_up")
 
 
 func _release_all() -> void:

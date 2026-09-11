@@ -1,10 +1,13 @@
 class_name Door
 extends Area2D
-## An exit. Shows the icon of the room type behind it; passable once the room opens it.
+## An exit. A stone archway in the wall with a big icon and label showing what is
+## behind it. Barred until the room opens it, then it glows and the icon bobs.
 
 signal entered(door: Door)
 
 const ICONS := preload("res://assets/sprites/icons.png")
+const FRAME := preload("res://assets/sprites/door.png")
+const GLOW := preload("res://assets/sprites/glow.png")
 const DESCEND := -1  # hub-only door type
 
 var room_type: int = 0
@@ -12,7 +15,11 @@ var cell: Vector2i
 var is_open: bool = false
 
 var _icon: Sprite2D
+var _label: Label
+var _glow: Sprite2D
+var _frame: Sprite2D
 var _room: Room
+var _interior: Vector2
 
 
 func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
@@ -20,26 +27,62 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	cell = p_cell
 	room_type = p_type
 	position = p_room.cell_to_world(p_cell)
+	_interior = _room.interior_dir(p_cell)
 	collision_layer = 0
 	collision_mask = 2  # player
+	# Trigger covers the doorway and one tile into the room, so brushing the mouth
+	# of an open door is enough. Rotated so the long axis points inward.
 	var shape := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
-	rect.size = Vector2(14, 14)
+	rect.size = Vector2(12, 30)
 	shape.shape = rect
+	shape.rotation = Vector2.DOWN.angle_to(_interior)
+	shape.position = _interior * 7.0
 	add_child(shape)
+
+	# Archway, drawn with its opening facing the interior.
+	_frame = Sprite2D.new()
+	_frame.texture = _atlas(FRAME, 0, 32)
+	_frame.offset = Vector2(0, 2)
+	_frame.rotation = Vector2.DOWN.angle_to(_interior)
+	_frame.z_index = 2
+	add_child(_frame)
+
+	_glow = Sprite2D.new()
+	_glow.texture = GLOW
+	_glow.position = _interior * 6.0
+	_glow.modulate = Color(0.55, 0.85, 1.0, 0.0)
+	_glow.z_index = 2
+	add_child(_glow)
+
 	_icon = Sprite2D.new()
-	_icon.z_index = 3
+	_icon.z_index = 4
+	_icon.scale = Vector2(2, 2)
 	if p_type >= 0:
-		var at := AtlasTexture.new()
-		at.atlas = ICONS
-		at.region = Rect2(RoomGraph.ICON[p_type] * 12, 0, 12, 12)
-		_icon.texture = at
-	_icon.modulate = Color(0.5, 0.5, 0.55)
-	# Push the icon toward the room interior so it is not hidden by the wall.
-	var interior := _room.interior_dir(p_cell)
-	_icon.position = interior * 14.0
+		_icon.texture = _atlas(ICONS, RoomGraph.ICON[p_type], 12)
+	_icon.modulate = Color(0.45, 0.45, 0.5)
+	_icon.position = _interior * 26.0
 	add_child(_icon)
+
+	_label = Label.new()
+	_label.text = (RoomGraph.NAMES[p_type] if p_type >= 0 else "Descend").to_upper()
+	_label.add_theme_font_size_override("font_size", 8)
+	_label.add_theme_color_override("font_outline_color", Color(0.09, 0.08, 0.14))
+	_label.add_theme_constant_override("outline_size", 3)
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label.size = Vector2(80, 12)
+	_label.position = _icon.position + Vector2(-40, 13)
+	_label.modulate = Color(0.7, 0.7, 0.75, 0.0)
+	_label.z_index = 4
+	add_child(_label)
 	body_entered.connect(_on_body_entered)
+
+
+func _atlas(tex: Texture2D, index: int, cell_size: int) -> AtlasTexture:
+	var at := AtlasTexture.new()
+	at.atlas = tex
+	at.region = Rect2(index * cell_size, 0, cell_size, cell_size)
+	return at
 
 
 func open() -> void:
@@ -47,10 +90,28 @@ func open() -> void:
 		return
 	is_open = true
 	_room.set_ground_tile(cell, Tiles.DOOR_OPEN)
+	_frame.texture = _atlas(FRAME, 1, 32)
 	_icon.modulate = Color.WHITE
-	var tw := create_tween().set_loops()
-	tw.tween_property(_icon, "position:y", _icon.position.y - 2.0, 0.6).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(_icon, "position:y", _icon.position.y, 0.6).set_trans(Tween.TRANS_SINE)
+	_label.modulate = Color(0.95, 0.95, 1.0, 1.0)
+	# Pop, then bob forever; glow breathes.
+	_icon.scale = Vector2(3.2, 3.2)
+	var pop := create_tween()
+	pop.tween_property(_icon, "scale", Vector2(2, 2), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var bob := create_tween().set_loops()
+	bob.tween_property(_icon, "position", _icon.position - _interior * 3.0, 0.6).set_trans(Tween.TRANS_SINE)
+	bob.tween_property(_icon, "position", _icon.position, 0.6).set_trans(Tween.TRANS_SINE)
+	var breathe := create_tween().set_loops()
+	breathe.tween_property(_glow, "modulate:a", 0.75, 0.8).set_trans(Tween.TRANS_SINE)
+	breathe.tween_property(_glow, "modulate:a", 0.35, 0.8).set_trans(Tween.TRANS_SINE)
+	FX.burst(global_position + _interior * 8.0, Color(0.6, 0.85, 1.0), 10, 40.0)
+
+
+func _physics_process(_delta: float) -> void:
+	# body_entered misses a player already standing in the doorway when it opens.
+	if not is_open:
+		return
+	for b in get_overlapping_bodies():
+		_on_body_entered(b)
 
 
 func _on_body_entered(body: Node) -> void:
