@@ -3,21 +3,29 @@ extends RefCounted
 ## Decides which room types are offered at each depth. Deterministic per seed.
 ## Depth 0 is the first room; depth == biome_length is the boss.
 
-enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS, SHOP, ALTAR }
+enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS, SHOP, ALTAR, ECHO }
 const NAMES := {COMBAT: "Combat", ELITE: "Elite", FOUNTAIN: "Fountain", TREASURE: "Treasure",
-	BOSS: "Boss", SHOP: "Merchant", ALTAR: "Altar"}
-const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4, SHOP: 5, ALTAR: 6}
+	BOSS: "Boss", SHOP: "Merchant", ALTAR: "Altar", ECHO: "Echo"}
+const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4, SHOP: 5, ALTAR: 6, ECHO: 7}
 ## Types that never repeat back to back.
-const NO_REPEAT := [SHOP, ALTAR, FOUNTAIN, TREASURE]
+const NO_REPEAT := [SHOP, ALTAR, FOUNTAIN, TREASURE, ECHO]
+## Where echo cages are placed when one, or two, echoes are still lost in a biome.
+const ECHO_DEPTHS := [[3], [3, 6]]
+## The Cartographer can promise one of these at depth 2.
+const CHARTABLE := [FOUNTAIN, TREASURE, SHOP]
 
 var biome_length: int = 8
+var echo_depths: Array = []
+var charted: int = -1
 var _rng := RandomNumberGenerator.new()
 var _cache: Dictionary = {}
 
 
-func _init(p_seed: int, p_length: int = 8) -> void:
+func _init(p_seed: int, p_length: int = 8, p_echo_depths: Array = [], p_charted: int = -1) -> void:
 	_rng.seed = p_seed
 	biome_length = p_length
+	echo_depths = p_echo_depths
+	charted = p_charted
 	for d in biome_length + 1:
 		_cache[d] = _generate(d)
 
@@ -41,11 +49,18 @@ func _generate(depth: int) -> Array:
 	var picked: Array = []
 	for i in count:
 		picked.append(_weighted(depth, picked))
-	# Guarantees: an altar is offered at depth 1, a merchant at depth 4.
+	# Guarantees: an altar is offered at depth 1, a merchant at depth 4, the charted
+	# room at depth 2, and an echo cage where one is still lost.
 	if depth == 1 and not ALTAR in picked:
 		picked[0] = ALTAR
 	if depth == 4 and not SHOP in picked:
 		picked[0] = SHOP
+	if depth == 2 and charted in CHARTABLE and not charted in picked:
+		picked[0] = charted
+	if depth in echo_depths and not ECHO in picked:
+		picked[picked.size() - 1] = ECHO
+		if picked.size() > 1 and picked[0] == ECHO:
+			picked[0] = COMBAT
 	return picked
 
 

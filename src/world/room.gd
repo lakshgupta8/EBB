@@ -5,11 +5,13 @@ extends Node2D
 
 const WATER_ANIM_PERIOD := 0.55
 const DECOR := preload("res://assets/sprites/decor.png")
+const DECOR_STREETS := preload("res://assets/sprites/decor2.png")
 const DECOR_COUNT := 8
 const DECOR_PUDDLE := 4
 const TINTS := [Color(1, 1, 1), Color(0.97, 0.99, 1.0), Color(1.0, 0.97, 0.93), Color(0.95, 0.97, 0.95)]
 
 var template: RoomTemplate
+var theme: int = Tiles.Look.FLATS
 var doors: Array[Door] = []
 var props: Array[Prop] = []
 
@@ -22,8 +24,9 @@ var _flooded: Array[Vector2i] = []
 var _astar: AStarGrid2D
 
 
-func build(t: RoomTemplate, decor_seed: int = 0) -> void:
+func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS) -> void:
 	template = t
+	theme = p_theme
 	add_to_group("room")
 	_ground = TileMapLayer.new()
 	_ground.name = "Ground"
@@ -38,7 +41,7 @@ func build(t: RoomTemplate, decor_seed: int = 0) -> void:
 	add_child(_water)
 	for y in t.height:
 		for x in t.width:
-			_ground.set_cell(Vector2i(x, y), 0, Tiles.coords(t.tile_at(x, y)))
+			_ground.set_cell(Vector2i(x, y), 0, Tiles.coords(t.tile_at(x, y, theme)))
 	_build_nav()
 	set_tide(0.0)
 
@@ -64,11 +67,11 @@ func _scatter_decor(decor_seed: int) -> void:
 		var cell := candidates[idx]
 		candidates.remove_at(idx)
 		var kind := rng.randi() % DECOR_COUNT
-		if template.char_at(cell.x, cell.y) == "_" and rng.randf() < 0.5:
+		if theme == Tiles.Look.FLATS and template.char_at(cell.x, cell.y) == "_" and rng.randf() < 0.5:
 			kind = DECOR_PUDDLE
 		var s := Sprite2D.new()
 		var at := AtlasTexture.new()
-		at.atlas = DECOR
+		at.atlas = DECOR_STREETS if theme == Tiles.Look.STREETS else DECOR
 		at.region = Rect2(kind * 16, 0, 16, 16)
 		s.texture = at
 		s.position = cell_to_world(cell) + Vector2(rng.randi_range(-3, 3), rng.randi_range(-3, 3))
@@ -139,6 +142,11 @@ func is_flooded_at(pos: Vector2) -> bool:
 
 func is_deep_at(pos: Vector2) -> bool:
 	return _tide_level > height_at(pos) + 1.0
+
+
+## Any flooded tile at all (the drowned come up out of the water).
+func has_water() -> bool:
+	return not _flooded.is_empty()
 
 
 func set_ground_tile(cell: Vector2i, index: int) -> void:

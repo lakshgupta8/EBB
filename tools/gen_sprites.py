@@ -1350,6 +1350,8 @@ def main():
         "ring": build_ring(),
         "lighthouse": build_lighthouse(),
     }
+    import gen_sprites_m4
+    gen_sprites_m4.build_all(built)
     print("wrote", ", ".join(f"{k}.png" for k in built))
     if "--preview" in sys.argv:
         zoom = 4

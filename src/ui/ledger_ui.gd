@@ -20,6 +20,14 @@ func _ready() -> void:
 static func orla_line() -> String:
 	var s := SaveManager.data
 	if int(s.wins) > 0:
+		return "The bell is quiet. I heard it stop from here. Whatever is under the streets heard it too."
+	if SaveManager.flag("echo_cartographer"):
+		return "The one with the maps does not eat, does not sleep, does not blink. Neither did Maren, near the end."
+	if SaveManager.flag("echo_wren"):
+		return "Wren was praying in the chapel the night it went under. She is still praying. Maybe it works."
+	if SaveManager.flag("echo_bram"):
+		return "Bram. Bram is standing on my rock. He drowned before you were born, Tam. Ask him what he remembers."
+	if int(s.best_depth) >= 9:
 		return "You broke the Wreck. Past the flats the water hides streets, Tam. Saltmere's streets."
 	match int(s.runs):
 		0: return "Maren walked into the ruins with that lantern and did not come back. Keep the tide, Tam. Whatever that means."

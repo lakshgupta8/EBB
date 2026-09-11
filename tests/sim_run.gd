@@ -24,6 +24,13 @@ var _pause_shot_tick: int = -1  # open the pause menu at this tick and screensho
 var _rooms_seen: Array = []
 var _stuck_t: int = 0
 var _last_pos: Vector2
+var _weapon: String = "gaff"
+var _rescued: Array = []
+var _must_win: bool = false
+var _shot_depths: Array = []
+var _shot_boss: bool = false
+var _shot_pending: int = -1
+var _shot_name: String = ""
 
 
 func _ready() -> void:
@@ -36,16 +43,31 @@ func _ready() -> void:
 		elif a == "--shop-shot": _shop_shot = true
 		elif a == "--altar-shot": _altar_shot = true
 		elif a.begins_with("--pause-shot="): _pause_shot_tick = int(a.trim_prefix("--pause-shot="))
+		elif a.begins_with("--weapon="): _weapon = a.trim_prefix("--weapon=")
+		elif a == "--must-win": _must_win = true
+		elif a.begins_with("--shot-depth="):
+			for d in a.trim_prefix("--shot-depth=").split(","):
+				_shot_depths.append(int(d))
+		elif a == "--shot-boss": _shot_boss = true
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
 	SaveManager.use_path("user://sim_save.json")
+	SaveManager.data["weapon"] = _weapon
+	for a in OS.get_cmdline_user_args():
+		if a == "--fresh":
+			SaveManager.wipe()
+			SaveManager.data["weapon"] = _weapon
 	Game.run_seed = seed_val
 	run = RUN.instantiate()
 	EventBus.room_entered.connect(func(r): _rooms_seen.append(RoomGraph.NAMES[run.room_type] + ":" + r.template.name))
+	EventBus.room_cleared.connect(func(_r):
+		if run.room_type == RoomGraph.ECHO and run.cage_echo != "":
+			_rescued.append(run.cage_echo)
+	)
 	EventBus.damage_dealt.connect(func(target, info):
 		if target is Enemy:
-			for t in ["melee", "heavy", "lunge", "crit", "hook", "wake", "bleed", "wall", "flare", "third_hit"]:
+			for t in ["melee", "heavy", "lunge", "crit", "hook", "wake", "bleed", "wall", "flare", "third_hit", "knife", "finisher", "net", "projectile"]:
 				if info.tags.has(t):
 					_tag_hits[t] = _tag_hits.get(t, 0) + 1
 	)
@@ -60,6 +82,17 @@ func _physics_process(_delta: float) -> void:
 		_screenshot("sim_run.png")
 	if tick == _pause_shot_tick:
 		_pause_screenshot()
+	if run.state.depth_total in _shot_depths and not run._transitioning:
+		_shot_depths.erase(run.state.depth_total)
+		_shot_pending = tick + 45
+		_shot_name = "sim_depth_%d.png" % run.state.depth_total
+	if _shot_boss and run.state.biome == 1 and run.boss != null and is_instance_valid(run.boss):
+		_shot_boss = false
+		_shot_pending = tick + 150
+		_shot_name = "sim_boss.png"
+	if _shot_pending == tick:
+		_shot_pending = -1
+		_screenshot(_shot_name)
 	if _finishing:
 		return
 	if tick >= ticks_to_run or run.state.ended:
@@ -122,7 +155,7 @@ func _drive() -> void:
 		return
 	# Use any prop once (reusable ones like the merchant would loop forever otherwise).
 	for p in run.room.props:
-		if not p.used_up and not p in _props_done:
+		if not p.used_up and not p in _props_done and p.interactive:
 			_walk_to(p.global_position, 6.0)
 			if player.global_position.distance_to(p.global_position) < 14.0:
 				Input.action_press("interact")
@@ -205,10 +238,11 @@ func _fight(target: Enemy) -> void:
 		if randf() < 0.2:
 			_hold_ticks = 40
 			_heavies_fired += 1
-	if dist > 50.0 and dist < 90.0 and _special_cd <= 0 and player.weapon.special_ready():
+	if dist > 30.0 and dist < 90.0 and _special_cd <= 0 and player.weapon.special_ready():
+		player.aim_dist = dist
 		Input.action_press("special")
 		_special_cd = 180
-	if _dash_cd <= 0 and (target.state == &"windup" or target.state == &"dive") and dist < 40.0:
+	if _dash_cd <= 0 and (target.state in [&"windup", &"dive", &"toll_windup", &"swing_windup", &"peal_windup", &"peal"]) and dist < 48.0:
 		_press_dir(-to)
 		Input.action_press("dash")
 		_dash_cd = 30
@@ -268,11 +302,11 @@ func _screenshot(file: String) -> void:
 
 func _finish() -> void:
 	var s := run.state
-	print("sim_run: %.1fs  depth=%d  cleared=%d  kills=%d  salt=%d  pearls=%d  tide=%.2f  hp=%d  ended=%s victory=%s taken=%s" % [
-		float(tick) / 60.0, s.depth, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
-		player.health.hp, s.ended, s.victory, s.taken])
+	print("sim_run: %.1fs  biome=%d depth=%d total=%d  cleared=%d  kills=%d  salt=%d  pearls=%d  tide=%.2f  hp=%d  ended=%s victory=%s taken=%s weapon=%s rescued=%s" % [
+		float(tick) / 60.0, s.biome, s.depth, s.depth_total, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
+		player.health.hp, s.ended, s.victory, s.taken, player.weapon.id, _rescued])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
 	print("sim_run: hits by tag: %s  (heavy holds started: %d)" % [_tag_hits, _heavies_fired])
-	var ok := s.depth >= 2 and s.kills > 0
-	print("sim_run: %s" % ("OK" if ok else "FAILED (did not progress past depth 2)"))
+	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win)
+	print("sim_run: %s" % ("OK" if ok else "FAILED (did not progress, or did not win with --must-win)"))
 	get_tree().quit(0 if ok else 1)

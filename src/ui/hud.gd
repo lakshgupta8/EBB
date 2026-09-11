@@ -116,7 +116,7 @@ func _draw() -> void:
 	if _boss and is_instance_valid(_boss) and _boss.health.is_alive():
 		var bw := 320
 		var bx := 320 - bw / 2
-		var by := 334
+		var by := 300
 		draw_rect(Rect2(bx - 2, by - 2, bw + 4, 12), UI.INK)
 		draw_rect(Rect2(bx, by, bw, 8), Color(0.3, 0.12, 0.14))
 		var bf := float(_boss.health.hp) / float(_boss.health.max_hp)

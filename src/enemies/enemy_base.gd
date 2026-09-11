@@ -10,10 +10,14 @@ const FLASH_SHADER := preload("res://src/combat/hit_flash.gdshader")
 @export var knockback_resist: float = 0.0  # 0..1
 @export var death_color: Color = Color(0.6, 0.7, 0.5)
 @export var flying: bool = false  # ignores water
+@export var amphibious: bool = false  # fast in water, slow on land (swimmers)
 @export var salt_drop: int = 2
 @export var pearl_drop: int = 0
 
 const WATER_SPEED_MULT := 0.7
+const LAND_SPEED_MULT := 0.45   # amphibious things out of the water
+const KINDLE_SPEED_MULT := 1.35
+const NET_TEX := preload("res://assets/sprites/net.png")
 
 var is_elite: bool = false
 var is_boss: bool = false
@@ -26,6 +30,48 @@ var _pull_from: Vector2
 var _pull_to: Vector2
 var _bleed_ticks: int = 0
 var _bleed_t: float = 0.0
+var netted_t: float = 0.0        # rooted under a net; takes extra damage
+var kindled_t: float = 0.0       # sped up by a lamplighter
+var _net_sprite: Sprite2D
+
+
+## Rooted under the net for `duration`. Bosses get the short version from the weapon.
+func net(duration: float) -> void:
+	netted_t = maxf(netted_t, duration)
+	stunned = maxf(stunned, duration)
+	if hitbox and hitbox.active:
+		hitbox.deactivate()
+	if _net_sprite == null:
+		_net_sprite = Sprite2D.new()
+		_net_sprite.texture = NET_TEX
+		_net_sprite.position = Vector2(0, -6)
+		_net_sprite.z_index = 4
+		_net_sprite.modulate = Color(1, 1, 1, 0.9)
+		add_child(_net_sprite)
+	_net_sprite.visible = true
+	_net_sprite.rotation = randf() * TAU
+	_refresh_mult()
+
+
+func kindle(duration: float) -> void:
+	kindled_t = maxf(kindled_t, duration)
+	FX.burst(global_position + Vector2(0, -8), Color(1.0, 0.8, 0.5), 6, 40.0)
+
+
+func is_held() -> bool:
+	return netted_t > 0.0 or _pull_timer > 0.0
+
+
+## Incoming damage multiplier from every status at once.
+func _refresh_mult() -> void:
+	var m := 1.0
+	if cracked_t > 0.0:
+		m *= 2.0
+	if netted_t > 0.0:
+		m *= 1.25
+	if is_held() and player:
+		m *= 1.0 + float(player.mods.held_bonus)
+	hurtbox.damage_mult = m
 
 
 ## Dragged to a point (the hook). Stunned for a moment on arrival.
@@ -37,6 +83,7 @@ func pull_to(target: Vector2, duration: float) -> void:
 	stunned = maxf(stunned, duration + 0.4)
 	if hitbox and hitbox.active:
 		hitbox.deactivate()
+	_refresh_mult()
 
 
 func apply_bleed(ticks: int = 3) -> void:
@@ -167,14 +214,23 @@ func _physics_process(delta: float) -> void:
 		var goal := _pull_from.lerp(_pull_to, ease(t, 0.4))
 		velocity = (goal - global_position) / delta
 		move_and_slide()
+		if _pull_timer <= 0.0:
+			_refresh_mult()
 		return
 	if stunned > 0.0:
 		stunned -= delta
 		velocity = _knockback
 	else:
 		_tick(delta)
-		if not flying and room and room.is_flooded_at(global_position):
-			velocity *= WATER_SPEED_MULT
+		if not flying and room:
+			var wet := room.is_flooded_at(global_position)
+			if amphibious:
+				if not wet:
+					velocity *= LAND_SPEED_MULT
+			elif wet:
+				velocity *= WATER_SPEED_MULT
+		if kindled_t > 0.0:
+			velocity *= KINDLE_SPEED_MULT
 		velocity += _knockback
 	_knockback = _knockback.lerp(Vector2.ZERO, 12.0 * delta)
 	move_and_slide()
@@ -182,8 +238,20 @@ func _physics_process(delta: float) -> void:
 	if cracked_t > 0.0:
 		cracked_t -= delta
 		if cracked_t <= 0.0:
-			hurtbox.damage_mult = 1.0
+			_refresh_mult()
 			sprite.modulate = Color.WHITE if not is_boss else sprite.modulate
+	if netted_t > 0.0:
+		netted_t -= delta
+		if netted_t <= 0.0:
+			if _net_sprite:
+				_net_sprite.visible = false
+			_refresh_mult()
+	if kindled_t > 0.0:
+		kindled_t -= delta
+		if kindled_t <= 0.0:
+			sprite.modulate = Color.WHITE if not is_boss else sprite.modulate
+		elif cracked_t <= 0.0 and not is_boss:
+			sprite.modulate = Color(1.0, 0.9, 0.75)
 
 
 func _tick_bleed(delta: float) -> void:
@@ -211,7 +279,8 @@ func _wall_slam() -> void:
 	if is_on_wall():
 		_wall_slam_armed = false
 		_knockback = Vector2.ZERO
-		var info := DamageInfo.make(3, null, Vector2.ZERO, 0.0)
+		var wall_dmg: int = int(player.mods.wall_damage) if player else 3
+		var info := DamageInfo.make(wall_dmg, null, Vector2.ZERO, 0.0)
 		info.tags = PackedStringArray(["wall"])
 		info.hitstop = 0.0
 		if health.take(info, true):
@@ -226,7 +295,7 @@ func _wall_slam() -> void:
 
 func crack(duration: float) -> void:
 	cracked_t = duration
-	hurtbox.damage_mult = 2.0
+	_refresh_mult()
 	sprite.modulate = Color(1.0, 0.75, 0.7)
 	stunned = maxf(stunned, 0.5)
 

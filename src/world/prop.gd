@@ -6,10 +6,12 @@ extends Area2D
 signal used(prop: Prop)
 
 const PROPS := preload("res://assets/sprites/props.png")
-enum Kind { FOUNTAIN, CHEST, LIGHTHOUSE, MERCHANT, ALTAR, ORLA }
-const FRAMES := {Kind.FOUNTAIN: 0, Kind.CHEST: 1, Kind.LIGHTHOUSE: 3, Kind.MERCHANT: 4, Kind.ALTAR: 5, Kind.ORLA: 6}
-const REUSABLE := [Kind.MERCHANT, Kind.ORLA]
-const SCENERY := [Kind.LIGHTHOUSE]
+enum Kind { FOUNTAIN, CHEST, LIGHTHOUSE, MERCHANT, ALTAR, ORLA, CAGE, BRAM, WREN, CARTOGRAPHER, ECHO_GHOST }
+const FRAMES := {Kind.FOUNTAIN: 0, Kind.CHEST: 1, Kind.LIGHTHOUSE: 3, Kind.MERCHANT: 4, Kind.ALTAR: 5, Kind.ORLA: 6,
+	Kind.CAGE: 7, Kind.BRAM: 9, Kind.WREN: 10, Kind.CARTOGRAPHER: 11, Kind.ECHO_GHOST: 9}
+const REUSABLE := [Kind.MERCHANT, Kind.ORLA, Kind.BRAM, Kind.WREN, Kind.CARTOGRAPHER]
+const SCENERY := [Kind.LIGHTHOUSE, Kind.ECHO_GHOST]
+const ECHO_FRAME := {"bram": 9, "wren": 10, "cartographer": 11}
 
 var kind: Kind
 var used_up: bool = false
@@ -46,8 +48,16 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 		Atmosphere.breathe(lamp, 1.3, 1.9, 3.0)
 	elif kind == Kind.FOUNTAIN:
 		Atmosphere.light(self, Color(0.55, 0.8, 1.0), 2.5, 0.8, Vector2(0, -6))
-	elif kind == Kind.ORLA:
+	elif kind == Kind.ORLA or kind == Kind.BRAM:
 		Atmosphere.light(self, Color(1.0, 0.85, 0.65), 2.0, 0.6, Vector2(0, -8))
+	elif kind == Kind.WREN:
+		Atmosphere.light(self, Color(0.8, 0.9, 1.0), 2.0, 0.6, Vector2(0, -8))
+	elif kind == Kind.CARTOGRAPHER:
+		Atmosphere.light(self, Color(0.7, 0.8, 1.0), 1.6, 0.5, Vector2(0, -8))
+	elif kind == Kind.CAGE:
+		interactive = false  # the run opens it once the guards are dead
+		var cl := Atmosphere.light(self, Color(0.7, 0.85, 1.0), 2.0, 0.5, Vector2(0, -8))
+		Atmosphere.breathe(cl, 0.3, 0.7, 1.6)
 	if kind == Kind.MERCHANT:
 		var ml := Atmosphere.light(self, Color(0.5, 0.9, 0.9), 2.5, 0.8, Vector2(0, -8))
 		Atmosphere.breathe(ml, 0.6, 1.0, 2.0)
@@ -102,6 +112,24 @@ func mark_used() -> void:
 		_sprite.texture = _frame(2)
 	elif kind == Kind.ALTAR:
 		_sprite.modulate = Color(0.7, 0.7, 0.75)
+	elif kind == Kind.CAGE:
+		_sprite.texture = _frame(8)
+
+
+## The cage can be opened now (guards dead): show the prompt if the player is already here.
+func unlock() -> void:
+	interactive = true
+	if _player_inside and not used_up:
+		_prompt.visible = true
+
+
+## Show a rescued echo standing free for a moment, then fading toward the surface.
+func show_echo(echo_id: String) -> void:
+	_sprite.texture = _frame(ECHO_FRAME.get(echo_id, 9))
+	var tw := create_tween()
+	tw.tween_interval(2.2)
+	tw.tween_property(_sprite, "modulate:a", 0.0, 1.4)
+	tw.parallel().tween_property(_sprite, "position:y", -22.0, 1.4)
 
 
 func _process(delta: float) -> void:

@@ -85,9 +85,42 @@ func test_hitbox_crit_tags() -> void:
 
 func test_enemy_scenes_load() -> void:
 	for path in ["res://src/enemies/shellback.tscn", "res://src/enemies/gull.tscn",
-			"res://src/enemies/wrack_crab.tscn", "res://src/enemies/wreck.tscn"]:
+			"res://src/enemies/wrack_crab.tscn", "res://src/enemies/wreck.tscn",
+			"res://src/enemies/still_citizen.tscn", "res://src/enemies/lamplighter.tscn",
+			"res://src/enemies/bell_ringer.tscn", "res://src/enemies/swimmer.tscn", "res://src/enemies/bell.tscn"]:
 		var s: PackedScene = load(path)
 		assert_true(s != null, path + " loads")
 		var inst = s.instantiate()
 		assert_true(inst is Enemy, path + " root is Enemy")
 		inst.free()
+
+
+func test_weapon_scenes_share_the_api() -> void:
+	for id in Weapon.ALL:
+		var scene := Weapon.scene_for(id)
+		assert_true(scene != null, id + " scene loads")
+		var w = scene.instantiate()
+		assert_true(w is Weapon, id + " is a Weapon")
+		# The base API must exist on every weapon; the player calls all of these.
+		for m in ["move_mult", "is_busy", "special_ready", "special_cooldown_fraction", "charge_fraction",
+				"is_charging", "try_attack", "set_held", "try_lunge", "try_special", "cancel"]:
+			assert_true(w.has_method(m), "%s has %s" % [id, m])
+		w.free()
+
+
+func test_hurtbox_shield_absorbs_one_hit() -> void:
+	var h := Health.new()
+	h.max_hp = 10
+	h._ready()
+	var hb := Hurtbox.new()
+	hb.health = h
+	hb.shield_count = 1
+	var shielded := [0]
+	hb.shielded.connect(func(_i): shielded[0] += 1)
+	assert_true(not hb.receive(DamageInfo.make(4, null, Vector2.RIGHT)), "first hit is absorbed")
+	assert_eq(h.hp, 10)
+	assert_eq(shielded[0], 1)
+	assert_true(hb.receive(DamageInfo.make(4, null, Vector2.RIGHT)), "second hit lands")
+	assert_eq(h.hp, 6)
+	hb.free()
+	h.free()

@@ -28,7 +28,7 @@ func show_result(r: Dictionary) -> void:
 	var title_text: String
 	var title_color: Color
 	if r.victory:
-		title_text = "THE WRECK IS BROKEN"
+		title_text = "THE BELL IS SILENCED" if int(r.get("biome", 0)) >= 1 else "THE WRECK IS BROKEN"
 		title_color = Color(0.95, 0.85, 0.6)
 	elif r.taken:
 		title_text = "TAKEN BY THE TIDE"
@@ -43,10 +43,12 @@ func show_result(r: Dictionary) -> void:
 	var secs := int(r.time) % 60
 	var rows := [
 		["Rooms reached", "%d" % (r.depth + 1)],
+		["Reached", Run.BIOMES[int(r.get("biome", 0))].name.capitalize()],
 		["Kills", "%d" % r.kills],
 		["Salt left", "%d" % r.salt],
 		["Pearls kept", "%d  (+%d from salt)" % [r.pearls, r.pearls_from_salt]],
 		["Time", "%d:%02d" % [mins, secs]],
+		["Echoes freed", str(r.get("echoes", []).size())],
 		["", ""],
 		["Pearls total", "%d" % SaveManager.data.pearls],
 	]

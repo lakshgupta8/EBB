@@ -1,7 +1,7 @@
 extends Node
 ## Top-level game flow: Hub -> Run -> Results -> Hub. Owns the run seed.
 
-const VERSION := "0.2.0"
+const VERSION := "0.3.0"
 const HUB_SCENE := "res://src/hub/hub.tscn"
 const RUN_SCENE := "res://src/run/run.tscn"
 
@@ -30,6 +30,12 @@ func toggle_fullscreen() -> void:
 		w.move_to_center()
 	else:
 		w.mode = Window.MODE_FULLSCREEN
+
+
+## The weapon the next run starts with (chosen at Bram's forge, else the gaff).
+func weapon_id() -> String:
+	var w := str(SaveManager.data.get("weapon", Weapon.DEFAULT))
+	return w if Weapon.ALL.has(w) else Weapon.DEFAULT
 
 
 func go_to_hub() -> void:
