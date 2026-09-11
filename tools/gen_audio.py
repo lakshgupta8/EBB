@@ -256,10 +256,65 @@ def build_sfx():
     save("ui", np.sin(2 * np.pi * 1200 * t(0.08)) * env(n, 0.001, 0.05), 0.3)
 
 
+def build_sfx_m4():
+    # stab: short bright tick with a little air, three variants (the knife is fast)
+    for v, (f0, dur) in enumerate(((1400, 0.09), (1200, 0.1), (1600, 0.08))):
+        n = int(SR * dur)
+        x = highpass(noise(n), 2500, 2) * env(n, 0.001, dur * 0.5)
+        x += 0.5 * sweep(n, f0, f0 * 0.4, 1.0) * env(n, 0.002, dur * 0.6)
+        save("stab_%d" % v, x, 0.4)
+
+    # net: rope whip then a soft slap
+    n = int(SR * 0.4)
+    x = bandpass(noise(n), 900, 3500, 2) * env(n, 0.005, 0.12)
+    tail = lowpass(noise(n), 500, 2) * env(n, 0.001, 0.15)
+    x[n // 3:] += tail[: n - n // 3] * 0.8
+    save("net", x, 0.55)
+
+    # bell: a real toll, partials of a minor-third bell with a long ring
+    dur = 2.4
+    n = int(SR * dur)
+    tt = t(dur)
+    x = np.zeros(n)
+    for f, a, d in ((220, 1.0, 1.6), (293, 0.6, 1.3), (440, 0.5, 1.0), (587, 0.35, 0.8), (880, 0.2, 0.5), (1320, 0.12, 0.35)):
+        x += a * np.sin(2 * np.pi * f * tt) * np.exp(-tt / d)
+    x += 0.4 * lowpass(noise(n), 800, 2) * env(n, 0.001, 0.05)
+    save("bell", x, 0.7)
+
+    # wake: stone cracking as a statue moves
+    n = int(SR * 0.3)
+    x = lowpass(noise(n), 1200, 2) * env(n, 0.002, 0.08)
+    for k in range(4):
+        s = int(SR * 0.05 * k)
+        seg = highpass(noise(n - s), 1800, 2) * env(n - s, 0.001, 0.03)
+        x[s:] += 0.6 * seg
+    x += 0.5 * sweep(n, 160, 60, 1.5) * env(n, 0.002, 0.2)
+    save("wake", x, 0.7)
+
+    # kindle: warm rising whoosh with a flicker
+    n = int(SR * 0.6)
+    tt = t(0.6)
+    x = bandpass(noise(n), 500, 2500, 2) * env(n, 0.15, 0.3) * (0.7 + 0.3 * np.sin(2 * np.pi * 14 * tt))
+    x += 0.4 * sweep(n, 300, 700, 0.8) * env(n, 0.1, 0.35)
+    save("kindle", x, 0.5)
+
+    # rescue: a soft ascending four-note motif with breath
+    dur = 1.4
+    n = int(SR * dur)
+    tt = t(dur)
+    x = np.zeros(n)
+    for i, f in enumerate((523, 659, 784, 1046)):
+        s = int(SR * 0.2 * i)
+        x[s:] += np.sin(2 * np.pi * f * tt[: n - s]) * env(n - s, 0.02, 0.6)
+    x += 0.15 * bandpass(noise(n), 2000, 6000, 2) * env(n, 0.3, 0.8)
+    save("rescue", x, 0.45)
+
+
 def main():
     build_sea()
     build_gull()
     build_sfx()
+    build_sfx_m4()
     print("wrote audio to", OUT)
 
 

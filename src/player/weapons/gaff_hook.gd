@@ -1,5 +1,5 @@
 class_name GaffHook
-extends Node2D
+extends Weapon
 ## Starting weapon.
 ##   LMB tap      3-hit aimed combo; the third hit pulls enemies in.
 ##   LMB hold     keep holding through a swing to wind the hook back and CHARGE. Release
@@ -79,6 +79,7 @@ var _sweep_double: bool = false
 
 
 func _ready() -> void:
+	id = "gaff"
 	_player = get_parent() as Player
 	hitbox.source = _player
 	hitbox.landed.connect(_on_hit_landed)
@@ -195,7 +196,7 @@ func _start_swing() -> void:
 	hitbox.knockback = KNOCKBACK[i]
 	hitbox.pull = combo.is_finisher(_step)
 	hitbox.hitstop = 0.05 if not hitbox.pull else 0.09
-	hitbox.tags = PackedStringArray(["melee", "third_hit"] if hitbox.pull else ["melee"])
+	hitbox.tags = PackedStringArray(["melee", "third_hit", "finisher"] if hitbox.pull else ["melee"])
 	hit_shape.position = _shape_home
 	sprite.flip_v = _player.aim.x < 0.0
 	# Anticipation: hook held at the start of the arc. Active: sweep across it.
@@ -333,7 +334,7 @@ func _arm_and_activate(heavy: bool) -> void:
 	var m: Dictionary = _player.mods
 	var crit: bool = _player.consume_riptide() or randf() < float(m.crit_chance)
 	hitbox.crit = crit
-	hitbox.damage_mult = float(m.damage) * (float(m.heavy_damage) if heavy else 1.0) * (float(m.riptide_crit) if crit else 1.0)
+	hitbox.damage_mult = arm_mult(_player, heavy, state == State.LUNGE, crit)
 	hitbox.activate()
 	if state == State.LUNGE:
 		return
@@ -420,6 +421,7 @@ func _start_throw() -> void:
 			var info := DamageInfo.make(THROW_DAMAGE, _player, target_hb.global_position - origin, 0.0)
 			info.tags = PackedStringArray(["hook"])
 			if target_hb.receive(info):
+				EventBus.damage_dealt.emit(target_hb.get_parent(), info)
 				FX.spark(target_hb.global_position)
 				_player.add_glow(Player.GLOW_PER_HIT * 0.5)
 				EventBus.request_hitstop.emit(0.05)

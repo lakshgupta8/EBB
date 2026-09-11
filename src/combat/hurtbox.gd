@@ -6,11 +6,14 @@ extends Area2D
 signal hit(info: DamageInfo)
 ## A hit arrived while the owner was invulnerable (dash i-frames): a dodge.
 signal dodged(info: DamageInfo)
+## A shield charge ate the hit.
+signal shielded(info: DamageInfo)
 
 @export var health_path: NodePath = ^"../Health"
 
 var health: Health
 var damage_mult: float = 1.0  # cracked shells, exposed bosses...
+var shield_count: int = 0     # hits absorbed outright (Salt Skin)
 
 
 func _ready() -> void:
@@ -24,6 +27,10 @@ func receive(info: DamageInfo) -> bool:
 		return false
 	if health.invulnerable and health.is_alive():
 		dodged.emit(info)
+		return false
+	if shield_count > 0 and health.is_alive():
+		shield_count -= 1
+		shielded.emit(info)
 		return false
 	if damage_mult != 1.0:
 		info.amount = maxi(1, int(round(info.amount * damage_mult)))

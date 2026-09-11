@@ -6,9 +6,12 @@ extends RefCounted
 const TEXTURE := preload("res://assets/sprites/tiles.png")
 const SIZE := 16
 
-enum { SAND, SAND2, WALL, WALL2, WATER, WATER2, DEEP, LOW, RAISED, DOOR, DOOR_OPEN, ROCK, FOAM, FOAM2, COUNT }
+enum { SAND, SAND2, WALL, WALL2, WATER, WATER2, DEEP, LOW, RAISED, DOOR, DOOR_OPEN, ROCK, FOAM, FOAM2,
+	COBBLE, COBBLE2, RUIN, RUIN2, MOSS, FLAG, COUNT }
 
-const SOLID := [WALL, WALL2, DOOR, ROCK]
+const SOLID := [WALL, WALL2, DOOR, ROCK, RUIN, RUIN2]
+## Themes: 0 = the flats (sand and wet rock), 1 = the drowned streets (cobbles and brick).
+enum Look { FLATS, STREETS }
 
 static var _tileset: TileSet
 

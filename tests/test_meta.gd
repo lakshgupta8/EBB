@@ -8,7 +8,13 @@ func test_tidemark_ids_unique_and_coloured() -> void:
 		assert_true(not seen.has(m.id), "duplicate id " + m.id)
 		seen[m.id] = true
 		assert_true(Tidemarks.FAMILY_COLOR.has(m.family), m.id + " has a known family")
-	assert_true(Tidemarks.ALL.size() >= 12)
+	assert_true(Tidemarks.ALL.size() >= 24, "M4: at least 24 tidemarks")
+	for fam in Tidemarks.FAMILY_COLOR:
+		var n := 0
+		for m in Tidemarks.ALL:
+			if m.family == fam:
+				n += 1
+		assert_true(n >= 6, fam + " has at least 6 marks")
 
 
 func test_tidemark_roll_excludes_owned() -> void:
@@ -21,6 +27,18 @@ func test_tidemark_roll_excludes_owned() -> void:
 		for id in r:
 			assert_true(not id in owned, "rolled an owned mark")
 		assert_true(r[0] != r[1] and r[1] != r[2] and r[0] != r[2], "distinct offers")
+
+
+func test_tidemark_roll_honours_a_blessing() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9
+	for i in 20:
+		var r := Tidemarks.roll(rng, [], 3, "deep")
+		var found := false
+		for id in r:
+			if Tidemarks.get_mark(id).family == "deep":
+				found = true
+		assert_true(found, "a blessed family is always offered")
 
 
 func test_ledger_tiers_and_costs() -> void:
@@ -49,6 +67,10 @@ func test_menu_texts_fit_their_rows() -> void:
 		assert_true(u.desc.length() * 6 <= 200, "ledger desc too long: " + u.desc)
 	for it in Shop.ITEMS:
 		assert_true(it.desc.length() * 6 <= 150, "shop desc too long: " + it.desc)
+	for m in Tidemarks.ALL:
+		assert_true(m.desc.length() * 6 <= 260, "tidemark desc too long: " + m.desc)
+	for id in Weapon.ALL:
+		assert_true(Weapon.ALL[id].desc.length() * 6 <= 240, "weapon desc too long: " + Weapon.ALL[id].desc)
 
 
 func test_room_graph_offers_altar_early() -> void:

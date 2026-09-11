@@ -8,7 +8,7 @@ signal entered(door: Door)
 const ICONS := preload("res://assets/sprites/icons.png")
 const FRAME := preload("res://assets/sprites/door.png")
 const GLOW := preload("res://assets/sprites/glow.png")
-const DESCEND := -1  # hub-only door type
+const DESCEND := -1  # hub door, and the way down out of a boss arena
 
 var room_type: int = 0
 var cell: Vector2i

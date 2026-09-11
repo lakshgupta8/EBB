@@ -34,6 +34,10 @@ var mods: Dictionary = {
 	"salt_mult": 1.0, "glow_mult": 1.0,
 	"riptide_window": 3.0, "riptide_crit": 2.0,
 	"second_chance": false,
+	# M4 additions
+	"lunge_mult": 1.0, "wall_damage": 3, "held_bonus": 0.0, "room_shield": false,
+	"knockback_taken": 1.0, "flare_heal": 0, "dash_recharge": 1.0, "riptide_refund": false,
+	"dash_dist": 1.0, "tide_heals": false, "water_damage": 1.0,
 }
 
 var max_dash: int = DASH_CHARGES
@@ -48,6 +52,7 @@ var last_hit_tags: PackedStringArray = []
 var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
 var attack_held: bool = false
+var aim_dist: float = 64.0  # distance to the cursor (bots: a fixed reach)
 
 var _dash_timer: float = 0.0
 var _dash_dir: Vector2 = Vector2.ZERO
@@ -68,11 +73,12 @@ var _lantern: PointLight2D
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var health: Health = $Health
 @onready var hurtbox: Hurtbox = $Hurtbox
-@onready var weapon: GaffHook = $Weapon
+var weapon: Weapon
 
 
 func _ready() -> void:
 	add_to_group("player")
+	_equip(Game.weapon_id())
 	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
 		"idle": {"frames": [0, 1], "fps": 3},
 		"walk": {"frames": [2, 3, 4, 5], "fps": 9},
@@ -84,6 +90,8 @@ func _ready() -> void:
 	sprite.play("idle")
 	hurtbox.hit.connect(_on_hurt)
 	hurtbox.dodged.connect(_on_dodged)
+	hurtbox.shielded.connect(_on_shielded)
+	EventBus.room_cleared.connect(_on_room_cleared)
 	health.died.connect(_on_died)
 	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
 	EventBus.enemy_died.connect(_on_enemy_died)
@@ -91,6 +99,23 @@ func _ready() -> void:
 	# The keeper's lantern: the warm pool of light you carry through the night.
 	_lantern = Atmosphere.light(self, Color(1.0, 0.9, 0.72), 5.0, 1.15, Vector2(-4, -6))
 	Atmosphere.breathe(_lantern, 1.05, 1.25, 2.4)
+
+
+## Swap the weapon child for the chosen one. The scene ships with the gaff as a placeholder.
+func _equip(weapon_id: String) -> void:
+	var old := get_node_or_null("Weapon")
+	if old:
+		old.name = "OldWeapon"
+		old.queue_free()
+	weapon = Weapon.scene_for(weapon_id).instantiate()
+	weapon.name = "Weapon"
+	weapon.position = Vector2(0, -6)
+	add_child(weapon)
+
+
+## How far away the cursor is (thrown things fly to it). Bots get a fixed reach.
+func aim_distance() -> float:
+	return aim_dist
 
 
 ## Dash wake hitbox (used only with the Wake tidemark).
@@ -148,6 +173,7 @@ func _physics_process(delta: float) -> void:
 		aim = aim_override.normalized()
 	else:
 		aim = (get_global_mouse_position() - global_position)
+		aim_dist = aim.length()
 		aim = aim.normalized() if aim.length() > 0.5 else facing
 
 	attack_held = Input.is_action_pressed("attack")
@@ -169,7 +195,7 @@ func _physics_process(delta: float) -> void:
 		velocity = (target - global_position) / delta
 	elif is_dashing():
 		_dash_timer -= delta
-		velocity = _dash_dir * (DASH_DISTANCE / DASH_TIME)
+		velocity = _dash_dir * (DASH_DISTANCE * float(mods.dash_dist) / DASH_TIME)
 		if _dash_timer <= 0.0 and _wake.active:
 			_wake.deactivate()
 	else:
@@ -213,8 +239,9 @@ func _recharge(delta: float) -> void:
 		_recharge_timer = 0.0
 		return
 	_recharge_timer += delta
-	if _recharge_timer >= DASH_RECHARGE:
-		_recharge_timer -= DASH_RECHARGE
+	var every: float = DASH_RECHARGE * float(mods.dash_recharge)
+	if _recharge_timer >= every:
+		_recharge_timer -= every
 		dash_charges += 1
 
 
@@ -251,7 +278,7 @@ func _on_dodged(_info: DamageInfo) -> void:
 		return
 	_dodge_cd = 0.6
 	riptide_t = mods.riptide_window
-	dash_charges = mini(max_dash, dash_charges + 1)
+	dash_charges = max_dash if mods.riptide_refund else mini(max_dash, dash_charges + 1)
 	Juice.slowmo(0.25, 0.28)
 	FX.ring(global_position, Color(0.6, 0.9, 1.0), 1.2)
 	FX.text(global_position, "RIPTIDE", Color(0.7, 0.95, 1.0))
@@ -287,6 +314,9 @@ func flare() -> void:
 	FX.ring(global_position, Color(1.0, 0.9, 0.5), 2.6)
 	FX.burst(global_position, Color(1.0, 0.9, 0.5), 24, 140.0)
 	Audio.play("flare")
+	if int(mods.flare_heal) > 0:
+		health.heal(int(mods.flare_heal))
+		FX.text(global_position + Vector2(0, -16), "+%d" % int(mods.flare_heal), Color(0.6, 0.95, 0.7))
 	if _lantern:
 		var tw := create_tween()
 		_lantern.energy = 4.0
@@ -313,6 +343,11 @@ func _on_enemy_died(_e: Node) -> void:
 func take_tide_damage(info: DamageInfo) -> void:
 	if dead or health.invulnerable:
 		return
+	if mods.tide_heals:
+		if health.hp < health.max_hp:
+			health.heal(info.amount)
+			FX.burst(global_position + Vector2(0, 2), Color(0.5, 0.9, 0.7, 0.9), 4, 30.0)
+		return
 	if health.take(info, true):
 		last_hit_tags = info.tags
 		_flash()
@@ -323,14 +358,29 @@ func take_tide_damage(info: DamageInfo) -> void:
 
 func _on_hurt(info: DamageInfo) -> void:
 	last_hit_tags = info.tags
-	_knockback = info.direction * info.knockback
-	_hurt_timer = 0.25
+	_knockback = info.direction * info.knockback * float(mods.knockback_taken)
+	_hurt_timer = 0.25 if float(mods.knockback_taken) >= 1.0 else 0.12
 	weapon.cancel()
 	_flash()
 	EventBus.request_shake.emit(0.5)
 	EventBus.request_hitstop.emit(0.08)
 	FX.burst(global_position, Color(0.9, 0.3, 0.3), 10, 70.0)
 	Audio.play("hurt", 0.1)
+
+
+func _on_shielded(_info: DamageInfo) -> void:
+	FX.ring(global_position, Color(0.55, 0.75, 0.95), 1.1)
+	FX.text(global_position, "ABSORBED", Color(0.6, 0.8, 1.0))
+	FX.burst(global_position, Color(0.55, 0.75, 0.95), 8, 50.0)
+	Audio.play("splash", 0.1, -6.0)
+	EventBus.request_hitstop.emit(0.04)
+
+
+## Salt Skin: a fresh shield charge after every cleared room.
+func _on_room_cleared(_room: Node) -> void:
+	if mods.room_shield and not dead:
+		hurtbox.shield_count = 1
+		FX.text(global_position, "SALT SKIN", Color(0.6, 0.8, 1.0))
 
 
 func _flash() -> void:
