@@ -20,6 +20,28 @@ var is_boss: bool = false
 var room: Room
 var cracked_t: float = 0.0       # takes double damage while > 0 (heavy hit)
 var _wall_slam_armed: bool = false
+var _pull_timer: float = 0.0
+var _pull_total: float = 0.0
+var _pull_from: Vector2
+var _pull_to: Vector2
+var _bleed_ticks: int = 0
+var _bleed_t: float = 0.0
+
+
+## Dragged to a point (the hook). Stunned for a moment on arrival.
+func pull_to(target: Vector2, duration: float) -> void:
+	_pull_from = global_position
+	_pull_to = target
+	_pull_total = duration
+	_pull_timer = duration
+	stunned = maxf(stunned, duration + 0.4)
+	if hitbox and hitbox.active:
+		hitbox.deactivate()
+
+
+func apply_bleed(ticks: int = 3) -> void:
+	_bleed_ticks = maxi(_bleed_ticks, ticks)
+	_bleed_t = 0.0
 
 var state: StringName = &"idle"
 var state_t: float = 0.0  # seconds in current state
@@ -138,6 +160,14 @@ func play(anim: StringName) -> void:
 
 func _physics_process(delta: float) -> void:
 	state_t += delta
+	_tick_bleed(delta)
+	if _pull_timer > 0.0:
+		_pull_timer -= delta
+		var t := 1.0 - maxf(_pull_timer, 0.0) / _pull_total
+		var goal := _pull_from.lerp(_pull_to, ease(t, 0.4))
+		velocity = (goal - global_position) / delta
+		move_and_slide()
+		return
 	if stunned > 0.0:
 		stunned -= delta
 		velocity = _knockback
@@ -154,6 +184,21 @@ func _physics_process(delta: float) -> void:
 		if cracked_t <= 0.0:
 			hurtbox.damage_mult = 1.0
 			sprite.modulate = Color.WHITE if not is_boss else sprite.modulate
+
+
+func _tick_bleed(delta: float) -> void:
+	if _bleed_ticks <= 0:
+		return
+	_bleed_t += delta
+	if _bleed_t >= 0.5:
+		_bleed_t = 0.0
+		_bleed_ticks -= 1
+		var info := DamageInfo.make(1, null, Vector2.ZERO, 0.0)
+		info.tags = PackedStringArray(["bleed"])
+		info.hitstop = 0.0
+		if health.take(info, true):
+			FX.burst(global_position + Vector2(0, -6), Color(0.8, 0.2, 0.2), 3, 25.0)
+			EventBus.damage_dealt.emit(self, info)
 
 
 ## Knocked hard into a wall: bonus damage and a thud.

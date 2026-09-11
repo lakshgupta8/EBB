@@ -12,7 +12,8 @@ signal landed(target: Hurtbox, info: DamageInfo)
 @export var tags: PackedStringArray = []
 
 var source: Node2D  # whose hit this is; direction is measured from here
-var damage_mult: float = 1.0  # crits
+var damage_mult: float = 1.0  # stat multipliers
+var crit: bool = false        # tags the hit as a crit (FX, feedback)
 var active: bool = false
 var _already_hit: Array[Hurtbox] = []
 
@@ -49,7 +50,7 @@ func _physics_process(_delta: float) -> void:
 		var info := DamageInfo.make(int(round(damage * damage_mult)), source, dir, knockback)
 		info.hitstop = hitstop
 		info.tags = tags.duplicate()
-		if damage_mult > 1.0:
+		if crit:
 			info.tags.append("crit")
 		if hb.receive(info):
 			_already_hit.append(hb)

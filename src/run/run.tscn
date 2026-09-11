@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://src/ui/results.gd" id="5_results"]
 [ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="6_pause"]
 [ext_resource type="PackedScene" path="res://src/ui/shop.tscn" id="8_shop"]
+[ext_resource type="PackedScene" path="res://src/ui/altar_ui.tscn" id="9_altar"]
 [ext_resource type="FontFile" path="res://assets/fonts/ebb.fnt" id="7_font"]
 
 [node name="Run" type="Node2D"]
@@ -80,6 +81,8 @@ vertical_alignment = 1
 [node name="Pause" parent="." instance=ExtResource("6_pause")]
 
 [node name="Shop" parent="." instance=ExtResource("8_shop")]
+
+[node name="AltarUI" parent="." instance=ExtResource("9_altar")]
 
 [node name="Fade" type="ColorRect" parent="HUD"]
 anchors_preset = 15

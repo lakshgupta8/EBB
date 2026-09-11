@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://src/player/player.tscn" id="2_player"]
 [ext_resource type="Script" path="res://src/world/camera.gd" id="3_camera"]
 [ext_resource type="FontFile" path="res://assets/fonts/ebb.fnt" id="4_font"]
+[ext_resource type="PackedScene" path="res://src/ui/ledger_ui.tscn" id="5_ledger"]
 
 [node name="Hub" type="Node2D"]
 script = ExtResource("1_hub")
@@ -21,13 +22,15 @@ script = ExtResource("3_camera")
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Info" type="Label" parent="HUD"]
-offset_left = 4.0
-offset_top = 350.0
+offset_left = 6.0
+offset_top = 4.0
 offset_right = 636.0
-offset_bottom = 360.0
+offset_bottom = 14.0
 theme_override_colors/font_shadow_color = Color(0.09, 0.08, 0.14, 1)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_fonts/font = ExtResource("4_font")
 theme_override_font_sizes/font_size = 8
 text = "Marrow Rock"
+
+[node name="LedgerUI" parent="." instance=ExtResource("5_ledger")]

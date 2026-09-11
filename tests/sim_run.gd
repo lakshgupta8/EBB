@@ -16,6 +16,7 @@ var _shot_tick: int = -1  # when running with a window: save .shots/sim_run.png 
 var _shot_end: bool = false  # also screenshot the results card
 var _finishing: bool = false
 var _shop_shot: bool = false
+var _altar_shot: bool = false
 var _props_done: Array = []
 var _pause_shot_tick: int = -1  # open the pause menu at this tick and screenshot it
 var _rooms_seen: Array = []
@@ -31,6 +32,7 @@ func _ready() -> void:
 		elif a.begins_with("--seed="): seed_val = int(a.trim_prefix("--seed="))
 		elif a == "--shot-end": _shot_end = true
 		elif a == "--shop-shot": _shop_shot = true
+		elif a == "--altar-shot": _altar_shot = true
 		elif a.begins_with("--pause-shot="): _pause_shot_tick = int(a.trim_prefix("--pause-shot="))
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
@@ -85,6 +87,13 @@ func _nearest_enemy() -> Enemy:
 func _drive() -> void:
 	_release_all()
 	_stall_watch()
+	if run.altar_ui.is_open:
+		if _altar_shot:
+			_altar_shot = false
+			await _screenshot("sim_altar.png")
+		print("sim_run: took %s" % run.altar_ui.offers[0])
+		run.altar_ui.choose(0)
+		return
 	if run.shop.is_open:
 		if _shop_shot:
 			_shop_shot = false

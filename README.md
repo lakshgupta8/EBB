@@ -32,6 +32,17 @@ Knocking an enemy into a wall deals bonus damage. Enemies flash white and ring r
 before they strike: dash on the flash for a riptide.
 
 Merchant rooms (scale-pan sign): press E at the Drowned Merchant, keys 1-4 buy with salt.
+Altar rooms (pearl sign): press E at the altar, keys 1-3 pick one of three tidemarks for this run.
+At the lighthouse, press E at Orla to open the Ledger and spend pearls on permanent upgrades.
+
+## Progression (M3)
+- Tidemarks: per-run boons in four families (salt = offence, brine = defence, current = mobility,
+  deep = weird). Defined in `src/tidemarks/tidemarks.gd`; they write into `Player.mods`.
+- Ledger: permanent tiers saved in the profile. Defined in `src/hub/ledger.gd`.
+- Hook throw: light enemies are dragged to you, heavy ones (shellbacks, the boss) drag you to them.
+  A miss just returns on a short cooldown.
+- Heavy: keep holding through a swing to wind back and charge; damage scales with the charge.
+  Let go early and nothing happens.
 
 ## Flow (M2)
 Hub (lighthouse) -> walk to the water's edge -> 8 rooms of The Flats chosen door by door -> boss.

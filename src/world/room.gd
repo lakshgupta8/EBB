@@ -112,6 +112,22 @@ func world_to_cell(pos: Vector2) -> Vector2i:
 	return Vector2i((pos / Tiles.SIZE).floor())
 
 
+## Keep a point on walkable ground: inside the outer walls and off solid cells.
+func clamp_inside(pos: Vector2) -> Vector2:
+	var margin := Tiles.SIZE + 5.0
+	var p := Vector2(
+		clampf(pos.x, margin, size_px().x - margin),
+		clampf(pos.y, margin, size_px().y - margin))
+	var c := world_to_cell(p)
+	if template.is_solid(c.x, c.y):
+		# Push toward the nearest open neighbour cell.
+		for off: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = c + off
+			if not template.is_solid(n.x, n.y):
+				return cell_to_world(n)
+	return p
+
+
 func height_at(pos: Vector2) -> int:
 	var c := world_to_cell(pos)
 	return template.height_at(c.x, c.y)

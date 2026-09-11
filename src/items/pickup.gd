@@ -1,17 +1,20 @@
 class_name Pickup
 extends Area2D
-## Salt (run currency) and pearls (meta currency). Pops out, then magnets to the player.
+## Salt (run currency) and pearls (meta currency). Pops out a short way, settles,
+## then magnets to the player. Never leaves the room.
 
 const SHEET := preload("res://assets/sprites/pickups.png")
 enum Kind { SALT, PEARL }
 const MAGNET_RANGE := 48.0
 const MAGNET_SPEED := 220.0
+const POP_DECEL := 320.0
 
 var kind: Kind = Kind.SALT
 var value: int = 1
 var _vel: Vector2
 var _age: float = 0.0
 var _player: Player
+var _room: Room
 
 
 static func spawn(parent: Node, pos: Vector2, p_kind: Kind, p_value: int = 1) -> Pickup:
@@ -38,19 +41,25 @@ func _ready() -> void:
 	s.texture = at
 	s.z_index = 2
 	add_child(s)
-	_vel = Vector2.from_angle(randf() * TAU) * randf_range(40.0, 90.0)
+	_vel = Vector2.from_angle(randf() * TAU) * randf_range(40.0, 80.0)
 	_player = get_tree().get_first_node_in_group("player") as Player
+	_room = get_tree().get_first_node_in_group("room") as Room
 	body_entered.connect(_on_body_entered)
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if _age > 0.35 and _player and is_instance_valid(_player) and not _player.dead:
+	var magnet := false
+	if _age > 0.3 and _player and is_instance_valid(_player) and not _player.dead:
 		var to := _player.global_position - global_position
 		if to.length() < MAGNET_RANGE:
 			_vel = to.normalized() * MAGNET_SPEED
-	_vel = _vel.move_toward(Vector2.ZERO, 120.0 * delta) if _age <= 0.35 else _vel
+			magnet = true
+	if not magnet:
+		_vel = _vel.move_toward(Vector2.ZERO, POP_DECEL * delta)
 	position += _vel * delta
+	if _room:
+		position = _room.clamp_inside(position)
 
 
 func _on_body_entered(body: Node) -> void:

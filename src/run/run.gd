@@ -32,6 +32,7 @@ var _transitioning: bool = false
 @onready var room_sub: Label = $HUD/RoomSub
 @onready var banner: Label = $HUD/Banner
 @onready var shop: Shop = $Shop
+@onready var altar_ui: AltarUI = $AltarUI
 
 
 func _ready() -> void:
@@ -41,6 +42,8 @@ func _ready() -> void:
 	_load_templates()
 	hud.bind(self)
 	shop.setup(self)
+	altar_ui.chosen.connect(_on_tidemark_chosen)
+	Ledger.apply(player, self)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.pickup_collected.connect(_on_pickup)
@@ -80,7 +83,7 @@ func _apply_water(delta: float) -> void:
 # --- rooms -----------------------------------------------------------------------
 func _load_templates() -> void:
 	_templates = {RoomGraph.COMBAT: [], RoomGraph.ELITE: [], RoomGraph.FOUNTAIN: [],
-		RoomGraph.TREASURE: [], RoomGraph.BOSS: [], RoomGraph.SHOP: []}
+		RoomGraph.TREASURE: [], RoomGraph.BOSS: [], RoomGraph.SHOP: [], RoomGraph.ALTAR: []}
 	for f in DirAccess.get_files_at(ROOM_DIR):
 		if not f.ends_with(".txt"):
 			continue
@@ -89,6 +92,8 @@ func _load_templates() -> void:
 			_templates[RoomGraph.FOUNTAIN].append(t)
 		elif f.begins_with("shop"):
 			_templates[RoomGraph.SHOP].append(t)
+		elif f.begins_with("altar"):
+			_templates[RoomGraph.ALTAR].append(t)
 		elif f.begins_with("treasure"):
 			_templates[RoomGraph.TREASURE].append(t)
 		elif f.begins_with("boss"):
@@ -143,6 +148,11 @@ func _enter_room(type: int) -> void:
 		RoomGraph.TREASURE:
 			for cell in room.template.marker_cells("T"):
 				room.add_prop(Prop.Kind.CHEST, cell).used.connect(_on_chest)
+			_set_cleared()
+		RoomGraph.ALTAR:
+			for cell in room.template.marker_cells("A"):
+				room.add_prop(Prop.Kind.ALTAR, cell).used.connect(func(_p):
+					altar_ui.open(Tidemarks.roll(_rng, state.tidemarks, 3)))
 			_set_cleared()
 		RoomGraph.SHOP:
 			shop.restock()
@@ -239,7 +249,7 @@ func _on_enemy_died(enemy: Node) -> void:
 	state.kills += 1
 	if enemy is Enemy:
 		var pos: Vector2 = enemy.global_position
-		for i in enemy.salt_drop:
+		for i in int(round(enemy.salt_drop * player.mods.salt_mult)):
 			Pickup.spawn(content, pos, Pickup.Kind.SALT)
 		for i in enemy.pearl_drop:
 			Pickup.spawn(content, pos, Pickup.Kind.PEARL)
@@ -261,6 +271,15 @@ func _on_door_entered(door: Door) -> void:
 	var tw := create_tween()
 	tw.tween_property(fade, "color:a", 1.0, 0.2)
 	tw.tween_callback(_enter_room.bind(door.room_type))
+
+
+func _on_tidemark_chosen(id: String) -> void:
+	state.tidemarks.append(id)
+	Tidemarks.apply(id, player, self)
+	var m := Tidemarks.get_mark(id)
+	FX.ring(player.global_position, Tidemarks.color_of(id), 1.6)
+	FX.burst(player.global_position, Tidemarks.color_of(id), 16, 70.0)
+	_show_banner(m.name.to_upper(), 1.4, Tidemarks.color_of(id), 14)
 
 
 func _on_fountain(_p: Prop) -> void:

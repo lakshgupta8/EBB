@@ -13,6 +13,7 @@ var ended: bool = false
 var victory: bool = false
 var taken: bool = false  # ended by the tide rather than an enemy
 var tide := TideSystem.new()
+var tidemarks: Array = []  # ids, in the order they were taken
 
 
 func result() -> Dictionary:
