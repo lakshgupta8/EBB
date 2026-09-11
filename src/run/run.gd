@@ -29,7 +29,9 @@ var _transitioning: bool = false
 @onready var fade: ColorRect = $HUD/Fade
 @onready var results: CanvasLayer = $Results
 @onready var room_label: Label = $HUD/RoomLabel
+@onready var room_sub: Label = $HUD/RoomSub
 @onready var banner: Label = $HUD/Banner
+@onready var shop: Shop = $Shop
 
 
 func _ready() -> void:
@@ -38,6 +40,7 @@ func _ready() -> void:
 	graph = RoomGraph.new(state.seed, BIOME_LENGTH)
 	_load_templates()
 	hud.bind(self)
+	shop.setup(self)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.pickup_collected.connect(_on_pickup)
@@ -77,13 +80,15 @@ func _apply_water(delta: float) -> void:
 # --- rooms -----------------------------------------------------------------------
 func _load_templates() -> void:
 	_templates = {RoomGraph.COMBAT: [], RoomGraph.ELITE: [], RoomGraph.FOUNTAIN: [],
-		RoomGraph.TREASURE: [], RoomGraph.BOSS: []}
+		RoomGraph.TREASURE: [], RoomGraph.BOSS: [], RoomGraph.SHOP: []}
 	for f in DirAccess.get_files_at(ROOM_DIR):
 		if not f.ends_with(".txt"):
 			continue
 		var t := RoomTemplate.load_file(ROOM_DIR + f)
 		if f.begins_with("fountain"):
 			_templates[RoomGraph.FOUNTAIN].append(t)
+		elif f.begins_with("shop"):
+			_templates[RoomGraph.SHOP].append(t)
 		elif f.begins_with("treasure"):
 			_templates[RoomGraph.TREASURE].append(t)
 		elif f.begins_with("boss"):
@@ -139,16 +144,39 @@ func _enter_room(type: int) -> void:
 			for cell in room.template.marker_cells("T"):
 				room.add_prop(Prop.Kind.CHEST, cell).used.connect(_on_chest)
 			_set_cleared()
+		RoomGraph.SHOP:
+			shop.restock()
+			for cell in room.template.marker_cells("M"):
+				room.add_prop(Prop.Kind.MERCHANT, cell).used.connect(func(_p): shop.open())
+			_set_cleared()
 		RoomGraph.BOSS:
 			_spawn_boss()
 			_show_banner("THE WRECK", 2.2, Color(0.95, 0.75, 0.6), 20)
 			EventBus.request_shake.emit(0.6)
 
-	room_label.text = "The Flats  %d / %d   %s" % [state.depth + 1, BIOME_LENGTH + 1, RoomGraph.NAMES[type]]
+	_show_room_label("THE FLATS", "%d / %d   %s" % [state.depth + 1, BIOME_LENGTH + 1, RoomGraph.NAMES[type]])
 	EventBus.room_entered.emit(room)
-	var tw := create_tween()
-	tw.tween_property(fade, "color:a", 0.0, 0.25)
-	tw.tween_callback(func(): _transitioning = false)
+	var fade_tw := create_tween()
+	fade_tw.tween_property(fade, "color:a", 0.0, 0.25)
+	fade_tw.tween_callback(func(): _transitioning = false)
+
+
+## Area name slides in from the left with a punch, holds 4 s, fades.
+func _show_room_label(title: String, sub: String) -> void:
+	room_label.text = title
+	room_sub.text = sub
+	for l in [room_label, room_sub]:
+		l.visible = true
+		l.modulate = Color(1, 1, 1, 1)
+	var x0 := 10.0
+	room_label.position.x = -220.0
+	room_sub.position.x = -220.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(room_label, "position:x", x0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(room_sub, "position:x", x0 + 2.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.08)
+	tw.chain().tween_interval(4.0)
+	tw.chain().tween_property(room_label, "modulate:a", 0.0, 0.6)
+	tw.parallel().tween_property(room_sub, "modulate:a", 0.0, 0.6)
 
 
 func _spawn_enemies(count: int, with_elite: bool) -> void:
@@ -243,7 +271,7 @@ func _on_fountain(_p: Prop) -> void:
 func _on_chest(p: Prop) -> void:
 	for i in 3:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
-	for i in 6:
+	for i in 10:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.SALT)
 
 

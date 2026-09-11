@@ -55,7 +55,7 @@ func make_elite() -> void:
 	scale = Vector2(1.25, 1.25)
 	call_deferred("_apply_stat_mult", 2.5, 1.15)
 	pearl_drop += 1
-	salt_drop += 3
+	salt_drop += 6
 	death_color = Color(0.95, 0.8, 0.4)
 
 
@@ -90,6 +90,7 @@ func change_state(new_state: StringName) -> void:
 	_exit_state(state)
 	state = new_state
 	state_t = 0.0
+	_cued = false
 	_enter_state(new_state)
 
 
@@ -112,6 +113,22 @@ func face(dir_x: float) -> void:
 		sprite.flip_h = dir_x < 0.0
 		if hitbox:
 			hitbox.scale.x = -1.0 if dir_x < 0.0 else 1.0
+
+
+## The "dodge now" tell: a white flash and a ring right before an attack lands.
+## Subclasses call this once, ~0.2 s before the hit. Dash on the flash for a riptide.
+const STRIKE_CUE_LEAD := 0.2
+var _cued: bool = false
+
+
+func strike_cue() -> void:
+	if _cued:
+		return
+	_cued = true
+	sprite.material.set_shader_parameter("flash", 1.0)
+	var tw := create_tween()
+	tw.tween_property(sprite.material, "shader_parameter/flash", 0.0, 0.2)
+	FX.ring(global_position + Vector2(0, -6), Color(1.0, 0.9, 0.7), 0.7)
 
 
 func play(anim: StringName) -> void:

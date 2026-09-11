@@ -15,6 +15,8 @@ var _special_cd: int = 0
 var _shot_tick: int = -1  # when running with a window: save .shots/sim_run.png at this tick
 var _shot_end: bool = false  # also screenshot the results card
 var _finishing: bool = false
+var _shop_shot: bool = false
+var _props_done: Array = []
 var _pause_shot_tick: int = -1  # open the pause menu at this tick and screenshot it
 var _rooms_seen: Array = []
 var _stuck_t: int = 0
@@ -28,8 +30,10 @@ func _ready() -> void:
 		elif a.begins_with("--shot="): _shot_tick = int(a.trim_prefix("--shot="))
 		elif a.begins_with("--seed="): seed_val = int(a.trim_prefix("--seed="))
 		elif a == "--shot-end": _shot_end = true
+		elif a == "--shop-shot": _shop_shot = true
 		elif a.begins_with("--pause-shot="): _pause_shot_tick = int(a.trim_prefix("--pause-shot="))
 	Engine.max_fps = 0
+	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
 	SaveManager.use_path("user://sim_save.json")
 	Game.run_seed = seed_val
@@ -81,18 +85,31 @@ func _nearest_enemy() -> Enemy:
 func _drive() -> void:
 	_release_all()
 	_stall_watch()
+	if run.shop.is_open:
+		if _shop_shot:
+			_shop_shot = false
+			await _screenshot("sim_shop.png")
+		# Buy the first affordable thing, then leave.
+		for i in Shop.ITEMS.size():
+			if run.shop.can_buy(i):
+				run.shop.buy(i)
+				print("sim_run: bought %s" % Shop.ITEMS[i].name)
+				break
+		run.shop.close()
+		return
 	if run._transitioning or player.dead:
 		return
 	var target := _nearest_enemy()
 	if target:
 		_fight(target)
 		return
-	# Use any unused prop first.
+	# Use any prop once (reusable ones like the merchant would loop forever otherwise).
 	for p in run.room.props:
-		if not p.used_up:
+		if not p.used_up and not p in _props_done:
 			_walk_to(p.global_position, 6.0)
 			if player.global_position.distance_to(p.global_position) < 14.0:
 				Input.action_press("interact")
+				_props_done.append(p)
 			return
 	# Then leave through the first open door.
 	for d in run.room.doors:

@@ -15,7 +15,7 @@ position = Vector2(280, 180)
 z_index = 2
 
 [node name="Camera" type="Camera2D" parent="."]
-position = Vector2(320, 180)
+position = Vector2(320, 184)
 script = ExtResource("3_camera")
 
 [node name="HUD" type="CanvasLayer" parent="."]

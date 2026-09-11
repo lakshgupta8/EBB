@@ -31,7 +31,7 @@ static func parse(text: String, p_name: String = "") -> RoomTemplate:
 				"P": t.player_spawn = cell
 				"e": t.enemy_spawns.append(cell)
 				"D": t.doors.append(cell)
-				"F", "T", "X", "h":
+				"F", "T", "X", "h", "M":
 					if not t.markers.has(ch):
 						t.markers[ch] = []
 					t.markers[ch].append(cell)

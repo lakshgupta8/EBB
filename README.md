@@ -28,7 +28,10 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | E | interact (fountains, chests, results screen) |
 | Esc / F11 | pause / fullscreen toggle |
 
-Knocking an enemy into a wall deals bonus damage.
+Knocking an enemy into a wall deals bonus damage. Enemies flash white and ring right
+before they strike: dash on the flash for a riptide.
+
+Merchant rooms (scale-pan sign): press E at the Drowned Merchant, keys 1-4 buy with salt.
 
 ## Flow (M2)
 Hub (lighthouse) -> walk to the water's edge -> 8 rooms of The Flats chosen door by door -> boss.

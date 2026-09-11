@@ -111,6 +111,8 @@ func _tick(_delta: float) -> void:
 			velocity = Vector2.ZERO
 			if d != Vector2.ZERO:
 				face(d.x)
+			if state_t >= SLAM_WINDUP[p] - STRIKE_CUE_LEAD:
+				strike_cue()
 			if state_t >= SLAM_WINDUP[p]:
 				change_state(&"slam")
 		&"slam":
@@ -127,6 +129,8 @@ func _tick(_delta: float) -> void:
 				face(d.x)
 			# Telegraph: rear back slightly.
 			sprite.position.x = -3.0 * sin(state_t / CHARGE_WINDUP[p] * PI) * signf(_charge_dir.x if d == Vector2.ZERO else d.x)
+			if state_t >= CHARGE_WINDUP[p] - STRIKE_CUE_LEAD:
+				strike_cue()
 			if state_t >= CHARGE_WINDUP[p]:
 				sprite.position.x = 0.0
 				change_state(&"charge")

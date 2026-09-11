@@ -55,7 +55,7 @@ func _draw() -> void:
 	if _player and is_instance_valid(_player):
 		# Dash pips
 		var py := y + BAR_H + 4
-		for i in Player.DASH_CHARGES:
+		for i in _player.max_dash:
 			var col := Color(0.55, 0.8, 0.95) if i < _player.dash_charges else Color(0.2, 0.25, 0.35)
 			draw_rect(Rect2(x + i * 9, py, 7, 4), col)
 		# Hook cooldown

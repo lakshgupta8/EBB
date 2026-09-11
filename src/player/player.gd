@@ -15,6 +15,7 @@ const DASH_RECHARGE := 1.2
 const WATER_SPEED_MULT := 0.7
 const HURT_KNOCKBACK_DECAY := 10.0
 const LUNGE_WINDOW := 0.12         # seconds after a dash ends where attack = lunge
+const DASH_GRACE := 0.06           # i-frames linger this long after the dash
 
 const GLOW_MAX := 100.0
 const GLOW_PER_HIT := 9.0
@@ -27,6 +28,7 @@ const RIPTIDE_WINDOW := 3.0
 const MASK_WORLD := 1
 const MASK_WORLD_AND_ENEMIES := 1 | 4
 
+var max_dash: int = DASH_CHARGES
 var dash_charges: int = DASH_CHARGES
 var facing: Vector2 = Vector2.RIGHT
 var aim: Vector2 = Vector2.RIGHT
@@ -148,7 +150,8 @@ func _physics_process(delta: float) -> void:
 	_hurt_timer = maxf(0.0, _hurt_timer - delta)
 	_dodge_cd = maxf(0.0, _dodge_cd - delta)
 	riptide_t = maxf(0.0, riptide_t - delta)
-	var ghosting := is_dashing() or is_yanked()
+	# A short grace after the dash keeps late dodges honest.
+	var ghosting := is_dashing() or is_yanked() or _since_dash < DASH_GRACE
 	health.invulnerable = ghosting
 	collision_mask = MASK_WORLD if ghosting else MASK_WORLD_AND_ENEMIES
 	_recharge(delta)
@@ -165,7 +168,7 @@ func _start_dash(dir: Vector2) -> void:
 
 
 func _recharge(delta: float) -> void:
-	if dash_charges >= DASH_CHARGES:
+	if dash_charges >= max_dash:
 		_recharge_timer = 0.0
 		return
 	_recharge_timer += delta
@@ -201,11 +204,11 @@ func _animate(input: Vector2) -> void:
 # --- riptide -------------------------------------------------------------------------
 ## An enemy attack passed through us mid-dash: perfect dodge.
 func _on_dodged(_info: DamageInfo) -> void:
-	if _dodge_cd > 0.0 or not is_dashing():
+	if _dodge_cd > 0.0 or not (is_dashing() or _since_dash < DASH_GRACE):
 		return
 	_dodge_cd = 0.6
 	riptide_t = RIPTIDE_WINDOW
-	dash_charges = mini(DASH_CHARGES, dash_charges + 1)
+	dash_charges = mini(max_dash, dash_charges + 1)
 	Juice.slowmo(0.25, 0.28)
 	FX.ring(global_position, Color(0.6, 0.9, 1.0), 1.2)
 	FX.text(global_position, "RIPTIDE", Color(0.7, 0.95, 1.0))

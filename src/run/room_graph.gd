@@ -3,9 +3,9 @@ extends RefCounted
 ## Decides which room types are offered at each depth. Deterministic per seed.
 ## Depth 0 is the first room; depth == biome_length is the boss.
 
-enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS }
-const NAMES := {COMBAT: "Combat", ELITE: "Elite", FOUNTAIN: "Fountain", TREASURE: "Treasure", BOSS: "Boss"}
-const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4}
+enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS, SHOP }
+const NAMES := {COMBAT: "Combat", ELITE: "Elite", FOUNTAIN: "Fountain", TREASURE: "Treasure", BOSS: "Boss", SHOP: "Merchant"}
+const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4, SHOP: 5}
 
 var biome_length: int = 8
 var _rng := RandomNumberGenerator.new()
@@ -40,15 +40,22 @@ func _generate(depth: int) -> Array:
 	var picked: Array = []
 	for i in count:
 		picked.append(_weighted(depth, picked))
+	# Guarantee one merchant visit is offered mid-run.
+	if depth == 4 and not SHOP in picked:
+		picked[0] = SHOP
 	return picked
 
 
 func _weighted(depth: int, exclude: Array) -> int:
-	var weights := {COMBAT: 5.0, ELITE: 0.0, FOUNTAIN: 0.0, TREASURE: 1.5}
+	var weights := {COMBAT: 5.0, ELITE: 0.0, FOUNTAIN: 0.0, TREASURE: 1.5, SHOP: 0.0}
 	if depth >= 3:
 		weights[ELITE] = 2.0
 	if depth >= 2:
 		weights[FOUNTAIN] = 1.5
+		weights[SHOP] = 1.5
+	var prev: Array = _cache.get(depth - 1, [])
+	if SHOP in prev:
+		weights[SHOP] = 0.0
 	for e in exclude:
 		weights[e] = 0.0
 	var total := 0.0
