@@ -1,10 +1,10 @@
-extends SceneTree
-## Headless test runner. Usage:
-##   godot --headless --path . -s tests/run_tests.gd
+extends Node
+## Headless test runner. Runs as a scene so autoloads exist. Usage:
+##   godot --headless --path . tests/run_tests.tscn
 ## Discovers tests/test_*.gd, runs every test_* method, exits 1 on failure.
 
 
-func _init() -> void:
+func _ready() -> void:
 	var total_pass := 0
 	var total_fail := 0
 	var all_failures: PackedStringArray = []
@@ -28,4 +28,4 @@ func _init() -> void:
 	for msg in all_failures:
 		printerr("FAIL " + msg)
 	print("TOTAL: %d passed, %d failed" % [total_pass, total_fail])
-	quit(1 if total_fail > 0 else 0)
+	get_tree().quit(1 if total_fail > 0 else 0)
