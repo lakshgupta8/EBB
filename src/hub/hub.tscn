@@ -24,8 +24,8 @@ script = ExtResource("3_camera")
 [node name="Info" type="Label" parent="HUD"]
 offset_left = 6.0
 offset_top = 4.0
-offset_right = 636.0
-offset_bottom = 14.0
+offset_right = 200.0
+offset_bottom = 24.0
 theme_override_colors/font_shadow_color = Color(0.09, 0.08, 0.14, 1)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1

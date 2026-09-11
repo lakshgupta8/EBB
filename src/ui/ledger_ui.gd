@@ -66,6 +66,7 @@ func _buy(i: int) -> void:
 	if Ledger.buy(u.id):
 		_hint.text = "%s  tier %d" % [u.name.to_lower(), Ledger.tier(u.id)]
 		_hint.modulate = Color(0.75, 0.95, 0.8)
+		Audio.play("buy")
 	else:
 		_hint.text = "already complete" if Ledger.next_cost(u.id) < 0 else "not enough pearls"
 		_hint.modulate = Color(1.0, 0.6, 0.55)

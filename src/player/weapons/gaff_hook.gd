@@ -65,6 +65,12 @@ var _held_t: float = 0.0
 var _charge_t: float = 0.0
 var _player: Player
 var _shape_home: Vector2
+# The sweep happens during the ACTIVE window so the hitbox covers the whole arc.
+var _sweep_from: float = 0.0
+var _sweep_to: float = 0.0
+var _sweep_time: float = 0.1
+var _sweep_fx_scale: float = 1.0
+var _sweep_double: bool = false
 
 @onready var pivot: Node2D = $Pivot
 @onready var sprite: Sprite2D = $Pivot/Sprite
@@ -147,6 +153,7 @@ func cancel() -> void:
 	if state in [State.SWING, State.CHARGING, State.HEAVY, State.LUNGE]:
 		hitbox.deactivate()
 		hit_shape.position = _shape_home
+		hit_shape.shape.radius = 16.0
 		state = State.IDLE
 		_buffered = false
 		_charge_t = 0.0
@@ -191,15 +198,13 @@ func _start_swing() -> void:
 	hitbox.tags = PackedStringArray(["melee", "third_hit"] if hitbox.pull else ["melee"])
 	hit_shape.position = _shape_home
 	sprite.flip_v = _player.aim.x < 0.0
-	var from := aim_angle - _swing_sign * SWING_ARC * 0.5
-	var to := aim_angle + _swing_sign * SWING_ARC * 0.5
-	pivot.rotation = from
-	var tw := create_tween()
-	tw.tween_property(pivot, "rotation", to, ANTICIPATION[i] + ACTIVE[i]).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	get_tree().create_timer(ANTICIPATION[i]).timeout.connect(func():
-		if state == State.SWING and _step == i + 1:
-			FX.slash(global_position, aim_angle, _swing_sign < 0.0, 1.15 if hitbox.pull else 1.0)
-	)
+	# Anticipation: hook held at the start of the arc. Active: sweep across it.
+	_sweep_from = aim_angle - _swing_sign * SWING_ARC * 0.5
+	_sweep_to = aim_angle + _swing_sign * SWING_ARC * 0.5
+	_sweep_time = ACTIVE[i]
+	_sweep_fx_scale = 1.15 if hitbox.pull else 1.0
+	_sweep_double = false
+	pivot.rotation = _sweep_from
 
 
 func _tick_swing(delta: float) -> void:
@@ -274,17 +279,17 @@ func _start_heavy() -> void:
 	hitbox.pull = false
 	hitbox.hitstop = 0.1 + 0.06 * f
 	hitbox.tags = PackedStringArray(["melee", "heavy"])
-	hit_shape.position = _shape_home
+	# Bigger reach for the big swing.
+	hit_shape.position = Vector2(18, 0)
+	hit_shape.shape.radius = 20.0
 	_swing_sign = 1.0
-	pivot.rotation = aim_angle - HEAVY_ARC * 0.5
-	var tw := create_tween()
-	tw.tween_property(pivot, "rotation", aim_angle + HEAVY_ARC * 0.5, HEAVY_ANTICIPATION + HEAVY_ACTIVE).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	get_tree().create_timer(HEAVY_ANTICIPATION).timeout.connect(func():
-		if state == State.HEAVY:
-			FX.slash(global_position, aim_angle, false, 1.4 + 0.3 * f)
-			FX.slash(global_position, aim_angle, true, 1.4 + 0.3 * f)
-			EventBus.request_shake.emit(0.25 + 0.35 * f)
-	)
+	_sweep_from = aim_angle - HEAVY_ARC * 0.5
+	_sweep_to = aim_angle + HEAVY_ARC * 0.5
+	_sweep_time = HEAVY_ACTIVE
+	_sweep_fx_scale = 1.4 + 0.3 * f
+	_sweep_double = true
+	pivot.rotation = _sweep_from
+	EventBus.request_shake.emit(0.25 + 0.35 * f)
 
 
 # --- lunge -------------------------------------------------------------------------
@@ -319,6 +324,7 @@ func _tick_timed(delta: float, ant: float, act: float, rec: float) -> void:
 		hitbox.deactivate()
 	if _phase_t >= ant + act + rec:
 		hit_shape.position = _shape_home
+		hit_shape.shape.radius = 16.0
 		state = State.IDLE
 		_held_t = 0.0
 
@@ -329,6 +335,17 @@ func _arm_and_activate(heavy: bool) -> void:
 	hitbox.crit = crit
 	hitbox.damage_mult = float(m.damage) * (float(m.heavy_damage) if heavy else 1.0) * (float(m.riptide_crit) if crit else 1.0)
 	hitbox.activate()
+	if state == State.LUNGE:
+		return
+	# Sweep the arc now, while the hitbox is live.
+	var aim_angle := (_sweep_from + _sweep_to) * 0.5
+	pivot.rotation = _sweep_from
+	var tw := create_tween()
+	tw.tween_property(pivot, "rotation", _sweep_to, _sweep_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	FX.slash(global_position, aim_angle, _swing_sign < 0.0, _sweep_fx_scale)
+	if _sweep_double:
+		FX.slash(global_position, aim_angle, _swing_sign >= 0.0, _sweep_fx_scale)
+	Audio.play("heavy" if heavy else "swing", 0.15)
 
 
 func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
@@ -342,8 +359,12 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 	if crit:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		FX.ring(target.global_position, Color(1.0, 0.95, 0.7), 0.8)
+		Audio.play("crit", 0.05)
 	elif heavy and enemy and not enemy.is_boss:
 		FX.text(target.global_position, "CRACKED", Color(1.0, 0.7, 0.6))
+		Audio.play("crit", 0.1, -3.0)
+	else:
+		Audio.play("hit", 0.15, -2.0 if not heavy else 2.0)
 	if enemy and info.tags.has("third_hit") and _player.mods.bleed:
 		enemy.apply_bleed(3)
 
@@ -386,6 +407,7 @@ func _start_throw() -> void:
 
 	_throw_cd_total = THROW_COOLDOWN if target_hb else THROW_MISS_COOLDOWN
 	_throw_cd = _throw_cd_total
+	Audio.play("hook", 0.1)
 	pivot.rotation = dir.angle()
 	sprite.flip_v = dir.x < 0.0
 	var dist := origin.distance_to(target_point)

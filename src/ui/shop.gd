@@ -95,6 +95,7 @@ func buy(i: int) -> bool:
 			p.dash_charges = p.max_dash
 		"oil": p.add_glow(60.0)
 	FX.burst(p.global_position, Color(0.98, 0.85, 0.45), 8, 40.0)
+	Audio.play("buy")
 	_refresh()
 	if _hint:
 		_hint.text = "bought %s" % it.name.to_lower()

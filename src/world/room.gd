@@ -198,9 +198,24 @@ func _refresh_water() -> void:
 				continue
 			var cell := Vector2i(x, y)
 			_flooded.append(cell)
-			var deep := _tide_level > h + 1.0
-			var idx := Tiles.DEEP if deep else (Tiles.WATER2 if _water_phase == 1 else Tiles.WATER)
-			_water.set_cell(cell, 0, Tiles.coords(idx))
+			_water.set_cell(cell, 0, Tiles.coords(_water_tile(cell, h)))
+
+
+## Deep, foam (touching dry ground) or plain water, in the current animation phase.
+func _water_tile(cell: Vector2i, h: int) -> int:
+	if _tide_level > h + 1.0:
+		return Tiles.DEEP
+	var shore := false
+	for off: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var n: Vector2i = cell + off
+		if template.is_solid(n.x, n.y):
+			continue
+		if _tide_level <= template.height_at(n.x, n.y):
+			shore = true
+			break
+	if shore:
+		return Tiles.FOAM2 if _water_phase == 1 else Tiles.FOAM
+	return Tiles.WATER2 if _water_phase == 1 else Tiles.WATER
 
 
 func _process(delta: float) -> void:
@@ -214,4 +229,4 @@ func _process(delta: float) -> void:
 			var h := template.height_at(cell.x, cell.y)
 			if _tide_level > h + 1.0:
 				continue
-			_water.set_cell(cell, 0, Tiles.coords(Tiles.WATER2 if _water_phase == 1 else Tiles.WATER))
+			_water.set_cell(cell, 0, Tiles.coords(_water_tile(cell, h)))

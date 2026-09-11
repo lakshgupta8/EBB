@@ -19,6 +19,7 @@ Game="*res://src/core/game.gd"
 Juice="*res://src/core/juice.gd"
 SaveManager="*res://src/core/save_manager.gd"
 FX="*res://src/fx/fx.gd"
+Audio="*res://src/core/audio.gd"
 
 [display]
 

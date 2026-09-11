@@ -258,6 +258,7 @@ func _on_hit_landed(_target: Hurtbox, _info: DamageInfo) -> void:
 func _on_died() -> void:
 	FX.burst(global_position, death_color, 16, 90.0)
 	FX.burst(global_position, Color.WHITE, 6, 50.0)
+	Audio.play("death", 0.2, 0.0 if not is_boss else 4.0)
 	EventBus.request_hitstop.emit(0.1)
 	EventBus.request_shake.emit(0.3)
 	EventBus.enemy_died.emit(self)

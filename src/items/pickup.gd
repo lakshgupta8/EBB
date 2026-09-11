@@ -66,4 +66,5 @@ func _on_body_entered(body: Node) -> void:
 	if body is Player and _age > 0.15:
 		EventBus.pickup_collected.emit(kind, value)
 		FX.burst(global_position, Color(0.98, 0.85, 0.45) if kind == Kind.SALT else Color(0.9, 0.9, 0.95), 5, 30.0)
+		Audio.play("pickup" if kind == Kind.SALT else "pearl", 0.12, -6.0, 60)
 		queue_free()

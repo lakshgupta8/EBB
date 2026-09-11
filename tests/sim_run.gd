@@ -18,6 +18,8 @@ var _finishing: bool = false
 var _shop_shot: bool = false
 var _altar_shot: bool = false
 var _props_done: Array = []
+var _tag_hits: Dictionary = {}
+var _heavies_fired: int = 0
 var _pause_shot_tick: int = -1  # open the pause menu at this tick and screenshot it
 var _rooms_seen: Array = []
 var _stuck_t: int = 0
@@ -41,6 +43,12 @@ func _ready() -> void:
 	Game.run_seed = seed_val
 	run = RUN.instantiate()
 	EventBus.room_entered.connect(func(r): _rooms_seen.append(RoomGraph.NAMES[run.room_type] + ":" + r.template.name))
+	EventBus.damage_dealt.connect(func(target, info):
+		if target is Enemy:
+			for t in ["melee", "heavy", "lunge", "crit", "hook", "wake", "bleed", "wall", "flare", "third_hit"]:
+				if info.tags.has(t):
+					_tag_hits[t] = _tag_hits.get(t, 0) + 1
+	)
 	add_child(run)
 	player = run.player
 	print("sim_run: seed %d, %d ticks" % [seed_val, ticks_to_run])
@@ -196,6 +204,7 @@ func _fight(target: Enemy) -> void:
 		_attack_cd = 6
 		if randf() < 0.2:
 			_hold_ticks = 40
+			_heavies_fired += 1
 	if dist > 50.0 and dist < 90.0 and _special_cd <= 0 and player.weapon.special_ready():
 		Input.action_press("special")
 		_special_cd = 180
@@ -263,6 +272,7 @@ func _finish() -> void:
 		float(tick) / 60.0, s.depth, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
 		player.health.hp, s.ended, s.victory, s.taken])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
+	print("sim_run: hits by tag: %s  (heavy holds started: %d)" % [_tag_hits, _heavies_fired])
 	var ok := s.depth >= 2 and s.kills > 0
 	print("sim_run: %s" % ("OK" if ok else "FAILED (did not progress past depth 2)"))
 	get_tree().quit(0 if ok else 1)

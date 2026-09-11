@@ -63,6 +63,7 @@ var _hurt_timer: float = 0.0
 var _dodge_cd: float = 0.0
 var _second_chance_used: bool = false
 var _wake: Hitbox
+var _lantern: PointLight2D
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var health: Health = $Health
@@ -87,6 +88,9 @@ func _ready() -> void:
 	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	_build_wake()
+	# The keeper's lantern: the warm pool of light you carry through the night.
+	_lantern = Atmosphere.light(self, Color(1.0, 0.9, 0.72), 5.0, 1.15, Vector2(-4, -6))
+	Atmosphere.breathe(_lantern, 1.05, 1.25, 2.4)
 
 
 ## Dash wake hitbox (used only with the Wake tidemark).
@@ -198,6 +202,7 @@ func _start_dash(dir: Vector2) -> void:
 	_dash_dir = dir
 	weapon.cancel()
 	FX.burst(global_position + Vector2(0, 4), Color(0.9, 0.85, 0.7, 0.8), 6, 30.0)
+	Audio.play("splash" if in_water else "dash", 0.12, -4.0)
 	if mods.dash_wake:
 		_wake.activate()
 		FX.burst(global_position, Color(0.6, 0.9, 1.0, 0.8), 6, 40.0)
@@ -251,6 +256,7 @@ func _on_dodged(_info: DamageInfo) -> void:
 	FX.ring(global_position, Color(0.6, 0.9, 1.0), 1.2)
 	FX.text(global_position, "RIPTIDE", Color(0.7, 0.95, 1.0))
 	EventBus.request_shake.emit(0.2)
+	Audio.play("riptide", 0.05)
 
 
 ## The next hit is a crit if riptide is armed. Weapons call this when a hitbox goes live.
@@ -268,6 +274,9 @@ func add_glow(amount: float) -> void:
 	if glow_full() and not was_full:
 		FX.burst(global_position + Vector2(-6, -2), Color(1.0, 0.9, 0.5), 8, 35.0)
 		FX.text(global_position, "LANTERN READY", Color(1.0, 0.9, 0.55))
+		Audio.play("pearl", 0.0, -6.0)
+	if _lantern:
+		_lantern.color = Color(1.0, 0.9, 0.72).lerp(Color(1.0, 0.97, 0.85), glow / GLOW_MAX)
 
 
 func flare() -> void:
@@ -277,6 +286,11 @@ func flare() -> void:
 	FX.flash_screen(Color(1.0, 0.95, 0.8, 0.55), 0.3)
 	FX.ring(global_position, Color(1.0, 0.9, 0.5), 2.6)
 	FX.burst(global_position, Color(1.0, 0.9, 0.5), 24, 140.0)
+	Audio.play("flare")
+	if _lantern:
+		var tw := create_tween()
+		_lantern.energy = 4.0
+		tw.tween_property(_lantern, "energy", 1.15, 0.7)
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not (e is Enemy) or e.global_position.distance_to(global_position) > FLARE_RADIUS:
 			continue
@@ -304,6 +318,7 @@ func take_tide_damage(info: DamageInfo) -> void:
 		_flash()
 		EventBus.request_shake.emit(0.15)
 		FX.burst(global_position + Vector2(0, 2), Color(0.5, 0.75, 0.9, 0.9), 6, 40.0)
+		Audio.play("splash", 0.2, -8.0)
 
 
 func _on_hurt(info: DamageInfo) -> void:
@@ -315,6 +330,7 @@ func _on_hurt(info: DamageInfo) -> void:
 	EventBus.request_shake.emit(0.5)
 	EventBus.request_hitstop.emit(0.08)
 	FX.burst(global_position, Color(0.9, 0.3, 0.3), 10, 70.0)
+	Audio.play("hurt", 0.1)
 
 
 func _flash() -> void:
@@ -334,6 +350,7 @@ func _on_died() -> void:
 		FX.flash_screen(Color(1.0, 0.95, 0.8, 0.7), 0.6)
 		FX.ring(global_position, Color(1.0, 0.9, 0.5), 3.0)
 		FX.text(global_position, "THE TETHER HOLDS", Color(1.0, 0.9, 0.55))
+		Audio.play("altar")
 		return
 	dead = true
 	sprite.play("hurt")
