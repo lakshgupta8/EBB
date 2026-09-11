@@ -39,7 +39,8 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 	add_child(_sprite)
 	if kind == Kind.LIGHTHOUSE:
 		_sprite.texture = preload("res://assets/sprites/lighthouse.png")
-		_sprite.position = Vector2(0, -16)
+		# Sprite is 48 tall; its rock base (rows 35-43) should sit on the footprint centre.
+		_sprite.position = Vector2(0, -14)
 		_sprite.z_index = 3
 		var lamp := Atmosphere.light(self, Color(1.0, 0.85, 0.55), 7.0, 1.6, Vector2(0, -36))
 		Atmosphere.breathe(lamp, 1.3, 1.9, 3.0)

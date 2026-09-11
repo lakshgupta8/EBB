@@ -1,6 +1,7 @@
 class_name AltarUI
 extends CanvasLayer
-## Three tidemarks, pick one. Keys 1-3 choose; you cannot leave without choosing.
+## Three tidemarks, pick one. Click a card, or press 1-3 (numpad works too).
+## You cannot leave without choosing.
 
 signal chosen(id: String)
 
@@ -37,48 +38,49 @@ func choose(i: int) -> void:
 	chosen.emit(id)
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		var k: int = event.keycode
-		if k >= KEY_1 and k <= KEY_3:
-			choose(k - KEY_1)
-			get_viewport().set_input_as_handled()
+	var i := UI.menu_index(event)
+	if i >= 0 and i < offers.size():
+		choose(i)
+		get_viewport().set_input_as_handled()
+	elif UI.is_close(event) and not (event is InputEventMouseButton):
+		# Swallow E/Esc so nothing behind the menu reacts; choosing is mandatory.
+		get_viewport().set_input_as_handled()
 
 
 func _build() -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0.04, 0.03, 0.08, 0.6)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UI.panel_style())
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
-	box.custom_minimum_size = Vector2(260, 0)
+	box.custom_minimum_size = Vector2(270, 0)
 	panel.add_child(box)
 	box.add_child(UI.label("THE TIDE OFFERS", 16, Color(0.8, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("choose one mark", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("click a mark, or press 1-3", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
 	for i in offers.size():
 		var m := Tidemarks.get_mark(offers[i])
 		var col: Color = Tidemarks.FAMILY_COLOR[m.family]
-		var row := PanelContainer.new()
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.1, 0.1, 0.16)
-		style.border_color = col
-		style.set_border_width_all(1)
-		style.set_content_margin_all(6)
-		row.add_theme_stylebox_override("panel", style)
+		var b := UI.row_button(col)
 		var inner := VBoxContainer.new()
+		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.add_theme_constant_override("separation", 1)
 		inner.add_child(UI.label("[%d] %s   %s" % [i + 1, m.name.to_upper(), m.family], 8, col))
 		inner.add_child(UI.label(m.desc, 8, Color(0.85, 0.85, 0.9)))
-		row.add_child(inner)
-		box.add_child(row)
+		b.add_child(inner)
+		b.custom_minimum_size = Vector2(250, 30)
+		b.pressed.connect(choose.bind(i))
+		box.add_child(b)
 	_root = center

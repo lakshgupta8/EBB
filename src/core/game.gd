@@ -19,13 +19,17 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("fullscreen"):
-		var w := get_window()
-		if w.mode == Window.MODE_FULLSCREEN or w.mode == Window.MODE_EXCLUSIVE_FULLSCREEN:
-			w.mode = Window.MODE_WINDOWED
-			w.size = Vector2i(1280, 720)
-			w.move_to_center()
-		else:
-			w.mode = Window.MODE_FULLSCREEN
+		toggle_fullscreen()
+
+
+func toggle_fullscreen() -> void:
+	var w := get_window()
+	if w.mode == Window.MODE_FULLSCREEN or w.mode == Window.MODE_EXCLUSIVE_FULLSCREEN:
+		w.mode = Window.MODE_WINDOWED
+		w.size = Vector2i(1280, 720)
+		w.move_to_center()
+	else:
+		w.mode = Window.MODE_FULLSCREEN
 
 
 func go_to_hub() -> void:

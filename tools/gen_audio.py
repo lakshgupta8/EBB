@@ -89,23 +89,26 @@ def loopable(x, fade=0.5):
 
 # ----------------------------------------------------------------------------- ambience
 def build_sea():
-    dur = 16.0
+    """48 s bed. Swells come from three incommensurate slow LFOs plus a random walk, so the
+    pattern never audibly repeats inside the loop; the loop point is crossfaded."""
+    dur = 48.0
     n = int(SR * dur)
     tt = t(dur)
-    # Surf: brown-ish noise with slow swells at two rates so it never obviously repeats.
-    surf = lowpass(noise(n), 900, 2)
-    swell = 0.55 + 0.45 * np.sin(2 * np.pi * 0.11 * tt) * np.sin(2 * np.pi * 0.07 * tt + 1.3)
-    swell = np.clip(swell, 0.15, 1.0) ** 1.6
-    surf *= swell
-    # Wash: hissy upper band riding the swell peaks (the wave breaking).
-    wash = bandpass(noise(n), 1500, 5000, 2) * np.clip(swell - 0.5, 0, 1) * 1.6
-    # Wind: mid-band noise with its own slow gusts.
-    gust = 0.4 + 0.3 * np.sin(2 * np.pi * 0.05 * tt + 0.7) + 0.2 * np.sin(2 * np.pi * 0.19 * tt)
-    wind = bandpass(noise(n), 300, 1400, 2) * np.clip(gust, 0.1, 1.0) * 0.35
-    # Deep hum of the Ebb underneath.
-    hum = 0.08 * np.sin(2 * np.pi * 42 * tt) * (0.7 + 0.3 * np.sin(2 * np.pi * 0.03 * tt))
-    mix = surf * 0.9 + wash * 0.5 + wind + hum
-    save("ambient_sea", loopable(mix, 1.0), 0.8)
+    walk = lowpass(noise(n), 0.15, 1)
+    walk = walk / (np.max(np.abs(walk)) or 1.0)
+    swell = (0.5
+             + 0.22 * np.sin(2 * np.pi * 0.083 * tt)
+             + 0.16 * np.sin(2 * np.pi * 0.031 * tt + 1.1)
+             + 0.12 * np.sin(2 * np.pi * 0.137 * tt + 2.4)
+             + 0.25 * walk)
+    swell = np.clip(swell, 0.12, 1.0) ** 1.7
+    surf = lowpass(noise(n), 700, 2) * swell
+    wash = bandpass(noise(n), 1200, 4500, 2) * np.clip(swell - 0.45, 0, 1) * 1.4
+    gust = 0.35 + 0.25 * np.sin(2 * np.pi * 0.047 * tt + 0.7) + 0.2 * np.sin(2 * np.pi * 0.173 * tt) + 0.2 * walk
+    wind = bandpass(noise(n), 250, 1200, 2) * np.clip(gust, 0.08, 1.0) * 0.3
+    hum = 0.05 * np.sin(2 * np.pi * 42 * tt) * (0.7 + 0.3 * np.sin(2 * np.pi * 0.023 * tt))
+    mix = surf * 0.9 + wash * 0.45 + wind + hum
+    save("ambient_sea", loopable(mix, 2.0), 0.7)
 
 
 def build_gull():
@@ -121,24 +124,26 @@ def build_gull():
 
 # ----------------------------------------------------------------------------- sfx
 def build_sfx():
-    # swing: short noise whoosh with a downward sweep
-    n = int(SR * 0.18)
-    x = bandpass(noise(n), 700, 3200, 2) * env(n, 0.01, 0.12, 0.0, 0.04)
-    x += 0.3 * sweep(n, 900, 300, 1.0) * env(n, 0.005, 0.1)
-    save("swing", x, 0.55)
+    # swing: short, soft noise whoosh. Three variants so repeated attacks do not sound like a loop.
+    for v, (lo, hi, dur, f0) in enumerate(((600, 2600, 0.16, 800), (500, 2200, 0.19, 650), (700, 3000, 0.14, 950))):
+        n = int(SR * dur)
+        x = bandpass(noise(n), lo, hi, 2) * env(n, 0.015, dur * 0.6, 0.0, 0.04)
+        x += 0.2 * sweep(n, f0, f0 * 0.35, 1.0) * env(n, 0.005, dur * 0.5)
+        save("swing_%d" % v, x, 0.35)
 
     # heavy: longer, lower whoosh with weight
     n = int(SR * 0.32)
     x = bandpass(noise(n), 250, 1800, 2) * env(n, 0.02, 0.2, 0.0, 0.08)
     x += 0.5 * sweep(n, 400, 90, 1.2) * env(n, 0.01, 0.25)
-    save("heavy", x, 0.8)
+    save("heavy", x, 0.7)
 
-    # hit: thud + click
-    n = int(SR * 0.16)
-    x = lowpass(noise(n), 600, 2) * env(n, 0.002, 0.08)
-    x += 0.8 * sweep(n, 240, 60, 1.5) * env(n, 0.001, 0.09)
-    x += 0.4 * highpass(noise(n), 3000, 2) * env(n, 0.001, 0.02)
-    save("hit", x, 0.85)
+    # hit: thud + click, three variants
+    for v, (fc, f0, dur) in enumerate(((600, 240, 0.16), (500, 200, 0.18), (750, 280, 0.14))):
+        n = int(SR * dur)
+        x = lowpass(noise(n), fc, 2) * env(n, 0.002, dur * 0.5)
+        x += 0.8 * sweep(n, f0, f0 * 0.25, 1.5) * env(n, 0.001, dur * 0.55)
+        x += 0.3 * highpass(noise(n), 3000, 2) * env(n, 0.001, 0.02)
+        save("hit_%d" % v, x, 0.7)
 
     # crit / crack: brighter snap with a shimmer
     n = int(SR * 0.3)
@@ -231,11 +236,12 @@ def build_sfx():
     x += 0.4 * lowpass(noise(n), 300, 2) * env(n, 0.002, 0.1)
     save("splash", x, 0.6)
 
-    # enemy death: crunch + low pop
-    n = int(SR * 0.3)
-    x = lowpass(noise(n), 900, 2) * env(n, 0.002, 0.18)
-    x += 0.7 * sweep(n, 300, 70, 1.5) * env(n, 0.002, 0.15)
-    save("death", x, 0.8)
+    # enemy death: crunch + low pop, two variants
+    for v, (fc, f0) in enumerate(((900, 300), (700, 220))):
+        n = int(SR * 0.3)
+        x = lowpass(noise(n), fc, 2) * env(n, 0.002, 0.18)
+        x += 0.7 * sweep(n, f0, f0 * 0.23, 1.5) * env(n, 0.002, 0.15)
+        save("death_%d" % v, x, 0.7)
 
     # boss roar: low FM growl
     dur = 1.1
