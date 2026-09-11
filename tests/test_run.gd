@@ -91,7 +91,7 @@ func test_hub_template() -> void:
 	var t := RoomTemplate.load_file("res://data/rooms/hub.txt")
 	assert_eq(t.marker_cells("X").size(), 1, "one descend marker")
 	assert_true(t.marker_cells("h").size() >= 1, "lighthouse marker")
-	for m in ["O", "B", "W", "C", "N"]:
+	for m in ["O", "B", "W", "C", "N", "K"]:
 		assert_eq(t.marker_cells(m).size(), 1, "one spot for " + m)
 
 

@@ -18,24 +18,7 @@ func _ready() -> void:
 
 
 static func orla_line() -> String:
-	var s := SaveManager.data
-	if SaveManager.flag("ebb_broken"):
-		return "The sea came back in last night. All the way in, gentle as anything. Maren is standing on my rock, Tam. Go and talk to her."
-	if int(s.wins) > 0:
-		return "The bell is quiet. I heard it stop from here. Whatever is under the streets heard it too."
-	if SaveManager.flag("echo_cartographer"):
-		return "The one with the maps does not eat, does not sleep, does not blink. Neither did Maren, near the end."
-	if SaveManager.flag("echo_wren"):
-		return "Wren was praying in the chapel the night it went under. She is still praying. Maybe it works."
-	if SaveManager.flag("echo_bram"):
-		return "Bram. Bram is standing on my rock. He drowned before you were born, Tam. Ask him what he remembers."
-	if int(s.best_depth) >= 9:
-		return "You broke the Wreck. Past the flats the water hides streets, Tam. Saltmere's streets."
-	match int(s.runs):
-		0: return "Maren walked into the ruins with that lantern and did not come back. Keep the tide, Tam. Whatever that means."
-		1, 2: return "You came back. The lantern brought you back. They say it always does."
-		3, 4, 5: return "Every keeper before Maren went down there too. Nobody in the village talks about that."
-		_: return "The sea goes out further each night. I don't think it is leaving. I think it is showing us something."
+	return Story.orla()
 
 
 func open() -> void:

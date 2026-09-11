@@ -27,7 +27,8 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | RMB | weapon special: hook throw (gaff) or net throw (knife) |
 | Q | lantern flare when the glow meter is full (hits charge it): stuns and damages everything nearby |
 | E | interact (fountains, chests, cages, people, results screen) |
-| Esc / F11 | pause / fullscreen toggle. The pause menu has Give up [Q] and Quit game [X] |
+| Esc / F11 | pause / fullscreen toggle. The pause menu has Codex [C], Give up [Q] and Quit game [X] |
+| C | the codex: the drowned, tidemarks, people and places you have met |
 | 1-9 or click | pick in any menu; E / Esc / right-click leaves |
 
 Knocking an enemy into a wall deals bonus damage. Enemies flash white and ring right
@@ -46,7 +47,23 @@ Pick and forge weapons at Bram's forge on Marrow Rock. The HUD shows the harpoon
 ## The night (M4)
 Hub (lighthouse) -> The Flats (8 rooms + The Wreck) -> slack water -> The Drowned Streets
 (9 rooms + The Bell of Saltmere) -> slack water -> The Deep Hall (7 rooms + The Ebb).
-Beating the Ebb wins the night and brings Maren home. Endings are M5.
+Beating the Ebb wins the night and brings Maren home to the lighthouse, where she holds the endings.
+
+## Story (M5)
+- **The lantern whispers.** One-time lines during a run, at the first night, the first cage, each
+  boss and each biome, and on the results card the first time you die or are taken. They tell the
+  truth in layers. Lines live in `src/story/story.gd`, with everything anyone says at the hub.
+- **Endings.** Talk to Maren after the Ebb falls. *Keep the tide* is always open. *Break the tide*
+  needs Bram, Wren and the Cartographer on the rock. *Walk out* appears once everyone is home and
+  opens after three nights won. Each plays out over black with the sea rising or falling behind the
+  words, is remembered on the profile, and can be chosen again; the people on the rock change what
+  they say afterwards.
+- **Codex.** C, or from the pause menu. Enemies fill in when first seen, tidemarks when first offered,
+  people as they come home, places as you reach them. Every entry has a line of lore.
+- **Fen** stands on the rock too: the village kid, only ever has something to say.
+
+To watch an ending without earning it: `.	oolsun.ps1 src/hub/hub.tscn -- --screenshot --sim-save --ending=break`
+(the `--sim-save` profile, never yours).
 
 - The tide meter on the right rises with time and every room; low ground floods first, then the
   rest. Shallow water slows you, deep water hurts. It falls back to slack water after a boss.
@@ -62,7 +79,7 @@ Beating the Ebb wins the night and brings Maren home. Endings are M5.
 | Bram the Drowned | The Flats, an echo room | forge: choose your weapon |
 | Sister Wren | The Drowned Streets | bless a tidemark family: every altar offers one from it |
 | The Cartographer | The Drowned Streets (after Wren) | chart a room: fountain, chest or merchant guaranteed two rooms into every biome |
-| Maren | under the Ebb | talks; the endings come in M5 |
+| Maren | under the Ebb | the endings: keep, break, or walk out |
 
 ### Streets enemies
 Still Citizen (statue until you are close, then fast), Lamplighter (kindles the others; throws its

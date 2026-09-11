@@ -67,6 +67,14 @@ static func row_button(edge: Color = PANEL_EDGE) -> Button:
 	return b
 
 
+## A non-clickable row with the same look as row_button (codex entries).
+static func row_panel(edge: Color = PANEL_EDGE) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _row_style(ROW, edge.darkened(0.3)))
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	return p
+
+
 ## A label that yields width to its siblings and trims with an ellipsis instead of overflowing.
 static func flex_label(text: String, size: int = 8, color: Color = Color(0.7, 0.75, 0.8)) -> Label:
 	var l := label(text, size, color)

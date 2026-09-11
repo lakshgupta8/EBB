@@ -37,6 +37,16 @@ func show_result(r: Dictionary) -> void:
 		title_text = "TAKEN BY THE DEEP"
 		title_color = Color(0.85, 0.5, 0.5)
 	box.add_child(UI.label(title_text, 16, title_color, HORIZONTAL_ALIGNMENT_CENTER))
+	var line := ""
+	if r.victory and int(r.get("biome", 0)) >= 2:
+		line = "Maren is standing on the rock. Go up and talk to her."
+	elif not r.victory:
+		line = Story.whisper("taken" if r.taken else "death")
+	if line != "":
+		var l := UI.label("\"%s\"" % line, 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(300, 0)
+		box.add_child(l)
 	box.add_child(UI.spacer(4))
 
 	var mins := int(r.time) / 60

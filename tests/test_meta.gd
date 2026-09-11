@@ -73,6 +73,53 @@ func test_menu_texts_fit_their_rows() -> void:
 		assert_true(Weapon.ALL[id].desc.length() * 6 <= 240, "weapon desc too long: " + Weapon.ALL[id].desc)
 
 
+func test_codex_covers_every_enemy_and_mark() -> void:
+	var ids: Array = []
+	for e in Codex.ENEMIES:
+		ids.append(e.id)
+	var dir := DirAccess.open("res://src/enemies")
+	for f in dir.get_files():
+		if f.ends_with(".tscn"):
+			assert_true(f.get_basename() in ids, "codex entry for " + f)
+	assert_eq(Codex.entries("mark").size(), Tidemarks.ALL.size(), "every tidemark listed")
+	for e in Codex.ENEMIES + Codex.PEOPLE + Codex.PLACES:
+		assert_true(e.desc.length() * 6 <= 300, "codex desc too long: " + e.desc)
+	for id in Story.ENDINGS:
+		assert_true(Story.ENDINGS[id].desc.length() * 6 <= 240, "ending desc too long: " + id)
+
+
+func test_codex_discovery_and_endings_gate() -> void:
+	SaveManager.use_path("user://test_codex.json")
+	SaveManager.wipe()
+	assert_eq(Codex.count("enemy").x, 0, "nothing met yet")
+	assert_true(Codex.discover("enemy", "shellback"), "first meeting counts")
+	assert_true(not Codex.discover("enemy", "shellback"), "second does not")
+	assert_eq(Codex.count("enemy").x, 1)
+	assert_true(Codex.found("people", "orla") and not Codex.found("people", "bram"), "people follow echo flags")
+	assert_true(Codex.found("place", "rock") and not Codex.found("place", "flats"), "places open as reached")
+	# Whispers are once per profile.
+	assert_true(Story.whisper("cage") != "", "first whisper speaks")
+	assert_eq(Story.whisper("cage"), "", "then stays quiet")
+	assert_eq(Story.whisper("nonsense"), "", "unknown keys are silent")
+	# Endings: keep is always there, break needs the three echoes, walk needs everyone and 3 wins.
+	assert_true(Story.ending_available("keep"))
+	assert_true(not Story.ending_available("break"))
+	assert_true(not Story.ending_visible("walk"), "walk is hidden until everyone is home")
+	for id in ["bram", "wren", "cartographer"]:
+		SaveManager.set_flag("echo_" + id)
+	assert_true(Story.ending_available("break"), "break opens with the three")
+	SaveManager.set_flag("echo_maren")
+	assert_true(Story.ending_visible("walk") and not Story.ending_available("walk"), "walk shows, still locked")
+	SaveManager.data.wins = 3
+	assert_true(Story.ending_available("walk"), "walk opens at three wins")
+	Story.record_ending("keep")
+	Story.record_ending("keep")
+	assert_eq(Story.endings_seen(), ["keep"], "endings recorded once")
+	assert_true(Story.maren().length() > 0 and Story.fen().length() > 0 and Story.orla().length() > 0, "everyone has a line")
+	SaveManager.wipe()
+	SaveManager.use_path(SaveManager.PATH)
+
+
 func test_room_graph_offers_altar_early() -> void:
 	var g := RoomGraph.new(3, 8)
 	assert_true(RoomGraph.ALTAR in g.options_for(1), "altar at depth 1")

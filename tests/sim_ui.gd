@@ -115,5 +115,29 @@ func _ready() -> void:
 	await _key(KEY_ESCAPE)
 	_check(not get_tree().paused, "Esc resumes")
 
+	# Codex: C opens from the world, 2 switches to tidemarks, E closes.
+	await _key(KEY_C)
+	_check(run.codex_ui.is_open and get_tree().paused, "C opens the codex")
+	await _key(KEY_2)
+	_check(run.codex_ui._tab == 1, "key 2 shows tidemarks")
+	await _key(KEY_E)
+	_check(not run.codex_ui.is_open and not get_tree().paused, "codex closed by E")
+
+	# An ending plays its cards and ends on the title (we stop before it returns to the hub).
+	var eu: EndingUI = load("res://src/ui/ending_ui.tscn").instantiate()
+	add_child(eu)
+	eu.play("keep")
+	_check(eu.is_open and get_tree().paused, "ending opens and pauses")
+	await get_tree().create_timer(3.8, true, false, true).timeout
+	_check(eu.card == 0 and eu.can_advance, "first card is up (card=%d)" % eu.card)
+	for i in 4:
+		await _key(KEY_E)
+		await get_tree().create_timer(1.5, true, false, true).timeout
+	_check(eu.card == 4, "four cards advanced to the title (card=%d)" % eu.card)
+	await get_tree().create_timer(2.8, true, false, true).timeout
+	_check(eu._title.text == "KEEP THE TIDE" and eu.can_advance, "title shown: %s" % eu._title.text)
+	_check("keep" in Story.endings_seen(), "ending recorded")
+	get_tree().paused = false
+
 	print("sim_ui: %s" % ("OK" if _fails == 0 else "FAILED (%d)" % _fails))
 	get_tree().quit(0 if _fails == 0 else 1)

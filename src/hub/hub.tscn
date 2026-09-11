@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/hub/hub.gd" id="1_hub"]
 [ext_resource type="PackedScene" path="res://src/player/player.tscn" id="2_player"]
@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://src/ui/ledger_ui.tscn" id="5_ledger"]
 [ext_resource type="PackedScene" path="res://src/ui/choice_ui.tscn" id="6_choice"]
 [ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="7_pause"]
+[ext_resource type="PackedScene" path="res://src/ui/codex_ui.tscn" id="8_codex"]
+[ext_resource type="PackedScene" path="res://src/ui/ending_ui.tscn" id="9_ending"]
 
 [node name="Hub" type="Node2D"]
 script = ExtResource("1_hub")
@@ -40,3 +42,7 @@ text = "Marrow Rock"
 [node name="LedgerUI" parent="." instance=ExtResource("5_ledger")]
 
 [node name="ChoiceUI" parent="." instance=ExtResource("6_choice")]
+
+[node name="CodexUI" parent="." instance=ExtResource("8_codex")]
+
+[node name="EndingUI" parent="." instance=ExtResource("9_ending")]
