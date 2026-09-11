@@ -58,6 +58,8 @@ func _tick(_delta: float) -> void:
 			velocity = Vector2.ZERO
 			if d != Vector2.ZERO:
 				face(d.x)
+			if state_t >= WINDUP - STRIKE_CUE_LEAD:
+				strike_cue()
 			if state_t >= WINDUP:
 				change_state(&"slam")
 		&"slam":

@@ -73,6 +73,8 @@ func _tick(delta: float) -> void:
 				face(d.x)
 			# Little hop up-back as the tell.
 			sprite.position.y = -8.0 - 3.0 * sin(state_t / WINDUP * PI)
+			if state_t >= WINDUP - STRIKE_CUE_LEAD:
+				strike_cue()
 			if state_t >= WINDUP:
 				sprite.position.y = -8.0
 				change_state(&"dive")

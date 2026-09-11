@@ -23,7 +23,7 @@ script = ExtResource("1_script")
 display_name = "Gull"
 speed = 70.0
 flying = true
-salt_drop = 1
+salt_drop = 2
 death_color = Color(0.92, 0.92, 0.88, 1)
 
 [node name="Shadow" type="Sprite2D" parent="."]

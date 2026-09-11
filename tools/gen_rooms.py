@@ -314,12 +314,58 @@ ROOMS["hub"] = """
 """
 
 
+ROOMS["biome1/shop_01"] = """
+########################################
+#######........................#########
+#####............................#######
+####..............................######
+###................................#####
+###..........................o.....#####
+###...........=======..............#####
+###...........==.M.==..............#####
+###...........=======..............#####
+###................................#####
+###................................#####
+D..................................#####
+###.....P..........................#####
+###................................#####
+###.......o........................#####
+###................................#####
+####..............................######
+#####............................#######
+#######........................#########
+########################################
+########################################
+########################################
+"""
+
+# Rooms are authored 40x22 but the viewport is 16:9 (40 x 22.5 tiles). We insert one
+# duplicated floor row near the middle so rooms are 40x23 and the walls overhang the
+# screen edge by 4px instead of leaving a gap.
+OUT_H = 23
+MARKERS = set("DPFTXhM")
+
+
+def _stretch(rows):
+    best = None
+    for i in range(len(rows) // 2 - 4, len(rows) // 2 + 4):
+        if not (set(rows[i]) & MARKERS):
+            best = i
+            break
+    if best is None:
+        best = len(rows) // 2
+    dup = rows[best].replace("e", ".")
+    return rows[: best + 1] + [dup] + rows[best + 1 :]
+
+
 def main():
     for name, txt in ROOMS.items():
         rows = txt.strip("\n").split("\n")
         assert len(rows) == H, (name, len(rows))
         for r in rows:
             assert len(r) == W, (name, len(r), r)
+        rows = _stretch(rows)
+        assert len(rows) == OUT_H
         path = os.path.join(OUT, name + ".txt")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", newline="\n") as f:

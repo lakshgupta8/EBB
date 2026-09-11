@@ -21,6 +21,14 @@ func test_room_graph_shape() -> void:
 		assert_true(not RoomGraph.BOSS in opts, "no boss before the end")
 		if d < 3:
 			assert_true(not RoomGraph.ELITE in opts, "no elite before depth 3")
+		if d < 2:
+			assert_true(not RoomGraph.SHOP in opts, "no merchant before depth 2")
+	assert_true(RoomGraph.SHOP in g.options_for(4), "a merchant is guaranteed at depth 4")
+
+
+func test_shop_template() -> void:
+	var t := RoomTemplate.load_file("res://data/rooms/biome1/shop_01.txt")
+	assert_eq(t.marker_cells("M").size(), 1, "one merchant")
 
 
 func test_tide_levels() -> void:
@@ -52,7 +60,7 @@ func test_templates_parse() -> void:
 	for f in files:
 		var t := RoomTemplate.load_file(dir + f)
 		assert_eq(t.width, 40, f + " width")
-		assert_eq(t.height, 22, f + " height")
+		assert_eq(t.height, 23, f + " height (16:9 stretch)")
 		assert_true(t.player_spawn.x >= 0, f + " has a player spawn")
 		if not f.begins_with("boss"):
 			assert_true(t.doors.size() >= 1, f + " has a door slot")

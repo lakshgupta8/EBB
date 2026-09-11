@@ -24,7 +24,7 @@ display_name = "Wrack Crab"
 speed = 78.0
 knockback_resist = 0.2
 death_color = Color(0.77, 0.3, 0.24, 1)
-salt_drop = 2
+salt_drop = 3
 
 [node name="Shadow" type="Sprite2D" parent="."]
 position = Vector2(0, 2)
