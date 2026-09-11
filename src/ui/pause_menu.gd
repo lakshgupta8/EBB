@@ -1,8 +1,11 @@
 extends CanvasLayer
-## Esc pauses. Buttons for resume / give up / fullscreen; keys still work.
+## Esc pauses. Buttons for resume / give up / fullscreen / quit; keys still work.
+## Lives in the run and in the hub; "give up" only shows during a run.
 
 var _open: bool = false
 var _root: Control
+var _quit_btn: Button
+var _quit_armed: bool = false
 
 
 func _ready() -> void:
@@ -16,8 +19,11 @@ func _input(event: InputEvent) -> void:
 		# Other menus (shop, ledger, altar) handle Esc first and mark it handled.
 		toggle()
 		get_viewport().set_input_as_handled()
-	elif _open and event.is_action_pressed("use_item"):
+	elif _open and event.is_action_pressed("use_item") and _in_run():
 		_quit_to_hub()
+		get_viewport().set_input_as_handled()
+	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_X:
+		_quit_game()
 		get_viewport().set_input_as_handled()
 
 
@@ -27,6 +33,12 @@ func toggle() -> void:
 	visible = _open
 	if _open and _root == null:
 		_build()
+	if _open:
+		_disarm_quit()
+
+
+func _in_run() -> bool:
+	return get_tree().current_scene is Run
 
 
 func _build() -> void:
@@ -53,15 +65,40 @@ func _build() -> void:
 	var fs := UI.text_button("Fullscreen / window   [F11]")
 	fs.pressed.connect(func(): Game.toggle_fullscreen())
 	box.add_child(fs)
-	var quit := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
-	quit.pressed.connect(_quit_to_hub)
-	box.add_child(quit)
+	if _in_run():
+		var give_up := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
+		give_up.pressed.connect(_quit_to_hub)
+		box.add_child(give_up)
+	_quit_btn = UI.text_button("Quit game   [X]", 8, Color(0.85, 0.7, 0.7))
+	_quit_btn.pressed.connect(_quit_game)
+	box.add_child(_quit_btn)
 	box.add_child(UI.spacer(6))
-	box.add_child(UI.label("LMB swing (hold: heavy)   RMB hook", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("Space dash (attack out of it: lunge)", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("Q lantern flare when the glow is full", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("Dash on an enemy's white flash: riptide", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
+	var hint := Color(0.6, 0.7, 0.8)
+	if _in_run():
+		box.add_child(UI.label("LMB attack (gaff: hold to charge)   RMB special", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("Space dash (attack out of it: lunge)", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("Q lantern flare when the glow is full", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("Dash on an enemy's white flash: riptide", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+	else:
+		box.add_child(UI.label("E talks to people; the shore leads down", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("Pearls and rescues are already saved", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 	_root = center
+
+
+## Quit is two presses so a stray click cannot end the night.
+func _quit_game() -> void:
+	if not _quit_armed:
+		_quit_armed = true
+		_quit_btn.text = "Really quit?   [X] again"
+		return
+	SaveManager.save_profile()
+	get_tree().quit()
+
+
+func _disarm_quit() -> void:
+	_quit_armed = false
+	if _quit_btn:
+		_quit_btn.text = "Quit game   [X]"
 
 
 func _quit_to_hub() -> void:

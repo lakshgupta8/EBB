@@ -127,3 +127,40 @@ func test_hurtbox_shield_absorbs_one_hit() -> void:
 	assert_eq(h.hp, 6)
 	hb.free()
 	h.free()
+
+
+## The gaff's heavy sweep only exists once the charge completes. Let go early and the
+## hook just drops back: no state change into HEAVY, no hitbox, no swing.
+func test_gaff_heavy_needs_a_full_charge() -> void:
+	# Built outside the tree (the runner is mid-ready); calling _ready() by hand still
+	# runs the @onready wiring.
+	var player: Player = load("res://src/player/player.tscn").instantiate()
+	var w: GaffHook = Weapon.scene_for("gaff").instantiate()
+	player.add_child(w)
+	w._ready()
+	assert_true(w.hitbox != null, "gaff wired")
+	# Hold from idle: charging starts after HOLD_TIME.
+	w.set_held(true)
+	w._process(GaffHook.HOLD_TIME + 0.05)
+	assert_true(w.is_charging(), "holding starts a charge")
+	w._process(GaffHook.CHARGE_FULL * 0.5)
+	assert_true(not w.charge_complete(), "half a charge is not complete")
+	w.set_held(false)
+	assert_eq(w.state, GaffHook.State.IDLE, "early release: nothing")
+	assert_true(not w.hitbox.active, "early release arms no hitbox")
+	assert_eq(w.charge_fraction(), 0.0, "charge is gone")
+	# Hold all the way: release fires the heavy.
+	w.set_held(true)
+	w._process(GaffHook.HOLD_TIME + 0.05)
+	w._process(GaffHook.CHARGE_FULL + 0.05)
+	assert_true(w.charge_complete(), "full charge is complete")
+	w.set_held(false)
+	assert_eq(w.state, GaffHook.State.HEAVY, "full release: heavy sweep")
+	assert_eq(w.hitbox.damage, GaffHook.HEAVY_DAMAGE)
+	# Holding past CHARGE_MAX releases on its own, at full strength.
+	w.cancel()
+	w.set_held(true)
+	w._process(GaffHook.HOLD_TIME + 0.05)
+	w._process(GaffHook.CHARGE_MAX + 0.05)
+	assert_eq(w.state, GaffHook.State.HEAVY, "overcharge auto-releases")
+	player.free()

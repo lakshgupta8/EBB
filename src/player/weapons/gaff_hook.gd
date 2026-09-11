@@ -2,9 +2,10 @@ class_name GaffHook
 extends Weapon
 ## Starting weapon.
 ##   LMB tap      3-hit aimed combo; the third hit pulls enemies in.
-##   LMB hold     keep holding through a swing to wind the hook back and CHARGE. Release
-##                for a heavy sweep; damage and knockback scale with the charge, and it
-##                cracks shells (double damage for a few seconds). Let go early: nothing.
+##   LMB hold     keep holding through a swing to wind the hook back and CHARGE. Once the
+##                hook rings (charge full), release for a heavy sweep that cracks shells
+##                (double damage for a few seconds). Let go before it rings: nothing at all,
+##                no swing, no damage.
 ##   dash + LMB   LUNGE: a fast forward thrust out of the dash.
 ##   RMB          throw the hook. Light enemies are dragged to you; heavy ones drag you
 ##                to them. A miss just returns, on a short cooldown.
@@ -24,16 +25,13 @@ const SWING_MOVE_MULT := 0.45
 
 # Heavy.
 const HOLD_TIME := 0.3          # holding from idle this long starts a charge
-const CHARGE_MIN := 0.18        # release before this: no heavy, just stop
-const CHARGE_FULL := 0.8        # full damage at this
+const CHARGE_FULL := 0.8        # the charge completes here; release before it: nothing
 const CHARGE_MAX := 1.6         # auto-release
 const HEAVY_ANTICIPATION := 0.1
 const HEAVY_ACTIVE := 0.12
 const HEAVY_RECOVERY := 0.34
-const HEAVY_DAMAGE_MIN := 7
-const HEAVY_DAMAGE_MAX := 13
-const HEAVY_KNOCKBACK_MIN := 150.0
-const HEAVY_KNOCKBACK_MAX := 240.0
+const HEAVY_DAMAGE := 13
+const HEAVY_KNOCKBACK := 240.0
 const HEAVY_ARC := deg_to_rad(210.0)
 const CHARGE_MOVE_MULT := 0.55
 
@@ -115,6 +113,10 @@ func is_charging() -> bool:
 	return state == State.CHARGING
 
 
+func charge_complete() -> bool:
+	return state == State.CHARGING and _charge_t >= CHARGE_FULL
+
+
 ## Called by the player on attack press.
 func try_attack() -> void:
 	match state:
@@ -131,7 +133,7 @@ func set_held(held: bool) -> void:
 	if held and not _held:
 		_held_t = 0.0
 	if not held and _held and state == State.CHARGING:
-		if _charge_t >= CHARGE_MIN:
+		if charge_complete():
 			_start_heavy()
 		else:
 			_stop_charging()
@@ -242,12 +244,14 @@ func _start_charging() -> void:
 	combo.reset()
 
 
+## Let go early: the hook just drops back. No swing, no hitbox, a puff to say so.
 func _stop_charging() -> void:
 	state = State.IDLE
 	_charge_t = 0.0
 	_held_t = 0.0
 	sprite.modulate = Color.WHITE
 	sprite.position = Vector2(2, 0)
+	FX.burst(global_position, Color(0.7, 0.7, 0.75, 0.6), 3, 20.0)
 
 
 func _tick_charging(delta: float) -> void:
@@ -263,22 +267,25 @@ func _tick_charging(delta: float) -> void:
 	if int(_charge_t * 16.0) != int((_charge_t - delta) * 16.0):
 		FX.burst(global_position + Vector2.from_angle(pivot.rotation) * 12.0, Color(1.0, 0.9, 0.6, 0.8), 1, 18.0)
 	if f >= 1.0 and int((_charge_t - delta) / CHARGE_FULL) == 0 and int(_charge_t / CHARGE_FULL) == 1:
+		# The hook rings: the charge is complete and the heavy is armed.
 		FX.ring(_player.global_position, Color(1.0, 0.9, 0.6), 0.9)
+		FX.text(_player.global_position + Vector2(0, -14), "READY", Color(1.0, 0.9, 0.6))
+		Audio.play("crit", 0.05, -6.0)
 	if _charge_t >= CHARGE_MAX:
 		_start_heavy()
 
 
+## Only ever reached from a complete charge.
 func _start_heavy() -> void:
-	var f := clampf(_charge_t / CHARGE_FULL, 0.0, 1.0)
 	state = State.HEAVY
 	_phase_t = 0.0
 	sprite.modulate = Color.WHITE
 	sprite.position = Vector2(2, 0)
 	var aim_angle := _player.aim.angle()
-	hitbox.damage = int(round(lerpf(HEAVY_DAMAGE_MIN, HEAVY_DAMAGE_MAX, f)))
-	hitbox.knockback = lerpf(HEAVY_KNOCKBACK_MIN, HEAVY_KNOCKBACK_MAX, f)
+	hitbox.damage = HEAVY_DAMAGE
+	hitbox.knockback = HEAVY_KNOCKBACK
 	hitbox.pull = false
-	hitbox.hitstop = 0.1 + 0.06 * f
+	hitbox.hitstop = 0.16
 	hitbox.tags = PackedStringArray(["melee", "heavy"])
 	# Bigger reach for the big swing.
 	hit_shape.position = Vector2(18, 0)
@@ -287,10 +294,10 @@ func _start_heavy() -> void:
 	_sweep_from = aim_angle - HEAVY_ARC * 0.5
 	_sweep_to = aim_angle + HEAVY_ARC * 0.5
 	_sweep_time = HEAVY_ACTIVE
-	_sweep_fx_scale = 1.4 + 0.3 * f
+	_sweep_fx_scale = 1.7
 	_sweep_double = true
 	pivot.rotation = _sweep_from
-	EventBus.request_shake.emit(0.25 + 0.35 * f)
+	EventBus.request_shake.emit(0.6)
 
 
 # --- lunge -------------------------------------------------------------------------
