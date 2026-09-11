@@ -31,6 +31,15 @@ func test_shop_template() -> void:
 	assert_eq(t.marker_cells("M").size(), 1, "one merchant")
 
 
+func test_tide_pause_holds_the_level() -> void:
+	var t := TideSystem.new()
+	t.pause(5.0)
+	t.advance(4.0)
+	assert_near(t.level, 0.0)
+	t.advance(2.0)
+	assert_true(t.level > 0.0, "rises again after the hold")
+
+
 func test_tide_levels() -> void:
 	var t := TideSystem.new()
 	assert_true(not t.is_flooded(0))
@@ -54,7 +63,7 @@ func test_tide_levels() -> void:
 
 
 func test_templates_parse() -> void:
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/biome2/"]:
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
 		_check_templates(dir)
 
 
@@ -67,7 +76,7 @@ func _check_templates(dir: String) -> void:
 		assert_eq(t.height, 23, f + " height (16:9 stretch)")
 		assert_true(t.player_spawn.x >= 0, f + " has a player spawn")
 		assert_true(t.doors.size() >= 1, f + " has a door slot")
-		if f.begins_with("flats") or f.begins_with("streets") or f.begins_with("boss") or f.begins_with("echo"):
+		if f.begins_with("flats") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
 			assert_true(t.enemy_spawns.size() >= 1, f + " has enemy spawns")
 		if f.begins_with("echo"):
 			assert_eq(t.marker_cells("E").size(), 1, f + " has one cage")
@@ -82,7 +91,7 @@ func test_hub_template() -> void:
 	var t := RoomTemplate.load_file("res://data/rooms/hub.txt")
 	assert_eq(t.marker_cells("X").size(), 1, "one descend marker")
 	assert_true(t.marker_cells("h").size() >= 1, "lighthouse marker")
-	for m in ["O", "B", "W", "C"]:
+	for m in ["O", "B", "W", "C", "N"]:
 		assert_eq(t.marker_cells(m).size(), 1, "one spot for " + m)
 
 
@@ -91,6 +100,8 @@ func test_street_tiles_are_themed() -> void:
 	assert_eq(t.tile_at(0, 0, Tiles.Look.STREETS) in [Tiles.RUIN, Tiles.RUIN2], true, "ruin walls")
 	assert_eq(t.tile_at(0, 0, Tiles.Look.FLATS) in [Tiles.WALL, Tiles.WALL2], true, "flats walls")
 	assert_true(Tiles.RUIN in Tiles.SOLID and Tiles.COBBLE not in Tiles.SOLID)
+	assert_eq(t.tile_at(0, 0, Tiles.Look.DEEP) in [Tiles.HALLWALL, Tiles.HALLWALL2], true, "hall walls")
+	assert_eq(Tiles.COUNT * 16, Tiles.TEXTURE.get_width(), "tile strip matches the enum")
 
 
 func test_room_graph_places_echo_cages_and_charted_rooms() -> void:
@@ -122,7 +133,7 @@ func test_run_result_conversion() -> void:
 ## Every open cell in every template must be walkable from the player spawn (no
 ## diagonal-only gaps, no sealed chest rooms). Pure flood fill on the template.
 func test_templates_are_connected() -> void:
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/biome2/"]:
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
 		for f in DirAccess.get_files_at(dir):
 			var t := RoomTemplate.load_file(dir + f)
 			var seen := {}

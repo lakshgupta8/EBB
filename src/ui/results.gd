@@ -28,7 +28,7 @@ func show_result(r: Dictionary) -> void:
 	var title_text: String
 	var title_color: Color
 	if r.victory:
-		title_text = "THE BELL IS SILENCED" if int(r.get("biome", 0)) >= 1 else "THE WRECK IS BROKEN"
+		title_text = ["THE WRECK IS BROKEN", "THE BELL IS SILENCED", "THE EBB LETS GO"][clampi(int(r.get("biome", 0)), 0, 2)]
 		title_color = Color(0.95, 0.85, 0.6)
 	elif r.taken:
 		title_text = "TAKEN BY THE TIDE"

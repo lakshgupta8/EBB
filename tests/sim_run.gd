@@ -67,7 +67,7 @@ func _ready() -> void:
 	)
 	EventBus.damage_dealt.connect(func(target, info):
 		if target is Enemy:
-			for t in ["melee", "heavy", "lunge", "crit", "hook", "wake", "bleed", "wall", "flare", "third_hit", "knife", "finisher", "net", "projectile"]:
+			for t in ["melee", "heavy", "lunge", "crit", "hook", "wake", "bleed", "wall", "flare", "third_hit", "knife", "finisher", "net", "projectile", "harpoon", "tether", "light", "beacon"]:
 				if info.tags.has(t):
 					_tag_hits[t] = _tag_hits.get(t, 0) + 1
 	)
@@ -86,7 +86,7 @@ func _physics_process(_delta: float) -> void:
 		_shot_depths.erase(run.state.depth_total)
 		_shot_pending = tick + 45
 		_shot_name = "sim_depth_%d.png" % run.state.depth_total
-	if _shot_boss and run.state.biome == 1 and run.boss != null and is_instance_valid(run.boss):
+	if _shot_boss and run.state.biome >= 1 and run.boss != null and is_instance_valid(run.boss):
 		_shot_boss = false
 		_shot_pending = tick + 150
 		_shot_name = "sim_boss.png"
@@ -226,6 +226,28 @@ func _fight(target: Enemy) -> void:
 		Input.action_press("attack")
 	if player.glow_full():
 		Input.action_press("use_item")
+	if player.weapon.id == "harpoon":
+		# Ranged: hang back, fire when lined up, reload by holding. No line of sight: close in.
+		var ray := PhysicsRayQueryParameters2D.create(player.global_position, target.global_position, 1)
+		var blocked: bool = not player.get_world_2d().direct_space_state.intersect_ray(ray).is_empty()
+		if dist > 110.0 or blocked:
+			_walk_to(target.global_position, 40.0 if blocked else 100.0)
+		elif dist < 40.0:
+			_press_dir(-to)
+		if dist < 150.0 and _attack_cd <= 0:
+			Input.action_press("attack")
+			_attack_cd = 4
+		if dist < 150.0 and _special_cd <= 0 and player.weapon.special_ready():
+			Input.action_press("special")
+			_special_cd = 240
+		if _dash_cd <= 0 and (target.state in [&"windup", &"dive", &"strike", &"chain_windup", &"pull_windup", &"wave"]) and dist < 60.0:
+			_press_dir(-to)
+			Input.action_press("dash")
+			_dash_cd = 30
+		_attack_cd -= 1
+		_dash_cd -= 1
+		_special_cd -= 1
+		return
 	if dist > 22.0:
 		if target.flying:
 			# Flyers come to you: hold position, keep facing, strike when it dives in.
@@ -242,7 +264,7 @@ func _fight(target: Enemy) -> void:
 		player.aim_dist = dist
 		Input.action_press("special")
 		_special_cd = 180
-	if _dash_cd <= 0 and (target.state in [&"windup", &"dive", &"toll_windup", &"swing_windup", &"peal_windup", &"peal"]) and dist < 48.0:
+	if _dash_cd <= 0 and (target.state in [&"windup", &"dive", &"toll_windup", &"swing_windup", &"peal_windup", &"peal", &"chain_windup", &"pull_windup", &"slam_windup", &"wave_windup"]) and dist < 48.0:
 		_press_dir(-to)
 		Input.action_press("dash")
 		_dash_cd = 30

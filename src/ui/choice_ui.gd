@@ -2,8 +2,8 @@ class_name ChoiceUI
 extends CanvasLayer
 ## One menu for the rescued echoes at the hub: a title, a line of dialogue, a list of
 ## rows to pick from (click or 1-9), the current pick marked. E / Esc / Leave closes.
+## The handler decides what a pick does and returns the hint to show ("" = refused).
 
-signal picked(index: int)
 signal closed
 
 var is_open: bool = false
@@ -13,6 +13,7 @@ var _options: Array = []
 var _selected: int = -1
 var _hint: Label
 var _accent: Color = Color(0.9, 0.85, 0.7)
+var _handler: Callable
 
 
 func _ready() -> void:
@@ -21,13 +22,15 @@ func _ready() -> void:
 	visible = false
 
 
-## options: [{"name": String, "desc": String}], selected: index currently in effect (-1 none).
-func open(title: String, line: String, options: Array, selected: int, accent: Color) -> void:
+## options: [{"name", "desc", "right" (text shown at the right when not selected),
+## "fail" (hint when refused)}]. handler(i) -> String hint, or "" when refused.
+func open(title: String, line: String, options: Array, selected: int, accent: Color, handler: Callable = Callable()) -> void:
 	if is_open:
 		return
 	_options = options
 	_selected = selected
 	_accent = accent
+	_handler = handler
 	is_open = true
 	get_tree().paused = true
 	visible = true
@@ -58,11 +61,18 @@ func _input(event: InputEvent) -> void:
 
 
 func _pick(i: int) -> void:
+	var hint := ""
+	if _handler.is_valid():
+		hint = str(_handler.call(i))
+	if hint == "":
+		_hint.text = str(_options[i].get("fail", "not now"))
+		_hint.modulate = Color(1.0, 0.6, 0.55)
+		Audio.play("ui", 0.0, -6.0)
+		return
 	_selected = i
-	picked.emit(i)
-	Audio.play("buy")
-	_hint.text = "%s" % _options[i].get("hint", "chosen")
+	_hint.text = hint
 	_hint.modulate = Color(0.75, 0.95, 0.8)
+	Audio.play("buy")
 	_refresh()
 
 
@@ -98,7 +108,7 @@ func _build(title: String, line: String) -> void:
 		a.custom_minimum_size = Vector2(110, 0)
 		var d := UI.flex_label(o.desc)
 		var c := UI.label("", 8, _accent, HORIZONTAL_ALIGNMENT_RIGHT)
-		c.custom_minimum_size = Vector2(50, 0)
+		c.custom_minimum_size = Vector2(70, 0)
 		h.add_child(a)
 		h.add_child(d)
 		h.add_child(c)
@@ -118,8 +128,17 @@ func _build(title: String, line: String) -> void:
 	_refresh()
 
 
+## Rows may change their right-hand text after a pick (a price paid, a weapon owned).
+func set_right(i: int, text: String) -> void:
+	if i >= 0 and i < _options.size():
+		_options[i]["right"] = text
+	_refresh()
+
+
 func _refresh() -> void:
 	for i in _rows.size():
 		var on := i == _selected
-		_rows[i][2].text = "in hand" if on else ""
+		var right: String = "in hand" if on else str(_options[i].get("right", ""))
+		_rows[i][2].text = right
+		_rows[i][2].add_theme_color_override("font_color", _accent if on else Color(0.8, 0.8, 0.85))
 		_rows[i][0].add_theme_color_override("font_color", Color(1, 1, 1) if on else Color(0.85, 0.85, 0.9))

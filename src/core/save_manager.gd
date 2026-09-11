@@ -25,6 +25,7 @@ static func _defaults() -> Dictionary:
 		"ledger": {},   # meta upgrades (M3)
 		"flags": {},    # story flags: echo_bram, echo_wren, echo_cartographer...
 		"weapon": "gaff",         # chosen at Bram's forge
+		"weapons": ["gaff", "net"],  # forged so far
 		"blessed_family": "",     # Wren: every altar offers this family
 		"charted_room": -1,       # the Cartographer: room type guaranteed at depth 2
 		"echoes": 0,

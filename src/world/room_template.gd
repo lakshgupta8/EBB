@@ -31,7 +31,7 @@ static func parse(text: String, p_name: String = "") -> RoomTemplate:
 				"P": t.player_spawn = cell
 				"e": t.enemy_spawns.append(cell)
 				"D": t.doors.append(cell)
-				"F", "T", "X", "h", "M", "A", "O", "E", "B", "W", "C":
+				"F", "T", "X", "h", "M", "A", "O", "E", "B", "W", "C", "N":
 					if not t.markers.has(ch):
 						t.markers[ch] = []
 					t.markers[ch].append(cell)
@@ -67,6 +67,14 @@ func is_solid(x: int, y: int) -> bool:
 func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 	var ch := char_at(x, y)
 	var v := (x * 7 + y * 13) % 5 == 0  # cheap variation
+	if theme == Tiles.Look.DEEP:
+		match ch:
+			"#": return Tiles.HALLWALL2 if v else Tiles.HALLWALL
+			"_", "X": return Tiles.CHANNEL
+			"=", "h": return Tiles.DAIS
+			"o": return Tiles.ROCK
+			"D": return Tiles.DOOR
+			_: return Tiles.BASALT2 if v else Tiles.BASALT
 	if theme == Tiles.Look.STREETS:
 		match ch:
 			"#": return Tiles.RUIN2 if v else Tiles.RUIN

@@ -223,8 +223,7 @@ Physics: an Area2D grid per height band toggles as tide crosses thresholds; bodi
 | M1 | Feel | Player move/dash/gaff hook, one test room, Shellback + Gull, hitstop/shake/knockback | You say "this feels good to control" |
 | M2 | Loop | Room graph gen, doors, room types, tide system with flooding, run end (death and taken), results screen, return to hub | A full biome-1 run start to finish is playable |
 | M3 | Progression | Hub scene, Orla + Ledger, pearls, save/load, altar + 12 tidemarks, shop | Runs feel different and the meta loop pulls you back (done) |
-| M4a | Content | Biome 2 (Drowned Streets) + 4 enemies + the Bell, 2nd weapon (Net & Knife), echo rescues (Bram, Wren, Cartographer) with hub functions, 26 tidemarks, multi-biome run | The night is winnable through two biomes (done) |
-| M4b | Content | Biome 3 (Deep Hall) + its enemies + The Ebb, Harpoon Gun and Storm Lantern, tidemarks to 40, Maren | Game is winnable |
+| M4 | Content | Biomes 2-3 (Drowned Streets, Deep Hall), 11 enemies, 3 bosses (Wreck, Bell, Ebb), 4 weapons, 42 tidemarks, echo rescues (Bram, Wren, Cartographer, Maren) with hub functions | Game is winnable (done: the Ebb falls and Maren comes home) |
 | M5 | Story and polish | Full dialog, endings, codex, audio, real art pass, settings, gamepad, Windows export .exe | Shippable build |
 
 Each milestone ends with you playtesting and giving notes; nothing is "done" until it plays right.

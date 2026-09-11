@@ -1,6 +1,7 @@
 class_name Projectile
 extends Area2D
-## Straight-line projectile. Hits the first hurtbox on its mask, dies on walls or timeout.
+## Straight-line projectile. Hits hurtboxes on its mask (once each), dies on walls or
+## timeout, and on the first hit unless it pierces.
 
 var velocity: Vector2 = Vector2.ZERO
 var lifetime: float = 1.5
@@ -8,7 +9,11 @@ var damage: int = 5
 var knockback: float = 80.0
 var source: Node2D
 var spin: float = 0.0
+var pierce: bool = false
+var tags: PackedStringArray = PackedStringArray(["projectile"])
+var on_hit: Callable  # (hurtbox, info) -> void, optional
 var _sprite: Sprite2D
+var _hit: Array = []
 
 
 static func spawn(parent: Node, pos: Vector2, vel: Vector2, p_damage: int, tex: Texture2D,
@@ -35,11 +40,14 @@ static func spawn(parent: Node, pos: Vector2, vel: Vector2, p_damage: int, tex: 
 
 
 func _ready() -> void:
-	area_entered.connect(_on_area)
 	body_entered.connect(func(_b): _die())
 
 
 func _physics_process(delta: float) -> void:
+	for area in get_overlapping_areas():
+		_on_area(area)
+		if not pierce and is_queued_for_deletion():
+			return
 	position += velocity * delta
 	_sprite.rotation += spin * delta
 	lifetime -= delta
@@ -49,12 +57,18 @@ func _physics_process(delta: float) -> void:
 
 func _on_area(area: Area2D) -> void:
 	var hb := area as Hurtbox
-	if hb == null:
+	if hb == null or hb in _hit:
 		return
-	var info := DamageInfo.make(damage, source, velocity, knockback)
-	info.tags = PackedStringArray(["projectile"])
+	_hit.append(hb)
+	var src: Node2D = source if is_instance_valid(source) else null
+	var info := DamageInfo.make(damage, src, velocity, knockback)
+	info.tags = tags.duplicate()
 	if hb.receive(info):
-		_die()
+		EventBus.damage_dealt.emit(hb.get_parent(), info)
+		if on_hit.is_valid():
+			on_hit.call(hb, info)
+		if not pierce:
+			_die()
 
 
 func _die() -> void:

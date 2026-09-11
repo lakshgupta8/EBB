@@ -310,11 +310,66 @@ def build_sfx_m4():
     save("rescue", x, 0.45)
 
 
+def build_sfx_m4b():
+    # harpoon: sharp thwip with a metallic ring
+    n = int(SR * 0.22)
+    x = highpass(noise(n), 2500, 2) * env(n, 0.001, 0.05)
+    x += 0.6 * sweep(n, 1900, 500, 1.2) * env(n, 0.002, 0.12)
+    x += 0.3 * np.sin(2 * np.pi * 3200 * t(0.22)) * env(n, 0.001, 0.15)
+    save("harpoon", x, 0.6)
+
+    # reload: two clicks
+    n = int(SR * 0.3)
+    x = np.zeros(n)
+    for s0 in (0.0, 0.14):
+        i = int(SR * s0)
+        seg = highpass(noise(n - i), 1500, 2) * env(n - i, 0.001, 0.03)
+        x[i:] += seg
+    save("reload", x, 0.5)
+
+    # lantern swing: airy whoosh with a glassy chime
+    n = int(SR * 0.2)
+    tt = t(0.2)
+    x = bandpass(noise(n), 900, 4000, 2) * env(n, 0.01, 0.12)
+    x += 0.3 * np.sin(2 * np.pi * 2093 * tt) * env(n, 0.005, 0.15)
+    save("lantern", x, 0.35)
+
+    # beacon: soft bloom
+    n = int(SR * 0.7)
+    tt = t(0.7)
+    x = (np.sin(2 * np.pi * 523 * tt) + 0.5 * np.sin(2 * np.pi * 1046 * tt)) * env(n, 0.12, 0.5)
+    x += 0.2 * bandpass(noise(n), 2000, 6000, 2) * env(n, 0.2, 0.4)
+    save("beacon", x, 0.4)
+
+    # bite: deep wet snap
+    n = int(SR * 0.3)
+    x = lowpass(noise(n), 900, 2) * env(n, 0.002, 0.1)
+    x += 0.9 * sweep(n, 220, 40, 1.6) * env(n, 0.001, 0.2)
+    x += 0.4 * highpass(noise(n), 3000, 2) * env(n, 0.001, 0.02)
+    save("bite", x, 0.8)
+
+    # the ebb: a very low, slow surge with a voice in it
+    dur = 1.6
+    n = int(SR * dur)
+    tt = t(dur)
+    x = np.sin(2 * np.pi * 48 * tt + 2.5 * np.sin(2 * np.pi * 7 * tt)) * env(n, 0.1, 1.0, 0.4, 0.4)
+    x += 0.5 * lowpass(noise(n), 300, 2) * env(n, 0.2, 1.2)
+    x += 0.25 * np.sin(2 * np.pi * 96 * tt) * env(n, 0.3, 0.9)
+    save("ebb", x, 0.9)
+
+    # wave: long rolling whoosh
+    n = int(SR * 0.8)
+    x = bandpass(noise(n), 300, 2500, 2) * env(n, 0.15, 0.4, 0.2, 0.2)
+    x += 0.3 * sweep(n, 200, 500, 0.8) * env(n, 0.1, 0.5)
+    save("wave", x, 0.6)
+
+
 def main():
     build_sea()
     build_gull()
     build_sfx()
     build_sfx_m4()
+    build_sfx_m4b()
     print("wrote audio to", OUT)
 
 

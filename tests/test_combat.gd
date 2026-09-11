@@ -87,7 +87,9 @@ func test_enemy_scenes_load() -> void:
 	for path in ["res://src/enemies/shellback.tscn", "res://src/enemies/gull.tscn",
 			"res://src/enemies/wrack_crab.tscn", "res://src/enemies/wreck.tscn",
 			"res://src/enemies/still_citizen.tscn", "res://src/enemies/lamplighter.tscn",
-			"res://src/enemies/bell_ringer.tscn", "res://src/enemies/swimmer.tscn", "res://src/enemies/bell.tscn"]:
+			"res://src/enemies/bell_ringer.tscn", "res://src/enemies/swimmer.tscn", "res://src/enemies/bell.tscn",
+			"res://src/enemies/keeper_shade.tscn", "res://src/enemies/anchor.tscn", "res://src/enemies/deep_maw.tscn",
+			"res://src/enemies/ebb.tscn"]:
 		var s: PackedScene = load(path)
 		assert_true(s != null, path + " loads")
 		var inst = s.instantiate()
@@ -96,6 +98,7 @@ func test_enemy_scenes_load() -> void:
 
 
 func test_weapon_scenes_share_the_api() -> void:
+	assert_eq(Weapon.ALL.size(), 4, "four weapons")
 	for id in Weapon.ALL:
 		var scene := Weapon.scene_for(id)
 		assert_true(scene != null, id + " scene loads")
@@ -103,7 +106,7 @@ func test_weapon_scenes_share_the_api() -> void:
 		assert_true(w is Weapon, id + " is a Weapon")
 		# The base API must exist on every weapon; the player calls all of these.
 		for m in ["move_mult", "is_busy", "special_ready", "special_cooldown_fraction", "charge_fraction",
-				"is_charging", "try_attack", "set_held", "try_lunge", "try_special", "cancel"]:
+				"is_charging", "try_attack", "set_held", "try_lunge", "try_special", "cancel", "on_dash", "ammo_text"]:
 			assert_true(w.has_method(m), "%s has %s" % [id, m])
 		w.free()
 
