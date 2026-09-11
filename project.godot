@@ -16,6 +16,8 @@ config/icon="res://icon.svg"
 
 EventBus="*res://src/core/event_bus.gd"
 Game="*res://src/core/game.gd"
+Juice="*res://src/core/juice.gd"
+FX="*res://src/fx/fx.gd"
 
 [display]
 
@@ -97,6 +99,8 @@ pause={
 2d_physics/layer_4="player_hitbox"
 2d_physics/layer_5="enemy_hitbox"
 2d_physics/layer_6="interactable"
+2d_physics/layer_7="player_hurtbox"
+2d_physics/layer_8="enemy_hurtbox"
 
 [physics]
 

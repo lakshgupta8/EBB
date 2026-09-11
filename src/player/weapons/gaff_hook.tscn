@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/player/weapons/gaff_hook.gd" id="1_gaff"]
+[ext_resource type="Texture2D" path="res://assets/sprites/gaff_hook.png" id="2_tex"]
+[ext_resource type="Script" path="res://src/combat/hitbox.gd" id="3_hitbox"]
+
+[sub_resource type="CircleShape2D" id="swing_shape"]
+radius = 15.0
+
+[node name="Weapon" type="Node2D"]
+script = ExtResource("1_gaff")
+
+[node name="Pivot" type="Node2D" parent="."]
+
+[node name="Sprite" type="Sprite2D" parent="Pivot"]
+position = Vector2(2, 0)
+texture = ExtResource("2_tex")
+centered = false
+offset = Vector2(0, -3)
+
+[node name="Hitbox" type="Area2D" parent="Pivot"]
+collision_layer = 0
+collision_mask = 128
+script = ExtResource("3_hitbox")
+
+[node name="Shape" type="CollisionShape2D" parent="Pivot/Hitbox"]
+position = Vector2(15, 0)
+shape = SubResource("swing_shape")
