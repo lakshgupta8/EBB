@@ -61,17 +61,17 @@ func _build_menu() -> void:
 	logo.texture = LOGO
 	logo.stretch_mode = TextureRect.STRETCH_KEEP
 	logo.scale = Vector2(2, 2)
-	logo.position = Vector2(320 - LOGO.get_width(), 44)
+	logo.position = Vector2(320 - LOGO.get_width(), 92)
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(logo)
 	var tag := UI.label("keep the tide", 8, Color(0.75, 0.85, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	tag.position = Vector2(220, 44 + LOGO.get_height() * 2 + 6)
+	tag.position = Vector2(220, 92 + LOGO.get_height() * 2 + 4)
 	tag.size = Vector2(200, 10)
 	layer.add_child(tag)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
-	box.position = Vector2(320 - 110, 176)
+	box.position = Vector2(320 - 110, 186)
 	box.size = Vector2(220, 0)
 	layer.add_child(box)
 	_buttons = []
@@ -95,7 +95,7 @@ func _build_menu() -> void:
 
 	var info := UI.label("", 8, Color(0.6, 0.65, 0.78), HORIZONTAL_ALIGNMENT_CENTER)
 	info.name = "Info"
-	info.position = Vector2(120, 300)
+	info.position = Vector2(120, 296)
 	info.size = Vector2(400, 10)
 	layer.add_child(info)
 	var ver := UI.label("EBB %s" % Game.VERSION, 8, Color(0.45, 0.5, 0.6), HORIZONTAL_ALIGNMENT_RIGHT)
