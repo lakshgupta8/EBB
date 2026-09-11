@@ -6,12 +6,12 @@ extends Area2D
 signal used(prop: Prop)
 
 const PROPS := preload("res://assets/sprites/props.png")
-enum Kind { FOUNTAIN, CHEST, LIGHTHOUSE, MERCHANT, ALTAR, ORLA, CAGE, BRAM, WREN, CARTOGRAPHER, ECHO_GHOST }
+enum Kind { FOUNTAIN, CHEST, LIGHTHOUSE, MERCHANT, ALTAR, ORLA, CAGE, BRAM, WREN, CARTOGRAPHER, ECHO_GHOST, MAREN }
 const FRAMES := {Kind.FOUNTAIN: 0, Kind.CHEST: 1, Kind.LIGHTHOUSE: 3, Kind.MERCHANT: 4, Kind.ALTAR: 5, Kind.ORLA: 6,
-	Kind.CAGE: 7, Kind.BRAM: 9, Kind.WREN: 10, Kind.CARTOGRAPHER: 11, Kind.ECHO_GHOST: 9}
-const REUSABLE := [Kind.MERCHANT, Kind.ORLA, Kind.BRAM, Kind.WREN, Kind.CARTOGRAPHER]
+	Kind.CAGE: 7, Kind.BRAM: 9, Kind.WREN: 10, Kind.CARTOGRAPHER: 11, Kind.ECHO_GHOST: 9, Kind.MAREN: 12}
+const REUSABLE := [Kind.MERCHANT, Kind.ORLA, Kind.BRAM, Kind.WREN, Kind.CARTOGRAPHER, Kind.MAREN]
 const SCENERY := [Kind.LIGHTHOUSE, Kind.ECHO_GHOST]
-const ECHO_FRAME := {"bram": 9, "wren": 10, "cartographer": 11}
+const ECHO_FRAME := {"bram": 9, "wren": 10, "cartographer": 11, "maren": 12}
 
 var kind: Kind
 var used_up: bool = false
@@ -48,7 +48,7 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 		Atmosphere.breathe(lamp, 1.3, 1.9, 3.0)
 	elif kind == Kind.FOUNTAIN:
 		Atmosphere.light(self, Color(0.55, 0.8, 1.0), 2.5, 0.8, Vector2(0, -6))
-	elif kind == Kind.ORLA or kind == Kind.BRAM:
+	elif kind == Kind.ORLA or kind == Kind.BRAM or kind == Kind.MAREN:
 		Atmosphere.light(self, Color(1.0, 0.85, 0.65), 2.0, 0.6, Vector2(0, -8))
 	elif kind == Kind.WREN:
 		Atmosphere.light(self, Color(0.8, 0.9, 1.0), 2.0, 0.6, Vector2(0, -8))

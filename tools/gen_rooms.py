@@ -322,7 +322,7 @@ ROOMS["hub"] = """
 ##############===..===##################
 #.................O.......B........====#
 #..................................====#
-#....o........W....................====#
+#....o........W..........N.........====#
 #..............................o...====#
 #................P.................====#
 #..............................C...====#
@@ -367,7 +367,7 @@ D..................................#####
 # duplicated floor row near the middle so rooms are 40x23 and the walls overhang the
 # screen edge by 4px instead of leaving a gap.
 OUT_H = 23
-MARKERS = set("DPFTXhMAOEBWC")
+MARKERS = set("DPFTXhMAOEBWCN")
 
 
 def _stretch(rows):
@@ -386,6 +386,9 @@ def main():
     import gen_rooms_m4
     gen_rooms_m4.fix_widths()
     ROOMS.update(gen_rooms_m4.ROOMS)
+    import gen_rooms_m4b
+    gen_rooms_m4b.fix_widths()
+    ROOMS.update(gen_rooms_m4b.ROOMS)
     for name, txt in ROOMS.items():
         rows = txt.strip("\n").split("\n")
         assert len(rows) == H, (name, len(rows))

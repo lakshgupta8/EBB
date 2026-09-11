@@ -38,6 +38,9 @@ var mods: Dictionary = {
 	"lunge_mult": 1.0, "wall_damage": 3, "held_bonus": 0.0, "room_shield": false,
 	"knockback_taken": 1.0, "flare_heal": 0, "dash_recharge": 1.0, "riptide_refund": false,
 	"dash_dist": 1.0, "tide_heals": false, "water_damage": 1.0,
+	"ranged_mult": 1.0, "lit_bonus": 0.0, "execute": false, "rally_per": 0.0,
+	"regen": false, "low_guard": false, "dash_grace": DASH_GRACE, "free_water_dash": false,
+	"panic_speed": 1.0, "riptide_heal": 0, "pearl_bonus": 0, "water_kill_heal": 0,
 }
 
 var max_dash: int = DASH_CHARGES
@@ -53,6 +56,8 @@ var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
 var attack_held: bool = false
 var aim_dist: float = 64.0  # distance to the cursor (bots: a fixed reach)
+var rally: float = 0.0      # Rally tidemark: damage bonus built up in this room
+var _regen_t: float = 0.0
 
 var _dash_timer: float = 0.0
 var _dash_dir: Vector2 = Vector2.ZERO
@@ -200,6 +205,8 @@ func _physics_process(delta: float) -> void:
 			_wake.deactivate()
 	else:
 		var speed: float = SPEED * float(mods.speed) * (float(mods.water_speed) if in_water else 1.0) * weapon.move_mult()
+		if health.hp * 2 < health.max_hp:
+			speed *= float(mods.panic_speed)
 		velocity = input * speed + _knockback + _lunge_vel
 		if input != Vector2.ZERO:
 			facing = input.normalized()
@@ -213,9 +220,13 @@ func _physics_process(delta: float) -> void:
 	_dodge_cd = maxf(0.0, _dodge_cd - delta)
 	riptide_t = maxf(0.0, riptide_t - delta)
 	# A short grace after the dash keeps late dodges honest.
-	var ghosting := is_dashing() or is_yanked() or _since_dash < DASH_GRACE
+	var ghosting := is_dashing() or is_yanked() or _since_dash < float(mods.dash_grace)
 	health.invulnerable = ghosting
-	hurtbox.damage_mult = 0.7 if (mods.dash_guard and _since_dash < 1.0) else 1.0
+	var taken := 0.7 if (mods.dash_guard and _since_dash < 1.0) else 1.0
+	if mods.low_guard and health.hp * 10 < health.max_hp * 3:
+		taken *= 0.75
+	hurtbox.damage_mult = taken
+	_tick_regen(delta)
 	collision_mask = MASK_WORLD if ghosting else MASK_WORLD_AND_ENEMIES
 	_recharge(delta)
 	move_and_slide()
@@ -223,7 +234,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _start_dash(dir: Vector2) -> void:
-	dash_charges -= 1
+	if not (mods.free_water_dash and in_water):
+		dash_charges -= 1
+	weapon.on_dash(dir)
 	_dash_timer = DASH_TIME
 	_dash_dir = dir
 	weapon.cancel()
@@ -232,6 +245,18 @@ func _start_dash(dir: Vector2) -> void:
 	if mods.dash_wake:
 		_wake.activate()
 		FX.burst(global_position, Color(0.6, 0.9, 1.0, 0.8), 6, 40.0)
+
+
+## Slow Salt: a point of health every 4 s on dry ground.
+func _tick_regen(delta: float) -> void:
+	if not mods.regen or in_water or dead:
+		_regen_t = 0.0
+		return
+	_regen_t += delta
+	if _regen_t >= 4.0:
+		_regen_t = 0.0
+		if health.hp < health.max_hp:
+			health.heal(1)
 
 
 func _recharge(delta: float) -> void:
@@ -274,9 +299,11 @@ func _animate(input: Vector2) -> void:
 # --- riptide -------------------------------------------------------------------------
 ## An enemy attack passed through us mid-dash: perfect dodge.
 func _on_dodged(_info: DamageInfo) -> void:
-	if _dodge_cd > 0.0 or not (is_dashing() or _since_dash < DASH_GRACE):
+	if _dodge_cd > 0.0 or not (is_dashing() or _since_dash < float(mods.dash_grace)):
 		return
 	_dodge_cd = 0.6
+	if int(mods.riptide_heal) > 0:
+		health.heal(int(mods.riptide_heal))
 	riptide_t = mods.riptide_window
 	dash_charges = max_dash if mods.riptide_refund else mini(max_dash, dash_charges + 1)
 	Juice.slowmo(0.25, 0.28)
@@ -336,6 +363,10 @@ func _on_enemy_died(_e: Node) -> void:
 	add_glow(GLOW_PER_KILL)
 	if mods.kill_heal > 0 and not dead:
 		health.heal(mods.kill_heal)
+	if int(mods.water_kill_heal) > 0 and in_water and not dead:
+		health.heal(int(mods.water_kill_heal))
+	if float(mods.rally_per) > 0.0:
+		rally = minf(rally + float(mods.rally_per), float(mods.rally_per) * 10.0)
 
 
 # --- damage --------------------------------------------------------------------------

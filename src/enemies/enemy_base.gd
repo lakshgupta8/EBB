@@ -31,6 +31,10 @@ var _pull_to: Vector2
 var _bleed_ticks: int = 0
 var _bleed_t: float = 0.0
 var netted_t: float = 0.0        # rooted under a net; takes extra damage
+var lit_t: float = 0.0           # marked by the storm lantern; takes extra damage
+var slowed_t: float = 0.0        # inside a beacon
+var tethered_t: float = 0.0      # on the harpoon line
+var _lit_light: PointLight2D
 var kindled_t: float = 0.0       # sped up by a lamplighter
 var _net_sprite: Sprite2D
 
@@ -58,8 +62,25 @@ func kindle(duration: float) -> void:
 	FX.burst(global_position + Vector2(0, -8), Color(1.0, 0.8, 0.5), 6, 40.0)
 
 
+func lit(duration: float) -> void:
+	lit_t = maxf(lit_t, duration)
+	if _lit_light == null:
+		_lit_light = Atmosphere.light(self, Color(1.0, 0.9, 0.6), 2.4, 0.9, Vector2(0, -8))
+	_lit_light.visible = true
+	_refresh_mult()
+
+
+func slow(duration: float) -> void:
+	slowed_t = maxf(slowed_t, duration)
+
+
+func tether(duration: float) -> void:
+	tethered_t = maxf(tethered_t, duration)
+	_refresh_mult()
+
+
 func is_held() -> bool:
-	return netted_t > 0.0 or _pull_timer > 0.0
+	return netted_t > 0.0 or _pull_timer > 0.0 or tethered_t > 0.0
 
 
 ## Incoming damage multiplier from every status at once.
@@ -71,6 +92,10 @@ func _refresh_mult() -> void:
 		m *= 1.25
 	if is_held() and player:
 		m *= 1.0 + float(player.mods.held_bonus)
+	if lit_t > 0.0:
+		m *= 1.3 + (float(player.mods.lit_bonus) if player else 0.0)
+	if player and player.mods.execute and health.hp * 4 <= health.max_hp:
+		m *= 2.0
 	hurtbox.damage_mult = m
 
 
@@ -114,6 +139,7 @@ func _ready() -> void:
 		hitbox.landed.connect(_on_hit_landed)
 	player = get_tree().get_first_node_in_group("player") as Player
 	room = get_tree().get_first_node_in_group("room") as Room
+	health.changed.connect(func(_c, _m): _refresh_mult())
 	_enter_state(&"idle")
 
 
@@ -231,6 +257,8 @@ func _physics_process(delta: float) -> void:
 				velocity *= WATER_SPEED_MULT
 		if kindled_t > 0.0:
 			velocity *= KINDLE_SPEED_MULT
+		if slowed_t > 0.0:
+			velocity *= 0.6
 		velocity += _knockback
 	_knockback = _knockback.lerp(Vector2.ZERO, 12.0 * delta)
 	move_and_slide()
@@ -245,6 +273,17 @@ func _physics_process(delta: float) -> void:
 		if netted_t <= 0.0:
 			if _net_sprite:
 				_net_sprite.visible = false
+			_refresh_mult()
+	slowed_t = maxf(0.0, slowed_t - delta)
+	if tethered_t > 0.0:
+		tethered_t -= delta
+		if tethered_t <= 0.0:
+			_refresh_mult()
+	if lit_t > 0.0:
+		lit_t -= delta
+		if lit_t <= 0.0:
+			if _lit_light:
+				_lit_light.visible = false
 			_refresh_mult()
 	if kindled_t > 0.0:
 		kindled_t -= delta

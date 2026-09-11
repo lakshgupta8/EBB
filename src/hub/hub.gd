@@ -3,6 +3,8 @@ extends Node2D
 ## Every echo you bring back stands somewhere on the rock with something to offer.
 
 const HUB_TEMPLATE := "res://data/rooms/hub.txt"
+## Bram forges the later weapons for pearls. The knife is his gift.
+const WEAPON_COST := {"gaff": 0, "net": 0, "harpoon": 25, "lantern": 40}
 
 @onready var player: Player = $Player
 @onready var room_holder: Node2D = $RoomHolder
@@ -55,6 +57,9 @@ func _ready() -> void:
 	if SaveManager.flag("echo_cartographer"):
 		for cell in room.template.marker_cells("C"):
 			room.add_prop(Prop.Kind.CARTOGRAPHER, cell).used.connect(func(_p): open_cartographer())
+	if SaveManager.flag("echo_maren"):
+		for cell in room.template.marker_cells("N"):
+			room.add_prop(Prop.Kind.MAREN, cell).used.connect(func(_p): open_maren())
 	ledger_ui.closed.connect(_refresh_info)
 	choice_ui.closed.connect(_refresh_info)
 	_refresh_info()
@@ -62,18 +67,46 @@ func _ready() -> void:
 
 
 # --- the echoes ------------------------------------------------------------------------
-## Bram: pick the weapon the next night starts with.
+func _owned_weapons() -> Array:
+	var owned: Array = SaveManager.data.get("weapons", ["gaff", "net"])
+	if not "gaff" in owned:
+		owned.append("gaff")
+	if not "net" in owned:
+		owned.append("net")
+	SaveManager.data["weapons"] = owned
+	return owned
+
+
+## Bram: pick the weapon the next night starts with; forge the later ones for pearls.
 func open_bram() -> void:
 	var ids := Weapon.ALL.keys()
+	var owned := _owned_weapons()
 	var options: Array = []
 	for id in ids:
-		options.append({"name": Weapon.ALL[id].name, "desc": Weapon.ALL[id].desc, "hint": "the %s waits by the door" % Weapon.ALL[id].name.to_lower()})
+		var cost: int = WEAPON_COST.get(id, 0)
+		options.append({"name": Weapon.ALL[id].name, "desc": Weapon.ALL[id].desc,
+			"right": "" if id in owned else "%d pearls" % cost, "fail": "not enough pearls"})
 	var current := ids.find(Game.weapon_id())
 	var line := "I made every blade in Saltmere. The water took the rest. Take what suits your hands."
 	if int(SaveManager.data.runs) > 6:
 		line = "You keep coming back with the same weapon. Or a different one. Either way you come back. Good."
-	choice_ui.open("BRAM'S FORGE", line, options, current, Color(0.95, 0.75, 0.55))
-	_connect_pick(func(i): SaveManager.data["weapon"] = ids[i]; SaveManager.save_profile(); player._equip(ids[i]))
+	if owned.size() >= ids.size():
+		line = "That is everything I know how to make. The rest is in how you hold it."
+	choice_ui.open("BRAM'S FORGE", line, options, current, Color(0.95, 0.75, 0.55), func(i):
+		var id: String = ids[i]
+		if not id in owned:
+			var cost: int = WEAPON_COST.get(id, 0)
+			if int(SaveManager.data.pearls) < cost:
+				return ""
+			SaveManager.data.pearls -= cost
+			owned.append(id)
+			choice_ui.set_right(i, "")
+			FX.burst(player.global_position, Color(0.98, 0.85, 0.45), 10, 50.0)
+		SaveManager.data["weapon"] = id
+		SaveManager.save_profile()
+		player._equip(id)
+		return "the %s waits by the door" % Weapon.ALL[id].name.to_lower()
+	)
 
 
 ## Sister Wren: bless a tidemark family. Every altar offers at least one from it.
@@ -83,11 +116,14 @@ func open_wren() -> void:
 	var descs := {"salt": "offence: damage, crits, bleeding", "brine": "defence: health, shields, healing",
 		"current": "mobility: dashes, riptides, speed", "deep": "strange: the tide, salt, the lantern"}
 	for f in fams:
-		options.append({"name": Tidemarks.FAMILY_NAME[f], "desc": descs[f], "hint": "every altar will carry %s" % f})
+		options.append({"name": Tidemarks.FAMILY_NAME[f], "desc": descs[f]})
 	var current := fams.find(str(SaveManager.data.get("blessed_family", "")))
 	choice_ui.open("SISTER WREN", "A prayer is only asking the same thing every night until the sea gets tired of hearing it. What shall we ask for?",
-		options, current, Color(0.8, 0.9, 1.0))
-	_connect_pick(func(i): SaveManager.data["blessed_family"] = fams[i]; SaveManager.save_profile())
+		options, current, Color(0.8, 0.9, 1.0), func(i):
+			SaveManager.data["blessed_family"] = fams[i]
+			SaveManager.save_profile()
+			return "every altar will carry %s" % fams[i]
+	)
 
 
 ## The Cartographer: promise one room type at depth 2 of every biome.
@@ -95,17 +131,23 @@ func open_cartographer() -> void:
 	var options: Array = []
 	var descs := {RoomGraph.FOUNTAIN: "a fountain two rooms in", RoomGraph.TREASURE: "a chest two rooms in", RoomGraph.SHOP: "the merchant two rooms in"}
 	for t in RoomGraph.CHARTABLE:
-		options.append({"name": RoomGraph.NAMES[t], "desc": descs[t], "hint": "charted: %s at depth 2" % RoomGraph.NAMES[t].to_lower()})
+		options.append({"name": RoomGraph.NAMES[t], "desc": descs[t]})
 	var current := RoomGraph.CHARTABLE.find(int(SaveManager.data.get("charted_room", -1)))
 	choice_ui.open("THE CARTOGRAPHER", "The streets do not move. I can tell you what is two turnings down, every night. Not more. The water changes the rest.",
-		options, current, Color(0.75, 0.8, 1.0))
-	_connect_pick(func(i): SaveManager.data["charted_room"] = RoomGraph.CHARTABLE[i]; SaveManager.save_profile())
+		options, current, Color(0.75, 0.8, 1.0), func(i):
+			SaveManager.data["charted_room"] = RoomGraph.CHARTABLE[i]
+			SaveManager.save_profile()
+			return "charted: %s at depth 2" % RoomGraph.NAMES[RoomGraph.CHARTABLE[i]].to_lower()
+	)
 
 
-func _connect_pick(cb: Callable) -> void:
-	# One handler per opening; the menu closes and disconnects when the player leaves.
-	choice_ui.picked.connect(cb)
-	choice_ui.closed.connect(func(): if choice_ui.picked.is_connected(cb): choice_ui.picked.disconnect(cb), CONNECT_ONE_SHOT)
+## Maren: the old keeper, back from under the hall. She only talks, for now.
+func open_maren() -> void:
+	var wins := int(SaveManager.data.get("wins", 0))
+	var line := "Tam. You went all the way down and came back with me. Nobody has done that. The lantern is yours now, properly. What you do with the tide is the next question, and I do not have the answer either."
+	if wins >= 3:
+		line = "You keep going back. I did that too. Some night you will have to decide whether to break the lantern or walk out. I will be here either way."
+	choice_ui.open("MAREN", line, [], -1, Color(0.95, 0.9, 0.8))
 
 
 func _refresh_info() -> void:
@@ -120,18 +162,17 @@ func _handle_screenshot_arg() -> void:
 		return
 	for i in 30:
 		await get_tree().process_frame
-	if "--ledger" in OS.get_cmdline_user_args():
+	var args := OS.get_cmdline_user_args()
+	if "--ledger" in args:
 		ledger_ui.open()
-		await get_tree().process_frame
-		await get_tree().process_frame
-	elif "--bram" in OS.get_cmdline_user_args():
+	elif "--bram" in args:
 		open_bram()
-		await get_tree().process_frame
-		await get_tree().process_frame
-	elif "--wren" in OS.get_cmdline_user_args():
+	elif "--wren" in args:
 		open_wren()
-		await get_tree().process_frame
-		await get_tree().process_frame
+	elif "--maren" in args:
+		open_maren()
+	await get_tree().process_frame
+	await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var img := get_viewport().get_texture().get_image()

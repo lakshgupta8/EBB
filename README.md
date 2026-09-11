@@ -10,9 +10,9 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | What | Command |
 |---|---|
 | Run the game | `.\tools\run.ps1` |
-| Jump straight to the Drowned Streets / its boss | `.\tools\run.ps1 -- --biome=1` / `.\tools\run.ps1 -- --biome=1 --boss` |
+| Jump to a biome / its boss | `.\tools\run.ps1 -- --biome=1` (streets), `--biome=2` (hall), add `--boss` |
 | Run tests (headless) | `.\tools\test.ps1` |
-| Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 36000 -Seed 5 -Weapon net [-Fresh]` |
+| Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern) |
 | Regenerate sprites / rooms / audio | `python tools\gen_sprites.py --preview`, `python tools\gen_rooms.py`, `python tools\gen_audio.py` |
 | Open Godot editor | `.\tools\editor.ps1` |
 
@@ -37,13 +37,16 @@ before they strike: dash on the flash for a riptide.
 | Weapon | LMB | RMB |
 |---|---|---|
 | Gaff Hook (start) | 3-hit combo, third hit pulls; hold to charge a heavy sweep | throw: light enemies are dragged to you, heavy ones drag you to them |
-| Net & Knife (from Bram) | four fast stabs, the fourth cuts deep and bleeds; you stay mobile | throw a net at the cursor: everything under it is rooted for 2 s and takes +25% |
+| Net & Knife (Bram's gift) | four fast stabs, the fourth cuts deep and bleeds; you stay mobile | throw a net at the cursor: everything under it is rooted for 2 s and takes +25% |
+| Harpoon Gun (25 pearls) | piercing bolts, three then a reload; hold to keep firing | tether an enemy: every dash you make drags it along; bosses barely move |
+| Storm Lantern (40 pearls) | wide quick arcs of light; everything hit is LIT (+30% damage from anything) and charges the flare fast | beacon: a pool of light at the cursor that lits and slows what stands in it |
 
-Pick the weapon for the next night at Bram's forge on Marrow Rock.
+Pick and forge weapons at Bram's forge on Marrow Rock. The HUD shows the harpoon's ammo next to the special bar.
 
 ## The night (M4)
 Hub (lighthouse) -> The Flats (8 rooms + The Wreck) -> slack water -> The Drowned Streets
-(9 rooms + The Bell of Saltmere). Beating the Bell wins the night for now; the Deep Hall is M5.
+(9 rooms + The Bell of Saltmere) -> slack water -> The Deep Hall (7 rooms + The Ebb).
+Beating the Ebb wins the night and brings Maren home. Endings are M5.
 
 - The tide meter on the right rises with time and every room; low ground floods first, then the
   rest. Shallow water slows you, deep water hurts. It falls back to slack water after a boss.
@@ -59,6 +62,7 @@ Hub (lighthouse) -> The Flats (8 rooms + The Wreck) -> slack water -> The Drowne
 | Bram the Drowned | The Flats, an echo room | forge: choose your weapon |
 | Sister Wren | The Drowned Streets | bless a tidemark family: every altar offers one from it |
 | The Cartographer | The Drowned Streets (after Wren) | chart a room: fountain, chest or merchant guaranteed two rooms into every biome |
+| Maren | under the Ebb | talks; the endings come in M5 |
 
 ### Streets enemies
 Still Citizen (statue until you are close, then fast), Lamplighter (kindles the others; throws its
@@ -66,11 +70,18 @@ lantern when alone; kill first), Bell Ringer (long tell, shockwave, calls the dr
 the water), Swimmer (fast in water, slow on stone). The Bell of Saltmere tolls a ring of sound,
 swings, and peals three times; at half health the statues in the square wake.
 
+### Hall enemies
+Keeper's Shade (fights with a dark copy of whatever weapon you carry, then slips away), Anchor
+(throws a chain from a way off: dash through it or be hauled in for the slam), Deep Maw (a mouth
+in the floor; opens when you are near, hangs open and vulnerable after it bites). Elites here are
+Echoes of Maren. The Ebb sends walls of water with one gap, hauls you in and slams, calls shades,
+and rises twice.
+
 ## Progression
-- Tidemarks: 26 per-run boons in four families (salt = offence, brine = defence, current = mobility,
+- Tidemarks: 42 per-run boons in four families (salt = offence, brine = defence, current = mobility,
   deep = weird). Defined in `src/tidemarks/tidemarks.gd`; they write into `Player.mods`.
 - Ledger: permanent tiers bought from Orla with pearls. Defined in `src/hub/ledger.gd`.
-- Save: `user://save.json` (pearls, ledger, story flags, weapon, blessing, chart).
+- Save: `user://save.json` (pearls, ledger, story flags, weapons forged, blessing, chart).
 
 Sandbox arena for feel tuning: `.\tools\run.ps1 src/sandbox.tscn`
 

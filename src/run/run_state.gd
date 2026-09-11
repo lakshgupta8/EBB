@@ -15,6 +15,8 @@ var ended: bool = false
 var victory: bool = false
 var taken: bool = false  # ended by the tide rather than an enemy
 var bargain: bool = false  # Sea's Bargain: salt converts even when killed
+var full_fountain: bool = false  # Deep Wells
+var still_water: bool = false    # Still Water
 var tide := TideSystem.new()
 var tidemarks: Array = []  # ids, in the order they were taken
 var echoes: Array = []     # echo ids rescued this run
@@ -24,7 +26,7 @@ func result() -> Dictionary:
 	# Salt converts to pearls at the end: half if taken by the tide, none if killed.
 	var bonus := (salt / 2) if (taken or bargain) else 0
 	if victory:
-		bonus = salt / 2 + 5 + 5 * biome
+		bonus = salt / 2 + 5 + 10 * biome
 	return {
 		"seed": seed, "biome": biome, "depth": depth_total, "rooms_cleared": rooms_cleared, "kills": kills,
 		"salt": salt, "pearls": pearls + bonus, "pearls_from_salt": bonus,

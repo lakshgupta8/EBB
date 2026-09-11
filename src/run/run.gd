@@ -13,6 +13,10 @@ const LAMPLIGHTER := preload("res://src/enemies/lamplighter.tscn")
 const RINGER := preload("res://src/enemies/bell_ringer.tscn")
 const SWIMMER := preload("res://src/enemies/swimmer.tscn")
 const BELL := preload("res://src/enemies/bell.tscn")
+const SHADE := preload("res://src/enemies/keeper_shade.tscn")
+const ANCHOR := preload("res://src/enemies/anchor.tscn")
+const MAW := preload("res://src/enemies/deep_maw.tscn")
+const EBB := preload("res://src/enemies/ebb.tscn")
 
 const BIOMES := [
 	{"name": "THE FLATS", "dir": "res://data/rooms/biome1/", "length": 8, "theme": Tiles.Look.FLATS,
@@ -21,14 +25,18 @@ const BIOMES := [
 	{"name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 9, "theme": Tiles.Look.STREETS,
 		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "echoes": ["wren", "cartographer"],
 		"intro": "Slack water. The streets of Saltmere, and something still ringing."},
+	{"name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 7, "theme": Tiles.Look.DEEP,
+		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "echoes": [],
+		"intro": "The Deep Hall. Every keeper before you is standing in it."},
 ]
 ## The people you can bring back, and what they say when the cage opens.
 const ECHOES := {
 	"bram": {"name": "Bram the Drowned", "line": "A smith. Still a smith. Get me to a fire, keeper, and I will make you something that bites."},
 	"wren": {"name": "Sister Wren", "line": "The tide is not cruel. It is only patient. Find me by the tower; I remember prayers that still work."},
 	"cartographer": {"name": "The Cartographer", "line": "I mapped every street before the water came. Streets do not move. The water does."},
+	"maren": {"name": "Maren", "line": "Tam. It let go. Take me up to the light."},
 }
-const NIGHT_TINT := [Color(0.6, 0.68, 0.86), Color(0.56, 0.6, 0.8)]
+const NIGHT_TINT := [Color(0.6, 0.68, 0.86), Color(0.56, 0.6, 0.8), Color(0.56, 0.62, 0.84)]
 const SLACK_WATER := 0.25  # tide level after a boss falls
 
 var state := RunState.new()
@@ -197,6 +205,7 @@ func _enter_room(type: int) -> void:
 	room.build(_pick_template(type), _rng.randi(), biome().theme)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	player.velocity = Vector2.ZERO
+	player.rally = 0.0
 	state.tide.room_entered()
 	room.set_tide(state.tide.level)
 
@@ -271,6 +280,13 @@ func _enemy_scene() -> PackedScene:
 		if state.depth < 2:
 			return SHELLBACK if r < 0.6 else GULL
 		return SHELLBACK if r < 0.4 else (GULL if r < 0.7 else CRAB)
+	if state.biome >= 2:
+		# The hall: the old keepers, the dock hands, and the mouths in the floor.
+		if r < 0.45:
+			return SHADE
+		if r < 0.75:
+			return ANCHOR
+		return MAW
 	# The streets: statues everywhere, a lamplighter or a ringer among them, and the
 	# drowned themselves once there is water to come out of.
 	var wet := state.tide.level > 0.5
@@ -288,9 +304,15 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 	spawns.shuffle()
 	for i in count:
 		var cell: Vector2i = spawns[i % spawns.size()]
-		var e: Enemy = _spawn(_enemy_scene(), room.cell_to_world(cell))
+		var scene := _enemy_scene()
+		if with_elite and i == 0 and state.biome >= 2:
+			scene = SHADE
+		var e: Enemy = _spawn(scene, room.cell_to_world(cell))
 		if with_elite and i == 0:
 			e.make_elite()
+			if state.biome >= 2:
+				e.display_name = "Echo of Maren"
+				e.pearl_drop += 1
 
 
 func _spawn_echo_room() -> void:
@@ -392,7 +414,8 @@ func _on_enemy_died(enemy: Node) -> void:
 		var pos: Vector2 = enemy.global_position
 		for i in int(round(enemy.salt_drop * player.mods.salt_mult)):
 			Pickup.spawn(content, pos, Pickup.Kind.SALT)
-		for i in enemy.pearl_drop:
+		var pearls: int = enemy.pearl_drop + (int(player.mods.pearl_bonus) if (enemy.is_elite or enemy.is_boss) else 0)
+		for i in pearls:
 			Pickup.spawn(content, pos, Pickup.Kind.PEARL)
 		if enemy == boss:
 			_on_boss_died()
@@ -410,12 +433,27 @@ func _on_boss_died() -> void:
 		if e is Enemy and e != boss and is_instance_valid(e):
 			e.health.take(DamageInfo.make(9999, null, Vector2.ZERO, 0.0), true)
 	if state.biome + 1 >= BIOMES.size():
+		_free_maren()
 		_win()
 		return
 	await get_tree().process_frame
 	if state.ended:
 		return
 	_set_cleared()
+
+
+## The Ebb is gone: Maren steps out of the water where it stood.
+func _free_maren() -> void:
+	if not SaveManager.flag("echo_maren"):
+		SaveManager.set_flag("echo_maren")
+		SaveManager.data["echoes"] = int(SaveManager.data.get("echoes", 0)) + 1
+	SaveManager.set_flag("ebb_broken")
+	state.echoes.append("maren")
+	var p := room.add_prop(Prop.Kind.ECHO_GHOST, room.world_to_cell(boss.global_position))
+	p.show_echo("maren")
+	FX.flash_screen(Color(0.8, 0.9, 1.0, 0.6), 0.8)
+	Audio.play("rescue")
+	_show_banner("\"" + ECHOES.maren.line + "\"", 3.0, Color(0.85, 0.85, 0.95), 8)
 
 
 func _on_door_entered(door: Door) -> void:
@@ -435,6 +473,8 @@ func _on_door_entered(door: Door) -> void:
 func _on_tidemark_chosen(id: String) -> void:
 	state.tidemarks.append(id)
 	Tidemarks.apply(id, player, self)
+	if state.still_water:
+		state.tide.pause(12.0)
 	var m := Tidemarks.get_mark(id)
 	FX.ring(player.global_position, Tidemarks.color_of(id), 1.6)
 	FX.burst(player.global_position, Tidemarks.color_of(id), 16, 70.0)
@@ -443,7 +483,9 @@ func _on_tidemark_chosen(id: String) -> void:
 
 
 func _on_fountain(_p: Prop) -> void:
-	player.health.heal(35)
+	player.health.heal(player.health.max_hp if state.full_fountain else 35)
+	if state.still_water:
+		state.tide.pause(12.0)
 	FX.burst(player.global_position, Color(0.5, 0.8, 0.95), 14, 60.0)
 
 

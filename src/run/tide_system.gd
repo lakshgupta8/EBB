@@ -13,10 +13,21 @@ const DEEP_TICK := 0.5     # seconds
 
 var level: float = 0.0
 var rate_mult: float = 1.0  # tidemarks / ledger can slow it
+var pause_t: float = 0.0    # Still Water: seconds the tide holds
 
 
 func advance(delta: float) -> void:
+	if pause_t > 0.0:
+		var held := minf(delta, pause_t)
+		pause_t -= held
+		delta -= held
+		if delta <= 0.0:
+			return
 	level = minf(MAX_LEVEL, level + RATE * rate_mult * delta)
+
+
+func pause(seconds: float) -> void:
+	pause_t = maxf(pause_t, seconds)
 
 
 func room_entered() -> void:

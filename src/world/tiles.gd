@@ -7,11 +7,11 @@ const TEXTURE := preload("res://assets/sprites/tiles.png")
 const SIZE := 16
 
 enum { SAND, SAND2, WALL, WALL2, WATER, WATER2, DEEP, LOW, RAISED, DOOR, DOOR_OPEN, ROCK, FOAM, FOAM2,
-	COBBLE, COBBLE2, RUIN, RUIN2, MOSS, FLAG, COUNT }
+	COBBLE, COBBLE2, RUIN, RUIN2, MOSS, FLAG, BASALT, BASALT2, HALLWALL, HALLWALL2, CHANNEL, DAIS, COUNT }
 
-const SOLID := [WALL, WALL2, DOOR, ROCK, RUIN, RUIN2]
+const SOLID := [WALL, WALL2, DOOR, ROCK, RUIN, RUIN2, HALLWALL, HALLWALL2]
 ## Themes: 0 = the flats (sand and wet rock), 1 = the drowned streets (cobbles and brick).
-enum Look { FLATS, STREETS }
+enum Look { FLATS, STREETS, DEEP }
 
 static var _tileset: TileSet
 

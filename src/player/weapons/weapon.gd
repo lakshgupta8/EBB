@@ -8,6 +8,10 @@ const ALL := {
 		"desc": "3-hit combo, heavy sweep, hook throw"},
 	"net": {"name": "Net & Knife", "scene": "res://src/player/weapons/net_knife.tscn",
 		"desc": "fast bleeding stabs, a net that roots"},
+	"harpoon": {"name": "Harpoon Gun", "scene": "res://src/player/weapons/harpoon_gun.tscn",
+		"desc": "piercing bolts, a tether that drags"},
+	"lantern": {"name": "Storm Lantern", "scene": "res://src/player/weapons/storm_lantern.tscn",
+		"desc": "arcs of light that mark, a beacon"},
 }
 const DEFAULT := "gaff"
 
@@ -75,10 +79,22 @@ func cancel() -> void:
 	pass
 
 
+## The player dashed in `dir` (tethers, wakes...).
+func on_dash(_dir: Vector2) -> void:
+	pass
+
+
+## Short text next to the special bar ("2/3", "reloading"), or nothing.
+func ammo_text() -> String:
+	return ""
+
+
 ## Shared damage multiplier for a hit going live: stat mods, water surge, riptide crit.
-func arm_mult(player: Player, heavy: bool, lunge: bool, crit: bool) -> float:
+func arm_mult(player: Player, heavy: bool, lunge: bool, crit: bool, ranged: bool = false) -> float:
 	var m: Dictionary = player.mods
-	var mult := float(m.damage)
+	var mult := float(m.damage) * (1.0 + player.rally)
+	if ranged:
+		mult *= float(m.ranged_mult)
 	if heavy:
 		mult *= float(m.heavy_damage)
 	if lunge:

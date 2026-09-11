@@ -8,13 +8,13 @@ func test_tidemark_ids_unique_and_coloured() -> void:
 		assert_true(not seen.has(m.id), "duplicate id " + m.id)
 		seen[m.id] = true
 		assert_true(Tidemarks.FAMILY_COLOR.has(m.family), m.id + " has a known family")
-	assert_true(Tidemarks.ALL.size() >= 24, "M4: at least 24 tidemarks")
+	assert_true(Tidemarks.ALL.size() >= 40, "M4: at least 40 tidemarks")
 	for fam in Tidemarks.FAMILY_COLOR:
 		var n := 0
 		for m in Tidemarks.ALL:
 			if m.family == fam:
 				n += 1
-		assert_true(n >= 6, fam + " has at least 6 marks")
+		assert_true(n >= 10, fam + " has at least 10 marks")
 
 
 func test_tidemark_roll_excludes_owned() -> void:

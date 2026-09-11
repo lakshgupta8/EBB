@@ -72,9 +72,11 @@ func _draw() -> void:
 			gcol = Color(1.0, 1.0, 0.85)
 		draw_rect(Rect2(x, gy, int(56 * gf), 3), gcol)
 		_text(Vector2(x + 60, gy + 4), "Q" if gf >= 1.0 else "", Color(1.0, 0.95, 0.7))
-		# Riptide armed
+		# Riptide armed, else the weapon's ammo line
 		if _player.riptide_t > 0.0:
 			_text(Vector2(x + 60, py + 4), "RIPTIDE", Color(0.7, 0.95, 1.0))
+		elif _player.weapon.ammo_text() != "":
+			_text(Vector2(x + 60, py + 4), _player.weapon.ammo_text(), Color(0.85, 0.85, 0.9))
 		# Tidemarks owned: family-coloured pips
 		if _run and _run.state.tidemarks.size() > 0:
 			var ty := gy + 7

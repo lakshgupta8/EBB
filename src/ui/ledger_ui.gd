@@ -19,6 +19,8 @@ func _ready() -> void:
 
 static func orla_line() -> String:
 	var s := SaveManager.data
+	if SaveManager.flag("ebb_broken"):
+		return "The sea came back in last night. All the way in, gentle as anything. Maren is standing on my rock, Tam. Go and talk to her."
 	if int(s.wins) > 0:
 		return "The bell is quiet. I heard it stop from here. Whatever is under the streets heard it too."
 	if SaveManager.flag("echo_cartographer"):
