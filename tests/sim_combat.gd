@@ -4,7 +4,7 @@ extends Node
 ## combat code that unit tests cannot reach. Usage:
 ##   godot --headless --path . tests/sim_combat.tscn  [-- --ticks=900]
 
-const MAIN := preload("res://src/main.tscn")
+const MAIN := preload("res://src/sandbox.tscn")
 
 var ticks_to_run: int = 900  # 15 s at 60 Hz
 var tick: int = 0

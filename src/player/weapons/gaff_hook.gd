@@ -117,8 +117,8 @@ func _start_swing() -> void:
 	# Visual: slash arc at the active window.
 	get_tree().create_timer(ANTICIPATION[i]).timeout.connect(func():
 		if state == State.SWING and _step == i + 1:
-			var scale_mult := 1.35 if hitbox.pull else 1.0
-			FX.slash(_player.global_position + _player.aim * 6.0, aim_angle, _swing_sign < 0.0, scale_mult)
+			var scale_mult := 1.15 if hitbox.pull else 1.0
+			FX.slash(global_position, aim_angle, _swing_sign < 0.0, scale_mult)
 	)
 
 

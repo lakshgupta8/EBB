@@ -32,11 +32,14 @@ func can_take_damage() -> bool:
 	return hp > 0 and not invulnerable and _iframes <= 0.0
 
 
-func take(info: DamageInfo) -> bool:
-	if not can_take_damage():
+func take(info: DamageInfo, ignore_iframes: bool = false) -> bool:
+	if hp <= 0 or invulnerable:
+		return false
+	if _iframes > 0.0 and not ignore_iframes:
 		return false
 	hp = maxi(0, hp - info.amount)
-	_iframes = iframe_time
+	if not ignore_iframes:
+		_iframes = iframe_time
 	changed.emit(hp, max_hp)
 	damaged.emit(info)
 	if hp == 0:

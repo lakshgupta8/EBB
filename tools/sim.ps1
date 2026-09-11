@@ -1,5 +1,6 @@
-# Bot playtest of the combat sandbox.  Usage: .\tools\sim.ps1 [-Ticks 900]
-param([int]$Ticks = 900)
+# Bot playtests.  Usage: .\tools\sim.ps1 [-Scene run|combat] [-Ticks 6000] [-Seed 1234]
+param([string]$Scene = "run", [int]$Ticks = 6000, [int]$Seed = 1234)
 . "$PSScriptRoot\godot.ps1"
-& $GodotExe --headless --path $ProjectRoot tests/sim_combat.tscn -- "--ticks=$Ticks"
+$target = if ($Scene -eq "combat") { "tests/sim_combat.tscn" } else { "tests/sim_run.tscn" }
+& $GodotExe --headless --path $ProjectRoot $target -- "--ticks=$Ticks" "--seed=$Seed"
 exit $LASTEXITCODE
