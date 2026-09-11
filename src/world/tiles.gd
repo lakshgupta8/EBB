@@ -6,7 +6,7 @@ extends RefCounted
 const TEXTURE := preload("res://assets/sprites/tiles.png")
 const SIZE := 16
 
-enum { SAND, SAND2, WALL, WALL2, WATER, WATER2, DEEP, LOW, RAISED, DOOR, DOOR_OPEN, ROCK, COUNT }
+enum { SAND, SAND2, WALL, WALL2, WATER, WATER2, DEEP, LOW, RAISED, DOOR, DOOR_OPEN, ROCK, FOAM, FOAM2, COUNT }
 
 const SOLID := [WALL, WALL2, DOOR, ROCK]
 

@@ -17,6 +17,9 @@ var interactive: bool = true
 var _sprite: Sprite2D
 var _prompt: Label
 var _player_inside: bool = false
+## Blocks the same E press that closed a menu from re-opening it (the tree is paused
+## while the menu is up, so this only counts down afterwards).
+var _cooldown: float = 0.0
 
 
 func setup(p_kind: Kind, pos: Vector2) -> void:
@@ -34,7 +37,19 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 	_sprite.texture = _frame(FRAMES[kind])
 	_sprite.position = Vector2(0, -4)
 	add_child(_sprite)
+	if kind == Kind.LIGHTHOUSE:
+		_sprite.texture = preload("res://assets/sprites/lighthouse.png")
+		_sprite.position = Vector2(0, -16)
+		_sprite.z_index = 3
+		var lamp := Atmosphere.light(self, Color(1.0, 0.85, 0.55), 7.0, 1.6, Vector2(0, -36))
+		Atmosphere.breathe(lamp, 1.3, 1.9, 3.0)
+	elif kind == Kind.FOUNTAIN:
+		Atmosphere.light(self, Color(0.55, 0.8, 1.0), 2.5, 0.8, Vector2(0, -6))
+	elif kind == Kind.ORLA:
+		Atmosphere.light(self, Color(1.0, 0.85, 0.65), 2.0, 0.6, Vector2(0, -8))
 	if kind == Kind.MERCHANT:
+		var ml := Atmosphere.light(self, Color(0.5, 0.9, 0.9), 2.5, 0.8, Vector2(0, -8))
+		Atmosphere.breathe(ml, 0.6, 1.0, 2.0)
 		_sprite.modulate = Color(1, 1, 1, 0.85)
 		var bob := create_tween().set_loops()
 		bob.tween_property(_sprite, "position:y", -6.0, 1.2).set_trans(Tween.TRANS_SINE)
@@ -49,6 +64,8 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 		var breathe := create_tween().set_loops()
 		breathe.tween_property(glow, "modulate:a", 0.8, 1.0).set_trans(Tween.TRANS_SINE)
 		breathe.tween_property(glow, "modulate:a", 0.4, 1.0).set_trans(Tween.TRANS_SINE)
+		var al := Atmosphere.light(self, Color(0.8, 0.9, 1.0), 3.0, 1.0, Vector2(0, -10))
+		Atmosphere.breathe(al, 0.8, 1.3, 2.0)
 	_prompt = UI.label("[E]", 8, Color(0.95, 0.95, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	_prompt.size = Vector2(24, 10)
 	_prompt.position = Vector2(-12, -26)
@@ -86,10 +103,17 @@ func mark_used() -> void:
 		_sprite.modulate = Color(0.7, 0.7, 0.75)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _cooldown > 0.0:
+		_cooldown -= delta
+		if _cooldown <= 0.0 and _player_inside and interactive and not used_up:
+			_prompt.visible = true
+		return
 	if interactive and _player_inside and not used_up and Input.is_action_just_pressed("interact"):
+		_cooldown = 0.25
 		if not (kind in REUSABLE):
 			mark_used()
 		else:
 			_prompt.visible = false
+		Audio.play("ui", 0.0, -6.0)
 		used.emit(self)

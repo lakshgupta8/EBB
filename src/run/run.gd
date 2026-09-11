@@ -49,7 +49,11 @@ func _ready() -> void:
 	EventBus.pickup_collected.connect(_on_pickup)
 	EventBus.run_started.emit(state.seed)
 	fade.color.a = 1.0
+	Atmosphere.build(self, Vector2(640, 368))
+	Audio.ambient("ambient_sea", -9.0)
+	Audio.gulls_enabled = true
 	_enter_room(RoomGraph.COMBAT)
+	_show_banner("The tide has gone out. Saltmere waits.", 3.0, Color(0.8, 0.9, 1.0), 12)
 	_handle_screenshot_arg()
 
 
@@ -163,6 +167,7 @@ func _enter_room(type: int) -> void:
 			_spawn_boss()
 			_show_banner("THE WRECK", 2.2, Color(0.95, 0.75, 0.6), 20)
 			EventBus.request_shake.emit(0.6)
+			Audio.play("roar")
 
 	_show_room_label("THE FLATS", "%d / %d   %s" % [state.depth + 1, BIOME_LENGTH + 1, RoomGraph.NAMES[type]])
 	EventBus.room_entered.emit(room)
@@ -210,6 +215,7 @@ func _spawn_boss() -> void:
 	boss = _spawn(WRECK, room.cell_to_world(cell))
 	boss.phase_changed.connect(func(_p):
 		_show_banner("THE WRECK STIRS", 1.6, Color(0.95, 0.5, 0.45), 16)
+		Audio.play("roar", 0.0, 2.0)
 		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + 0.35)
 	)
 	hud.set_boss(boss)
@@ -242,6 +248,7 @@ func _set_cleared() -> void:
 	room.open_doors()
 	if room_type == RoomGraph.COMBAT or room_type == RoomGraph.ELITE:
 		_show_banner("THE WAY OPENS", 1.2, Color(0.7, 0.9, 1.0), 12)
+		Audio.play("clear", 0.0, -4.0)
 	EventBus.room_cleared.emit(room)
 
 
@@ -280,6 +287,7 @@ func _on_tidemark_chosen(id: String) -> void:
 	FX.ring(player.global_position, Tidemarks.color_of(id), 1.6)
 	FX.burst(player.global_position, Tidemarks.color_of(id), 16, 70.0)
 	_show_banner(m.name.to_upper(), 1.4, Tidemarks.color_of(id), 14)
+	Audio.play("altar")
 
 
 func _on_fountain(_p: Prop) -> void:

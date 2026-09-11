@@ -16,8 +16,12 @@ func _ready() -> void:
 	room = Room.new()
 	room_holder.add_child(room)
 	room.build(RoomTemplate.load_file(HUB_TEMPLATE))
+	room.set_tide(0.6)  # the sea laps at the foot of the rock, always
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	Ledger.apply(player, null)
+	Atmosphere.build(self, Vector2(640, 368))
+	Audio.ambient("ambient_sea", -7.0)
+	Audio.gulls_enabled = true
 	for cell in room.template.marker_cells("X"):
 		var d := Door.new()
 		room.add_child(d)
@@ -36,8 +40,7 @@ func _ready() -> void:
 
 func _refresh_info() -> void:
 	var s := SaveManager.data
-	info.text = "Marrow Rock   pearls %d   runs %d   best depth %d   wins %d      Orla keeps the Ledger. The shore descends." % [
-		s.pearls, s.runs, s.best_depth, s.wins]
+	info.text = "MARROW ROCK\npearls %d   runs %d   best %d   wins %d" % [s.pearls, s.runs, s.best_depth, s.wins]
 
 
 func _handle_screenshot_arg() -> void:

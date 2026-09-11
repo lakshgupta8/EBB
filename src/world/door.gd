@@ -100,6 +100,9 @@ func open() -> void:
 	breathe.tween_property(_glow, "modulate:a", 0.75, 0.8).set_trans(Tween.TRANS_SINE)
 	breathe.tween_property(_glow, "modulate:a", 0.35, 0.8).set_trans(Tween.TRANS_SINE)
 	FX.burst(global_position + _interior * 8.0, Color(0.6, 0.85, 1.0), 10, 40.0)
+	var l := Atmosphere.light(self, Color(0.55, 0.8, 1.0), 2.2, 0.9, _interior * 10.0)
+	Atmosphere.breathe(l, 0.7, 1.1, 1.6)
+	Audio.play("door", 0.05, -4.0)
 
 
 func _physics_process(_delta: float) -> void:
