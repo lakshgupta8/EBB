@@ -271,11 +271,20 @@ func _win() -> void:
 	_end_run()
 
 
+## From the pause menu: abandon the run (counts as taken by the deep, salt lost).
+func give_up() -> void:
+	if state.ended:
+		return
+	player.dead = true
+	_end_run()
+
+
 func _end_run() -> void:
 	state.ended = true
+	# Let the last drops get collected before the ledger is written.
+	await get_tree().create_timer(1.2).timeout
 	var result := state.result()
 	Game.run_finished(result)
-	await get_tree().create_timer(1.2).timeout
 	results.show_result(result)
 
 

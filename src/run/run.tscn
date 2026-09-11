@@ -5,6 +5,8 @@
 [ext_resource type="Script" path="res://src/world/camera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://src/ui/hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://src/ui/results.gd" id="5_results"]
+[ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="6_pause"]
+[ext_resource type="FontFile" path="res://assets/fonts/ebb.fnt" id="7_font"]
 
 [node name="Run" type="Node2D"]
 script = ExtResource("1_run")
@@ -34,9 +36,13 @@ script = ExtResource("4_hud")
 
 [node name="RoomLabel" type="Label" parent="HUD"]
 offset_left = 4.0
-offset_top = 349.0
+offset_top = 350.0
 offset_right = 400.0
 offset_bottom = 360.0
+theme_override_colors/font_shadow_color = Color(0.09, 0.08, 0.14, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("7_font")
 theme_override_font_sizes/font_size = 8
 text = "The Flats"
 
@@ -49,12 +55,16 @@ offset_left = -200.0
 offset_top = 52.0
 offset_right = 200.0
 offset_bottom = 80.0
-theme_override_colors/font_outline_color = Color(0.09, 0.08, 0.14, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 14
+theme_override_colors/font_shadow_color = Color(0.09, 0.08, 0.14, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("7_font")
+theme_override_font_sizes/font_size = 16
 text = "THE WAY OPENS"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Pause" parent="." instance=ExtResource("6_pause")]
 
 [node name="Fade" type="ColorRect" parent="HUD"]
 anchors_preset = 15

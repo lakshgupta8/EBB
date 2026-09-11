@@ -55,24 +55,20 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	_glow.z_index = 2
 	add_child(_glow)
 
+	# Hanging signboard (24px, 1:1 with the world) just inside the doorway.
 	_icon = Sprite2D.new()
 	_icon.z_index = 4
-	_icon.scale = Vector2(2, 2)
 	if p_type >= 0:
-		_icon.texture = _atlas(ICONS, RoomGraph.ICON[p_type], 12)
-	_icon.modulate = Color(0.45, 0.45, 0.5)
-	_icon.position = _interior * 26.0
+		_icon.texture = _atlas(ICONS, RoomGraph.ICON[p_type], 24)
+	_icon.modulate = Color(0.55, 0.55, 0.6)
+	_icon.position = _interior * 24.0
 	add_child(_icon)
 
-	_label = Label.new()
-	_label.text = (RoomGraph.NAMES[p_type] if p_type >= 0 else "Descend").to_upper()
-	_label.add_theme_font_size_override("font_size", 8)
-	_label.add_theme_color_override("font_outline_color", Color(0.09, 0.08, 0.14))
-	_label.add_theme_constant_override("outline_size", 3)
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label.size = Vector2(80, 12)
-	_label.position = _icon.position + Vector2(-40, 13)
-	_label.modulate = Color(0.7, 0.7, 0.75, 0.0)
+	_label = UI.label((RoomGraph.NAMES[p_type] if p_type >= 0 else "Descend").to_upper(), 8,
+		Color(0.95, 0.95, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_label.size = Vector2(80, 10)
+	_label.position = _icon.position + Vector2(-40, 12)
+	_label.modulate = Color(1, 1, 1, 0.0)
 	_label.z_index = 4
 	add_child(_label)
 	body_entered.connect(_on_body_entered)
@@ -92,11 +88,11 @@ func open() -> void:
 	_room.set_ground_tile(cell, Tiles.DOOR_OPEN)
 	_frame.texture = _atlas(FRAME, 1, 32)
 	_icon.modulate = Color.WHITE
-	_label.modulate = Color(0.95, 0.95, 1.0, 1.0)
+	_label.modulate = Color(1, 1, 1, 1)
 	# Pop, then bob forever; glow breathes.
-	_icon.scale = Vector2(3.2, 3.2)
+	_icon.scale = Vector2(1.6, 1.6)
 	var pop := create_tween()
-	pop.tween_property(_icon, "scale", Vector2(2, 2), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	pop.tween_property(_icon, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var bob := create_tween().set_loops()
 	bob.tween_property(_icon, "position", _icon.position - _interior * 3.0, 0.6).set_trans(Tween.TRANS_SINE)
 	bob.tween_property(_icon, "position", _icon.position, 0.6).set_trans(Tween.TRANS_SINE)

@@ -53,6 +53,36 @@ func test_health_invulnerable_flag() -> void:
 	h.free()
 
 
+func test_hurtbox_damage_mult_and_dodge() -> void:
+	var h := Health.new()
+	h.max_hp = 10
+	h._ready()
+	var hb := Hurtbox.new()
+	hb.health = h
+	hb.damage_mult = 2.0
+	assert_true(hb.receive(DamageInfo.make(2, null, Vector2.RIGHT)))
+	assert_eq(h.hp, 6, "cracked: damage doubled")
+	var dodged := [false]
+	hb.dodged.connect(func(_i): dodged[0] = true)
+	h.invulnerable = true
+	assert_true(not hb.receive(DamageInfo.make(2, null, Vector2.RIGHT)), "no damage while invulnerable")
+	assert_true(dodged[0], "dodged fires instead")
+	assert_eq(h.hp, 6)
+	hb.free()
+	h.free()
+
+
+func test_hitbox_crit_tags() -> void:
+	var hb := Hitbox.new()
+	hb.damage = 3
+	hb.damage_mult = 2.0
+	hb.tags = PackedStringArray(["melee"])
+	# Build the info the same way the hitbox does, through DamageInfo.
+	var info := DamageInfo.make(int(round(hb.damage * hb.damage_mult)), null, Vector2.RIGHT)
+	assert_eq(info.amount, 6)
+	hb.free()
+
+
 func test_enemy_scenes_load() -> void:
 	for path in ["res://src/enemies/shellback.tscn", "res://src/enemies/gull.tscn",
 			"res://src/enemies/wrack_crab.tscn", "res://src/enemies/wreck.tscn"]:

@@ -28,10 +28,9 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 	_sprite.texture = _frame({Kind.FOUNTAIN: 0, Kind.CHEST: 1, Kind.LIGHTHOUSE: 3}[kind])
 	_sprite.position = Vector2(0, -4)
 	add_child(_sprite)
-	_prompt = Label.new()
-	_prompt.text = "E"
-	_prompt.add_theme_font_size_override("font_size", 8)
-	_prompt.position = Vector2(-3, -24)
+	_prompt = UI.label("[E]", 8, Color(0.95, 0.95, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_prompt.size = Vector2(24, 10)
+	_prompt.position = Vector2(-12, -26)
 	_prompt.visible = false
 	add_child(_prompt)
 	body_entered.connect(func(b): if b is Player: _player_inside = true; _prompt.visible = not used_up)

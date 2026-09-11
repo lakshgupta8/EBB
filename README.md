@@ -16,8 +16,19 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | Open Godot editor | `.\tools\editor.ps1` |
 
 ## Controls
-WASD move, mouse aim, LMB swing (3-hit combo, third hit pulls), RMB hook throw (yank to target),
-Space dash, E interact (fountains, chests, results screen).
+| Input | Action |
+|---|---|
+| WASD / mouse | move / aim |
+| LMB tap | 3-hit combo; the third hit pulls enemies in |
+| LMB hold | after a swing, keep holding to charge a heavy sweep: cracks shells (double damage for 3 s) |
+| Space, then LMB | lunge out of the dash |
+| Space through an attack | riptide: slow-mo, dash refunded, next hit crits |
+| RMB | hook throw, yank to whatever it catches |
+| Q | lantern flare when the glow meter is full (hits charge it): stuns and damages everything nearby |
+| E | interact (fountains, chests, results screen) |
+| Esc / F11 | pause / fullscreen toggle |
+
+Knocking an enemy into a wall deals bonus damage.
 
 ## Flow (M2)
 Hub (lighthouse) -> walk to the water's edge -> 8 rooms of The Flats chosen door by door -> boss.
