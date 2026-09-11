@@ -4,10 +4,13 @@ extends Area2D
 ## Expects a sibling Health node unless health_path is set.
 
 signal hit(info: DamageInfo)
+## A hit arrived while the owner was invulnerable (dash i-frames): a dodge.
+signal dodged(info: DamageInfo)
 
 @export var health_path: NodePath = ^"../Health"
 
 var health: Health
+var damage_mult: float = 1.0  # cracked shells, exposed bosses...
 
 
 func _ready() -> void:
@@ -17,7 +20,14 @@ func _ready() -> void:
 
 
 func receive(info: DamageInfo) -> bool:
-	if health == null or not health.take(info):
+	if health == null:
+		return false
+	if health.invulnerable and health.is_alive():
+		dodged.emit(info)
+		return false
+	if damage_mult != 1.0:
+		info.amount = maxi(1, int(round(info.amount * damage_mult)))
+	if not health.take(info):
 		return false
 	hit.emit(info)
 	return true

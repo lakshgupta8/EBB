@@ -12,7 +12,10 @@ var player: Player
 var _attack_cd: int = 0
 var _dash_cd: int = 0
 var _special_cd: int = 0
-var _shot_tick: int = -1
+var _shot_tick: int = -1  # when running with a window: save .shots/sim_run.png at this tick
+var _shot_end: bool = false  # also screenshot the results card
+var _finishing: bool = false
+var _pause_shot_tick: int = -1  # open the pause menu at this tick and screenshot it
 var _rooms_seen: Array = []
 var _stuck_t: int = 0
 var _last_pos: Vector2
@@ -24,6 +27,8 @@ func _ready() -> void:
 		if a.begins_with("--ticks="): ticks_to_run = int(a.trim_prefix("--ticks="))
 		elif a.begins_with("--shot="): _shot_tick = int(a.trim_prefix("--shot="))
 		elif a.begins_with("--seed="): seed_val = int(a.trim_prefix("--seed="))
+		elif a == "--shot-end": _shot_end = true
+		elif a.begins_with("--pause-shot="): _pause_shot_tick = int(a.trim_prefix("--pause-shot="))
 	Engine.max_fps = 0
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
 	SaveManager.use_path("user://sim_save.json")
@@ -38,11 +43,28 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	tick += 1
 	if tick == _shot_tick:
-		_screenshot()
+		_screenshot("sim_run.png")
+	if tick == _pause_shot_tick:
+		_pause_screenshot()
+	if _finishing:
+		return
 	if tick >= ticks_to_run or run.state.ended:
+		_finishing = true
+		if _shot_end and run.state.ended:
+			await get_tree().create_timer(1.8, true, false, true).timeout
+			await _screenshot("sim_results.png")
 		_finish()
 		return
 	_drive()
+
+
+func _pause_screenshot() -> void:
+	var pm = run.get_node("Pause")
+	pm.toggle()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _screenshot("sim_pause.png")
+	pm.toggle()
 
 
 func _nearest_enemy() -> Enemy:
@@ -119,10 +141,24 @@ func _stuck_report(door: Door) -> void:
 			run.room.template.is_solid(run.room.world_to_cell(player.global_position).x, run.room.world_to_cell(player.global_position).y)])
 
 
+var _hold_ticks: int = 0
+var _lunge_next: bool = false
+
+
 func _fight(target: Enemy) -> void:
 	var to := target.global_position - player.global_position
 	player.aim_override = to
 	var dist := to.length()
+	# Exercise the new moves: occasional heavy (hold), lunge after a dash, flare when full.
+	if _hold_ticks > 0:
+		Input.action_press("attack")
+		_hold_ticks -= 1
+		return
+	if _lunge_next:
+		_lunge_next = false
+		Input.action_press("attack")
+	if player.glow_full():
+		Input.action_press("use_item")
 	if dist > 22.0:
 		if target.flying:
 			# Flyers come to you: hold position, keep facing, strike when it dives in.
@@ -132,6 +168,8 @@ func _fight(target: Enemy) -> void:
 	if dist < 30.0 and _attack_cd <= 0:
 		Input.action_press("attack")
 		_attack_cd = 6
+		if randf() < 0.2:
+			_hold_ticks = 40
 	if dist > 50.0 and dist < 90.0 and _special_cd <= 0 and player.weapon.special_ready():
 		Input.action_press("special")
 		_special_cd = 180
@@ -139,6 +177,7 @@ func _fight(target: Enemy) -> void:
 		_press_dir(-to)
 		Input.action_press("dash")
 		_dash_cd = 30
+		_lunge_next = true
 	_attack_cd -= 1
 	_dash_cd -= 1
 	_special_cd -= 1
@@ -179,16 +218,17 @@ func _press_dir(dir: Vector2, threshold: float = 0.35) -> void:
 
 
 func _release_all() -> void:
-	for a in ["move_left", "move_right", "move_up", "move_down", "attack", "special", "dash", "interact"]:
+	for a in ["move_left", "move_right", "move_up", "move_down", "attack", "special", "dash", "interact", "use_item"]:
 		Input.action_release(a)
 
 
-func _screenshot() -> void:
+func _screenshot(file: String) -> void:
 	await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var img := get_viewport().get_texture().get_image()
-	print("sim_run: screenshot -> %s" % error_string(img.save_png(dir + "/sim_run.png")))
+	print("sim_run: screenshot %s -> %s (tick=%d fade_a=%.2f paused=%s time_scale=%.2f)" % [
+		file, error_string(img.save_png(dir + "/" + file)), tick, run.fade.color.a, get_tree().paused, Engine.time_scale])
 
 
 func _finish() -> void:

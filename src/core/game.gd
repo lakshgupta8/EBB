@@ -13,7 +13,19 @@ var last_result: Dictionary = {}
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	print("EBB %s | Godot %s" % [VERSION, Engine.get_version_info().string])
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("fullscreen"):
+		var w := get_window()
+		if w.mode == Window.MODE_FULLSCREEN or w.mode == Window.MODE_EXCLUSIVE_FULLSCREEN:
+			w.mode = Window.MODE_WINDOWED
+			w.size = Vector2i(1280, 720)
+			w.move_to_center()
+		else:
+			w.mode = Window.MODE_FULLSCREEN
 
 
 func go_to_hub() -> void:

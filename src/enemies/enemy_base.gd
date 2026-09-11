@@ -18,6 +18,8 @@ const WATER_SPEED_MULT := 0.7
 var is_elite: bool = false
 var is_boss: bool = false
 var room: Room
+var cracked_t: float = 0.0       # takes double damage while > 0 (heavy hit)
+var _wall_slam_armed: bool = false
 
 var state: StringName = &"idle"
 var state_t: float = 0.0  # seconds in current state
@@ -129,11 +131,54 @@ func _physics_process(delta: float) -> void:
 		velocity += _knockback
 	_knockback = _knockback.lerp(Vector2.ZERO, 12.0 * delta)
 	move_and_slide()
+	_wall_slam()
+	if cracked_t > 0.0:
+		cracked_t -= delta
+		if cracked_t <= 0.0:
+			hurtbox.damage_mult = 1.0
+			sprite.modulate = Color.WHITE if not is_boss else sprite.modulate
+
+
+## Knocked hard into a wall: bonus damage and a thud.
+func _wall_slam() -> void:
+	if not _wall_slam_armed:
+		return
+	if _knockback.length() < 60.0:
+		_wall_slam_armed = false
+		return
+	if is_on_wall():
+		_wall_slam_armed = false
+		_knockback = Vector2.ZERO
+		var info := DamageInfo.make(3, null, Vector2.ZERO, 0.0)
+		info.tags = PackedStringArray(["wall"])
+		info.hitstop = 0.0
+		if health.take(info, true):
+			EventBus.request_shake.emit(0.3)
+			EventBus.request_hitstop.emit(0.04)
+			FX.spark(global_position + Vector2(0, -6))
+			FX.burst(global_position, Color(0.75, 0.68, 0.5), 6, 40.0)
+			EventBus.damage_dealt.emit(self, info)
+			if not health.is_alive():
+				pass  # died signal already handled
+
+
+func crack(duration: float) -> void:
+	cracked_t = duration
+	hurtbox.damage_mult = 2.0
+	sprite.modulate = Color(1.0, 0.75, 0.7)
+	stunned = maxf(stunned, 0.5)
 
 
 func _on_hurt(info: DamageInfo) -> void:
 	_knockback = info.direction * info.knockback * (1.0 - knockback_resist)
+	_wall_slam_armed = _knockback.length() >= 60.0
 	stunned = maxf(stunned, 0.12)
+	if info.tags.has("heavy") and not is_boss:
+		crack(3.0)
+	elif info.tags.has("heavy"):
+		stunned = maxf(stunned, 0.35)
+	if info.tags.has("crit"):
+		FX.burst(global_position + Vector2(0, -6), Color(1.0, 0.95, 0.6), 10, 70.0)
 	sprite.material.set_shader_parameter("flash", 1.0)
 	var tw := create_tween()
 	tw.tween_property(sprite.material, "shader_parameter/flash", 0.0, 0.15)

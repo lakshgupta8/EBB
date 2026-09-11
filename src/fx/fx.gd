@@ -3,6 +3,43 @@ extends Node
 
 const SLASH := preload("res://assets/sprites/fx_slash.png")
 const SPARK := preload("res://assets/sprites/fx_spark.png")
+const RING := preload("res://assets/sprites/fx_ring.png")
+
+var _flash_layer: CanvasLayer
+var _flash_rect: ColorRect
+
+
+func ring(pos: Vector2, color: Color, scale_mult: float = 1.0) -> void:
+	var s := _one_shot(RING, 48, 3, 24.0, pos, 0.0, Vector2.ONE * scale_mult)
+	s.modulate = color
+
+
+## Floating world text that rises and fades (RIPTIDE, CRACK...).
+func text(pos: Vector2, msg: String, color: Color, size: int = 8) -> void:
+	var l := UI.label(msg, size, color, HORIZONTAL_ALIGNMENT_CENTER)
+	l.size = Vector2(80, 10)
+	l.position = pos + Vector2(-40, -20)
+	l.z_index = 10
+	_root().add_child(l)
+	var tw := create_tween()
+	tw.tween_property(l, "position:y", l.position.y - 14.0, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.7).set_delay(0.25)
+	tw.tween_callback(l.queue_free)
+
+
+## Full-screen colour flash.
+func flash_screen(color: Color, duration: float = 0.25) -> void:
+	if _flash_layer == null:
+		_flash_layer = CanvasLayer.new()
+		_flash_layer.layer = 4
+		add_child(_flash_layer)
+		_flash_rect = ColorRect.new()
+		_flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flash_layer.add_child(_flash_rect)
+	_flash_rect.color = color
+	var tw := create_tween()
+	tw.tween_property(_flash_rect, "color:a", 0.0, duration)
 
 
 func _root() -> Node:

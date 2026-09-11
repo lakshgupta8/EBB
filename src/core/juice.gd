@@ -20,3 +20,12 @@ func hitstop(duration: float) -> void:
 	await get_tree().create_timer(duration, true, false, true).timeout
 	Engine.time_scale = 1.0
 	_stopping = false
+
+
+## Brief slow motion (riptide). Overrides hitstop if one is running.
+func slowmo(scale: float, duration: float) -> void:
+	_stopping = true
+	Engine.time_scale = scale
+	await get_tree().create_timer(duration, true, false, true).timeout
+	Engine.time_scale = 1.0
+	_stopping = false
