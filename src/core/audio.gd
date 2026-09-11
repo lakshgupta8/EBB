@@ -25,7 +25,24 @@ func _ready() -> void:
 	add_child(_ambient)
 
 
+var _variants: Dictionary = {}  # base name -> count of name_0, name_1, ...
+
+
+## "hit" resolves to a random one of hit_0, hit_1... when variants exist.
+func _resolve(name: String) -> String:
+	if not _variants.has(name):
+		var count := 0
+		while ResourceLoader.exists(DIR + "%s_%d.wav" % [name, count]):
+			count += 1
+		_variants[name] = count
+	var count: int = _variants[name]
+	if count == 0:
+		return name
+	return "%s_%d" % [name, randi() % count]
+
+
 func _stream(name: String) -> AudioStream:
+	name = _resolve(name)
 	if _streams.has(name):
 		return _streams[name]
 	var path := DIR + name + ".wav"
@@ -86,5 +103,5 @@ func _process(delta: float) -> void:
 		return
 	_gull_t -= delta
 	if _gull_t <= 0.0:
-		_gull_t = randf_range(9.0, 22.0)
-		play("gull_%d" % (randi() % 3), 0.08, -10.0)
+		_gull_t = randf_range(18.0, 45.0)
+		play("gull_%d" % (randi() % 3), 0.1, -16.0)

@@ -59,10 +59,19 @@ func show_result(r: Dictionary) -> void:
 		grid.add_child(UI.label(row[1], 8, Color(0.95, 0.93, 0.9)))
 	box.add_child(grid)
 	box.add_child(UI.spacer(6))
-	box.add_child(UI.label("[E]  back to the lighthouse", 8, Color(0.7, 0.85, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
+	var back := UI.text_button("Back to the lighthouse   [E]")
+	back.pressed.connect(_leave)
+	box.add_child(back)
 
 
-func _process(_delta: float) -> void:
-	if _shown and (Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("attack")):
-		_shown = false
-		Game.go_to_hub()
+func _leave() -> void:
+	if not _shown:
+		return
+	_shown = false
+	Game.go_to_hub()
+
+
+func _input(event: InputEvent) -> void:
+	if _shown and UI.is_close(event):
+		_leave()
+		get_viewport().set_input_as_handled()

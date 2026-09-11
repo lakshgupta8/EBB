@@ -60,10 +60,15 @@ func _physics_process(delta: float) -> void:
 	position += _vel * delta
 	if _room:
 		position = _room.clamp_inside(position)
+	# body_entered only fires on entry; a drop that spawns on top of the player (or magnets
+	# into them while they dash) would otherwise sit there forever. Poll instead.
+	if _age > 0.15:
+		for b in get_overlapping_bodies():
+			_on_body_entered(b)
 
 
 func _on_body_entered(body: Node) -> void:
-	if body is Player and _age > 0.15:
+	if body is Player and _age > 0.15 and not is_queued_for_deletion():
 		EventBus.pickup_collected.emit(kind, value)
 		FX.burst(global_position, Color(0.98, 0.85, 0.45) if kind == Kind.SALT else Color(0.9, 0.9, 0.95), 5, 30.0)
 		Audio.play("pickup" if kind == Kind.SALT else "pearl", 0.12, -6.0, 60)

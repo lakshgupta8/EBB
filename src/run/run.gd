@@ -50,7 +50,7 @@ func _ready() -> void:
 	EventBus.run_started.emit(state.seed)
 	fade.color.a = 1.0
 	Atmosphere.build(self, Vector2(640, 368))
-	Audio.ambient("ambient_sea", -9.0)
+	Audio.ambient("ambient_sea", -14.0)
 	Audio.gulls_enabled = true
 	_enter_room(RoomGraph.COMBAT)
 	_show_banner("The tide has gone out. Saltmere waits.", 3.0, Color(0.8, 0.9, 1.0), 12)

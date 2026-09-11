@@ -20,7 +20,7 @@ func _ready() -> void:
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	Ledger.apply(player, null)
 	Atmosphere.build(self, Vector2(640, 368))
-	Audio.ambient("ambient_sea", -7.0)
+	Audio.ambient("ambient_sea", -11.0)
 	Audio.gulls_enabled = true
 	for cell in room.template.marker_cells("X"):
 		var d := Door.new()
@@ -28,9 +28,18 @@ func _ready() -> void:
 		d.setup(room, cell, Door.DESCEND)
 		d.open()
 		d.entered.connect(func(_d): Game.go_to_run())
-	for cell in room.template.marker_cells("h"):
-		room.add_prop(Prop.Kind.LIGHTHOUSE, cell)
-		break
+	# The tower stands on the centre of its 2x2 footprint so the sprite matches the solid cells.
+	var h_cells: Array = room.template.marker_cells("h")
+	if h_cells.size() > 0:
+		var lo: Vector2i = h_cells[0]
+		var hi: Vector2i = h_cells[0]
+		for c in h_cells:
+			lo = Vector2i(mini(lo.x, c.x), mini(lo.y, c.y))
+			hi = Vector2i(maxi(hi.x, c.x), maxi(hi.y, c.y))
+		var centre := (room.cell_to_world(lo) + room.cell_to_world(hi)) * 0.5
+		var tower := Prop.new()
+		room.add_child(tower)
+		tower.setup(Prop.Kind.LIGHTHOUSE, centre)
 	for cell in room.template.marker_cells("O"):
 		room.add_prop(Prop.Kind.ORLA, cell).used.connect(func(_p): ledger_ui.open())
 	ledger_ui.closed.connect(_refresh_info)

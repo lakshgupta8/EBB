@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Esc pauses. Built in code; keeps processing while the tree is paused.
+## Esc pauses. Buttons for resume / give up / fullscreen; keys still work.
 
 var _open: bool = false
 var _root: Control
@@ -11,12 +11,14 @@ func _ready() -> void:
 	visible = false
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
+		# Other menus (shop, ledger, altar) handle Esc first and mark it handled.
 		toggle()
 		get_viewport().set_input_as_handled()
 	elif _open and event.is_action_pressed("use_item"):
 		_quit_to_hub()
+		get_viewport().set_input_as_handled()
 
 
 func toggle() -> void:
@@ -34,28 +36,38 @@ func _build() -> void:
 	add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UI.panel_style())
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
-	box.custom_minimum_size = Vector2(180, 0)
+	box.custom_minimum_size = Vector2(200, 0)
 	panel.add_child(box)
 	box.add_child(UI.label("PAUSED", 16, Color(0.9, 0.9, 0.95), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
-	box.add_child(UI.label("[Esc]  resume", 8, Color(0.85, 0.85, 0.9), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("[Q]  give up and return", 8, Color(0.85, 0.85, 0.9), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("[F11]  fullscreen / window", 8, Color(0.6, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
+	var resume := UI.text_button("Resume   [Esc]")
+	resume.pressed.connect(toggle)
+	box.add_child(resume)
+	var fs := UI.text_button("Fullscreen / window   [F11]")
+	fs.pressed.connect(func(): Game.toggle_fullscreen())
+	box.add_child(fs)
+	var quit := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
+	quit.pressed.connect(_quit_to_hub)
+	box.add_child(quit)
 	box.add_child(UI.spacer(6))
 	box.add_child(UI.label("LMB swing (hold: heavy)   RMB hook", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.label("Space dash (attack out of it: lunge)", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.label("Q lantern flare when the glow is full", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("Dash on an enemy's white flash: riptide", 8, Color(0.6, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER))
 	_root = center
 
 
 func _quit_to_hub() -> void:
 	get_tree().paused = false
+	_open = false
+	visible = false
 	var run := get_tree().current_scene as Run
 	if run and not run.state.ended:
 		run.give_up()

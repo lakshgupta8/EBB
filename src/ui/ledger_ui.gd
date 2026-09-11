@@ -1,6 +1,6 @@
 class_name LedgerUI
 extends CanvasLayer
-## Orla's Ledger screen. Keys 1-6 buy the next tier, E closes.
+## Orla's Ledger screen. Click a row or press 1-6 to buy the next tier; E/Esc/Leave closes.
 
 signal closed
 
@@ -48,17 +48,16 @@ func close() -> void:
 	closed.emit()
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
-	if event.is_action_pressed("interact") or event.is_action_pressed("pause"):
+	var i := UI.menu_index(event)
+	if i >= 0 and i < Ledger.UPGRADES.size():
+		_buy(i)
+		get_viewport().set_input_as_handled()
+	elif UI.is_close(event):
 		close()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and not event.echo:
-		var k: int = event.keycode
-		if k >= KEY_1 and k <= KEY_1 + Ledger.UPGRADES.size() - 1:
-			_buy(k - KEY_1)
-			get_viewport().set_input_as_handled()
 
 
 func _buy(i: int) -> void:
@@ -80,41 +79,50 @@ func _build() -> void:
 	add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UI.panel_style())
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
-	box.custom_minimum_size = Vector2(300, 0)
+	box.custom_minimum_size = Vector2(330, 0)
 	panel.add_child(box)
 	box.add_child(UI.label("ORLA'S LEDGER", 16, Color(0.95, 0.85, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
 	var line := UI.label("\"%s\"" % orla_line(), 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.custom_minimum_size = Vector2(300, 0)
+	line.custom_minimum_size = Vector2(330, 0)
 	box.add_child(line)
 	box.add_child(UI.spacer(4))
 	_rows = []
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 3)
 	for i in Ledger.UPGRADES.size():
 		var u: Dictionary = Ledger.UPGRADES[i]
+		var b := UI.row_button()
+		var h := HBoxContainer.new()
+		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_theme_constant_override("separation", 8)
 		var a := UI.label("[%d] %s" % [i + 1, u.name], 8)
-		var b := UI.label(u.desc, 8, Color(0.7, 0.75, 0.8))
+		a.custom_minimum_size = Vector2(130, 0)
+		var d := UI.label(u.desc, 8, Color(0.7, 0.75, 0.8))
+		d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var c := UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_RIGHT)
-		grid.add_child(a)
-		grid.add_child(b)
-		grid.add_child(c)
-		_rows.append([a, b, c])
-	box.add_child(grid)
+		c.custom_minimum_size = Vector2(70, 0)
+		h.add_child(a)
+		h.add_child(d)
+		h.add_child(c)
+		b.add_child(h)
+		b.custom_minimum_size = Vector2(310, 18)
+		b.pressed.connect(_buy.bind(i))
+		box.add_child(b)
+		_rows.append([a, d, c, b])
 	box.add_child(UI.spacer(4))
 	_pearls_label = UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_pearls_label)
 	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
-	box.add_child(UI.label("[E]  leave", 8, Color(0.7, 0.85, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
+	var leave := UI.text_button("Leave   [E]")
+	leave.pressed.connect(close)
+	box.add_child(leave)
 	_root = center
 	_refresh()
 
