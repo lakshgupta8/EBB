@@ -7,7 +7,7 @@ signal closed
 const ITEMS := [
 	{"key": "salve", "name": "Salve", "desc": "heal 40", "price": 12, "stock": 2},
 	{"key": "shell", "name": "Hardened shell", "desc": "+15 max health", "price": 20, "stock": 1},
-	{"key": "wind", "name": "Second wind", "desc": "+1 dash charge this run", "price": 26, "stock": 1},
+	{"key": "wind", "name": "Second wind", "desc": "+1 dash charge (this run)", "price": 26, "stock": 1},
 	{"key": "oil", "name": "Lamp oil", "desc": "lantern glow +60", "price": 8, "stock": 2},
 ]
 
@@ -116,7 +116,7 @@ func _build() -> void:
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
-	box.custom_minimum_size = Vector2(270, 0)
+	box.custom_minimum_size = Vector2(340, 0)
 	panel.add_child(box)
 	box.add_child(UI.label("THE DROWNED MERCHANT", 16, Color(0.7, 0.85, 0.95), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.label("\"Salt for salt. That is the bargain.\"", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
@@ -126,19 +126,18 @@ func _build() -> void:
 		var it: Dictionary = ITEMS[i]
 		var b := UI.row_button()
 		var h := HBoxContainer.new()
-		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		h.add_theme_constant_override("separation", 10)
 		var a := UI.label("[%d] %s" % [i + 1, it.name], 8)
 		a.custom_minimum_size = Vector2(110, 0)
-		var d := UI.label(it.desc, 8, Color(0.7, 0.75, 0.8))
-		d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var d := UI.flex_label(it.desc)
 		var c := UI.label("%d salt" % it.price, 8, Color(0.98, 0.9, 0.6), HORIZONTAL_ALIGNMENT_RIGHT)
 		c.custom_minimum_size = Vector2(50, 0)
 		h.add_child(a)
 		h.add_child(d)
 		h.add_child(c)
 		b.add_child(h)
-		b.custom_minimum_size = Vector2(250, 18)
+		UI.fill(h, 6.0, 4.0)
+		b.custom_minimum_size = Vector2(320, 20)
 		b.pressed.connect(buy.bind(i))
 		box.add_child(b)
 		_rows.append([a, d, c, b])

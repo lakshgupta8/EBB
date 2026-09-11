@@ -5,10 +5,10 @@ extends RefCounted
 const UPGRADES := [
 	{"id": "constitution", "name": "Keeper's Constitution", "desc": "+10 max health per tier", "costs": [10, 20, 35]},
 	{"id": "fourth_dash", "name": "Fourth Dash", "desc": "one more dash charge", "costs": [40]},
-	{"id": "pockets", "name": "Salted Pockets", "desc": "start each night with +10 salt per tier", "costs": [15, 30]},
-	{"id": "kinder_tide", "name": "Kinder Tide", "desc": "the tide rises 15% slower per tier", "costs": [25, 50]},
-	{"id": "bright_lantern", "name": "Brighter Lantern", "desc": "the lantern charges 50% faster", "costs": [30]},
-	{"id": "tether", "name": "Keeper's Tether", "desc": "once a night, survive a killing blow with 30 health", "costs": [60]},
+	{"id": "pockets", "name": "Salted Pockets", "desc": "+10 starting salt per tier", "costs": [15, 30]},
+	{"id": "kinder_tide", "name": "Kinder Tide", "desc": "tide rises 15% slower per tier", "costs": [25, 50]},
+	{"id": "bright_lantern", "name": "Brighter Lantern", "desc": "lantern charges 50% faster", "costs": [30]},
+	{"id": "tether", "name": "Keeper's Tether", "desc": "survive one killing blow a night", "costs": [60]},
 ]
 
 

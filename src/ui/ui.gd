@@ -67,6 +67,25 @@ static func row_button(edge: Color = PANEL_EDGE) -> Button:
 	return b
 
 
+## A label that yields width to its siblings and trims with an ellipsis instead of overflowing.
+static func flex_label(text: String, size: int = 8, color: Color = Color(0.7, 0.75, 0.8)) -> Label:
+	var l := label(text, size, color)
+	l.clip_text = true
+	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return l
+
+
+## Buttons do not lay out their children: anchor `inner` to fill the button with margins.
+static func fill(inner: Control, margin_x: float = 6.0, margin_y: float = 4.0) -> void:
+	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inner.offset_left = margin_x
+	inner.offset_top = margin_y
+	inner.offset_right = -margin_x
+	inner.offset_bottom = -margin_y
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 ## A simple text button (Resume, Leave...).
 static func text_button(text: String, size: int = 8, color: Color = Color(0.85, 0.9, 1.0)) -> Button:
 	var b := row_button()
