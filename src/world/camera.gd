@@ -26,7 +26,7 @@ func _process(delta: float) -> void:
 		return
 	_t += delta * 60.0
 	_trauma = maxf(0.0, _trauma - DECAY * delta)
-	var s := _trauma * _trauma
+	var s := _trauma * _trauma * Settings.shake()
 	offset = Vector2(
 		_noise.get_noise_2d(_t, 0.0) * MAX_OFFSET * s,
 		_noise.get_noise_2d(0.0, _t) * MAX_OFFSET * s,

@@ -370,6 +370,8 @@ def main():
     build_sfx()
     build_sfx_m4()
     build_sfx_m4b()
+    import gen_music
+    gen_music.build_music()
     print("wrote audio to", OUT)
 
 

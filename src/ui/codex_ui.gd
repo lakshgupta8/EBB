@@ -44,31 +44,24 @@ func close() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not is_open:
-		if _is_c(event) and not get_tree().paused:
+		if event.is_action_pressed("codex") and not get_tree().paused:
 			open()
 			get_viewport().set_input_as_handled()
 		return
 	var i := UI.menu_index(event)
+	var nav := UI.nav(event)
 	if i >= 0 and i < Codex.TABS.size():
 		_set_tab(i)
 		get_viewport().set_input_as_handled()
-	elif UI.is_close(event) or _is_c(event):
+	elif UI.is_close(event) or event.is_action_pressed("codex"):
 		close()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed:
-		var dir := 0
-		if event.is_action("move_down") or event.keycode == KEY_DOWN:
-			dir = 1
-		elif event.is_action("move_up") or event.keycode == KEY_UP:
-			dir = -1
-		if dir != 0 and _scroll:
-			_scroll.scroll_vertical += dir * 28
-			get_viewport().set_input_as_handled()
-
-
-static func _is_c(event: InputEvent) -> bool:
-	return event is InputEventKey and event.pressed and not event.echo \
-		and (event.keycode == KEY_C or event.physical_keycode == KEY_C)
+	elif nav == "left" or nav == "right":
+		_set_tab(wrapi(_tab + (1 if nav == "right" else -1), 0, Codex.TABS.size()))
+		get_viewport().set_input_as_handled()
+	elif (nav == "up" or nav == "down") and _scroll:
+		_scroll.scroll_vertical += (28 if nav == "down" else -28)
+		get_viewport().set_input_as_handled()
 
 
 func _build() -> void:
@@ -111,7 +104,7 @@ func _build() -> void:
 	box.add_child(UI.spacer(2))
 	_count = UI.label("", 8, Color(0.7, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_count)
-	var leave := UI.text_button("Leave   [E]")
+	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
 	box.add_child(leave)
 	_root = center

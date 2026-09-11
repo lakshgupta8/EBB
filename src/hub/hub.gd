@@ -29,6 +29,7 @@ func _ready() -> void:
 	Ledger.apply(player, null)
 	Atmosphere.build(self, Vector2(640, 368))
 	Audio.ambient("ambient_sea", -11.0)
+	Audio.music("music_hub", -10.0)
 	Audio.gulls_enabled = true
 	for cell in room.template.marker_cells("X"):
 		var d := Door.new()
@@ -198,6 +199,8 @@ func _handle_screenshot_arg() -> void:
 		codex_ui.open(0)
 	elif "--codex2" in args:
 		codex_ui.open(1)
+	elif "--settings" in args:
+		$SettingsUI.open()
 	else:
 		for a in args:
 			if a.begins_with("--ending="):

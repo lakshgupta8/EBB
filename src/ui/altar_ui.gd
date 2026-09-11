@@ -10,6 +10,9 @@ var offers: Array = []
 var _root: Control
 
 
+var _cursor: UI.Cursor
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 3
@@ -42,8 +45,11 @@ func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
 	var i := UI.menu_index(event)
+	var nav := UI.nav(event)
 	if i >= 0 and i < offers.size():
 		choose(i)
+		get_viewport().set_input_as_handled()
+	elif nav != "" and _cursor.handle(nav):
 		get_viewport().set_input_as_handled()
 	elif UI.is_close(event) and not (event is InputEventMouseButton):
 		# Swallow E/Esc so nothing behind the menu reacts; choosing is mandatory.
@@ -70,6 +76,7 @@ func _build() -> void:
 	box.add_child(UI.label("THE TIDE OFFERS", 16, Color(0.8, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.label("click a mark, or press 1-3", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
+	var buttons: Array = []
 	for i in offers.size():
 		var m := Tidemarks.get_mark(offers[i])
 		var col: Color = Tidemarks.FAMILY_COLOR[m.family]
@@ -83,4 +90,6 @@ func _build() -> void:
 		b.custom_minimum_size = Vector2(250, 32)
 		b.pressed.connect(choose.bind(i))
 		box.add_child(b)
+		buttons.append(b)
 	_root = center
+	_cursor = UI.Cursor.new(buttons)

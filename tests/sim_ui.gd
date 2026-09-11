@@ -31,6 +31,16 @@ func _key(keycode: Key) -> void:
 	await get_tree().process_frame
 
 
+func _joy(button: int) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventJoypadButton.new()
+		ev.button_index = button
+		ev.pressed = pressed
+		Input.parse_input_event(ev)
+		await get_tree().process_frame
+	await get_tree().process_frame
+
+
 func _find_buttons(root: Node) -> Array:
 	var out: Array = []
 	for c in root.get_children():
@@ -108,6 +118,32 @@ func _ready() -> void:
 	await _key(KEY_E)
 	_check(not run.shop.is_open, "shop closed by E")
 	_check(not get_tree().paused, "tree unpaused after shop")
+
+	# Gamepad: d-pad down twice and A on the shop buys the second item; B leaves.
+	run.state.salt = 60
+	run.shop.restock()
+	run.shop.open()
+	await get_tree().process_frame
+	await _joy(JOY_BUTTON_DPAD_DOWN)
+	_check(Game.gamepad, "a pad press switches prompts to the pad")
+	await _joy(JOY_BUTTON_DPAD_DOWN)
+	await _joy(JOY_BUTTON_A)
+	_check(run.state.salt == 60 - Shop.ITEMS[1].price, "pad cursor bought item 2 (salt=%d)" % run.state.salt)
+	await _joy(JOY_BUTTON_B)
+	_check(not run.shop.is_open, "pad B leaves the shop")
+	await _key(KEY_E)  # a key press, so prompts go back to the keyboard
+	_check(not Game.gamepad, "a key press switches prompts back")
+
+	# Settings: pause, S opens it, 2 steps the music volume, E closes.
+	var music0: float = float(Settings.value("music"))
+	await _key(KEY_ESCAPE)
+	await _key(KEY_S)
+	_check(run.settings_ui.is_open, "S opens settings from the pause menu")
+	await _key(KEY_2)
+	_check(absf(float(Settings.value("music")) - wrapf(music0 + 0.1, 0.0, 1.05)) < 0.01 or float(Settings.value("music")) != music0, "music volume stepped (%.1f -> %.1f)" % [music0, float(Settings.value("music"))])
+	Settings.set_value("music", music0)
+	await _key(KEY_E)
+	_check(not run.settings_ui.is_open and not get_tree().paused, "settings closed by E")
 
 	# Pause menu: Esc opens, Esc closes.
 	await _key(KEY_ESCAPE)

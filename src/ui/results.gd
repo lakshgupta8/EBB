@@ -71,7 +71,7 @@ func show_result(r: Dictionary) -> void:
 		grid.add_child(UI.label(row[1], 8, Color(0.95, 0.93, 0.9)))
 	box.add_child(grid)
 	box.add_child(UI.spacer(6))
-	var back := UI.text_button("Back to the lighthouse   [E]")
+	var back := UI.text_button("Back to the lighthouse   " + UI.hint("interact"))
 	back.pressed.connect(_leave)
 	box.add_child(back)
 
@@ -84,6 +84,6 @@ func _leave() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _shown and UI.is_close(event):
+	if _shown and (UI.is_close(event) or UI.nav(event) == "accept"):
 		_leave()
 		get_viewport().set_input_as_handled()

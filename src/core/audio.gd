@@ -8,6 +8,8 @@ const POOL_SIZE := 14
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
 var _ambient: AudioStreamPlayer
+var _music: AudioStreamPlayer
+var music_name: String = ""
 var _gull_t: float = 0.0
 var gulls_enabled: bool = false
 var _last_play: Dictionary = {}  # name -> msec, to avoid machine-gunning the same clip
@@ -17,12 +19,16 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	for i in POOL_SIZE:
 		var p := AudioStreamPlayer.new()
-		p.bus = "Master"
+		p.bus = "SFX"
 		add_child(p)
 		_pool.append(p)
 	_ambient = AudioStreamPlayer.new()
 	_ambient.volume_db = -9.0
+	_ambient.bus = "SFX"
 	add_child(_ambient)
+	_music = AudioStreamPlayer.new()
+	_music.bus = "Music"
+	add_child(_music)
 
 
 var _variants: Dictionary = {}  # base name -> count of name_0, name_1, ...
@@ -96,6 +102,45 @@ func ambient(name: String, db: float = -9.0) -> void:
 
 func stop_ambient() -> void:
 	_ambient.stop()
+
+
+static func _loop(s: AudioStream) -> void:
+	if s is AudioStreamWAV and s.loop_mode == AudioStreamWAV.LOOP_DISABLED:
+		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		s.loop_begin = 0
+		s.loop_end = s.data.size() / 2
+
+
+## A looping track on the Music bus; the old one fades out under the new one.
+func music(name: String, db: float = -8.0) -> void:
+	if name == music_name and _music.playing:
+		return
+	var s := _stream(name)
+	if s == null:
+		return
+	_loop(s)
+	music_name = name
+	if _music.playing:
+		var old := _music
+		_music = AudioStreamPlayer.new()
+		_music.bus = "Music"
+		add_child(_music)
+		var tw := old.create_tween()
+		tw.tween_property(old, "volume_db", -40.0, 1.5)
+		tw.tween_callback(old.queue_free)
+	_music.stream = s
+	_music.volume_db = db - 12.0
+	_music.play()
+	var up := _music.create_tween()
+	up.tween_property(_music, "volume_db", db, 1.5)
+
+
+func stop_music() -> void:
+	music_name = ""
+	if _music.playing:
+		var tw := _music.create_tween()
+		tw.tween_property(_music, "volume_db", -40.0, 1.5)
+		tw.tween_callback(_music.stop)
 
 
 func _process(delta: float) -> void:

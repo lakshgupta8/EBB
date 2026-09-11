@@ -369,5 +369,32 @@ func _on_died() -> void:
 	Audio.play("death", 0.2, 0.0 if not is_boss else 4.0)
 	EventBus.request_hitstop.emit(0.1)
 	EventBus.request_shake.emit(0.3)
+	_leave_body()
 	EventBus.enemy_died.emit(self)
 	queue_free()
+
+
+## The last frame, left behind: it squashes flat, tints to the death colour and fades.
+func _leave_body() -> void:
+	if sprite == null or sprite.sprite_frames == null or get_parent() == null:
+		return
+	var tex := sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
+	if tex == null:
+		return
+	var body := Sprite2D.new()
+	body.texture = tex
+	body.flip_h = sprite.flip_h
+	body.flip_v = sprite.flip_v
+	body.offset = sprite.offset
+	body.centered = sprite.centered
+	body.z_index = z_index
+	get_parent().add_child(body)
+	body.global_transform = sprite.global_transform
+	body.modulate = sprite.modulate
+	var tint := death_color
+	tint.a = 0.0
+	var big := 1.6 if is_boss else 1.25
+	var tw := body.create_tween()
+	tw.tween_property(body, "scale", body.scale * Vector2(big, 0.35), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(body, "modulate", tint, 0.5 if not is_boss else 1.2)
+	tw.tween_callback(body.queue_free)

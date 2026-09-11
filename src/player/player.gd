@@ -174,8 +174,18 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	if aim_override != Vector2.ZERO:
 		aim = aim_override.normalized()
+	elif stick.length() > 0.35:
+		# Right stick: aim there, reach with the tilt.
+		aim = stick.normalized()
+		aim_dist = 40.0 + 56.0 * minf(stick.length(), 1.0)
+	elif Game.gamepad:
+		# Pad without the stick: aim where you walk, keep the last aim when still.
+		if input != Vector2.ZERO:
+			aim = input.normalized()
+		aim_dist = 64.0
 	else:
 		aim = (get_global_mouse_position() - global_position)
 		aim_dist = aim.length()
@@ -438,4 +448,11 @@ func _on_died() -> void:
 	sprite.modulate = Color(0.6, 0.6, 0.7)
 	weapon.cancel()
 	weapon.visible = false
+	# Fall over, away from the last hit, and go still.
+	var side := -1.0 if sprite.flip_h else 1.0
+	var tw := create_tween()
+	tw.tween_property(sprite, "rotation", side * PI * 0.5, 0.45).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(sprite, "position:y", sprite.position.y + 5.0, 0.45)
+	tw.tween_property(sprite, "modulate", Color(0.45, 0.45, 0.55), 0.8)
+	FX.burst(global_position, Color(0.75, 0.8, 0.95), 14, 60.0)
 	EventBus.player_died.emit()

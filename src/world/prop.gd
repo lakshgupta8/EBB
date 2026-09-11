@@ -89,6 +89,7 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 func _on_body_entered(b: Node) -> void:
 	if b is Player:
 		_player_inside = true
+		_prompt.text = UI.hint("interact")
 		_prompt.visible = interactive and not used_up
 
 

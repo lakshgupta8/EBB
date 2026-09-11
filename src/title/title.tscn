@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/title/title.gd" id="1_title"]
+[ext_resource type="Script" path="res://src/world/camera.gd" id="2_camera"]
+[ext_resource type="PackedScene" path="res://src/ui/codex_ui.tscn" id="3_codex"]
+[ext_resource type="PackedScene" path="res://src/ui/settings_ui.tscn" id="4_settings"]
+
+[node name="Title" type="Node2D"]
+script = ExtResource("1_title")
+
+[node name="RoomHolder" type="Node2D" parent="."]
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(320, 184)
+script = ExtResource("2_camera")
+
+[node name="Layer" type="CanvasLayer" parent="."]
+
+[node name="CodexUI" parent="." instance=ExtResource("3_codex")]
+
+[node name="SettingsUI" parent="." instance=ExtResource("4_settings")]

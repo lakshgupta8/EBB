@@ -66,6 +66,7 @@ var _echo_queue: Array = []  # echo ids still to be found in this biome, in dept
 @onready var shop: Shop = $Shop
 @onready var altar_ui: AltarUI = $AltarUI
 @onready var codex_ui: CodexUI = $CodexUI
+@onready var settings_ui: SettingsUI = $SettingsUI
 
 
 func biome() -> Dictionary:
@@ -144,6 +145,7 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	if night:
 		night.color = NIGHT_TINT[mini(index, NIGHT_TINT.size() - 1)]
 	Audio.gulls_enabled = index == 0
+	Audio.music(["music_flats", "music_streets", "music_hall"][mini(index, 2)], -11.0)
 	Codex.discover("place", ["flats", "streets", "hall"][mini(index, 2)])
 	if at_boss:
 		state.depth = b.length
@@ -254,6 +256,7 @@ func _enter_room(type: int) -> void:
 			_spawn_echo_room()
 		RoomGraph.BOSS:
 			_spawn_boss()
+			Audio.music("music_boss", -9.0)
 			_show_banner(biome().boss_name, 2.2, Color(0.95, 0.75, 0.6), 20)
 			EventBus.request_shake.emit(0.6)
 			Audio.play("roar" if state.biome == 0 else "bell")
@@ -556,6 +559,7 @@ func give_up() -> void:
 
 func _end_run() -> void:
 	state.ended = true
+	Audio.stop_music()
 	# Let the last drops get collected before the ledger is written.
 	await get_tree().create_timer(1.2).timeout
 	var result := state.result()

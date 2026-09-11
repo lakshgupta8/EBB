@@ -9,6 +9,7 @@ var _root: Control
 var _rows: Array = []
 var _pearls_label: Label
 var _hint: Label
+var _cursor: UI.Cursor
 
 
 func _ready() -> void:
@@ -45,10 +46,13 @@ func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
 	var i := UI.menu_index(event)
+	var nav := UI.nav(event)
 	if i >= 0 and i < Ledger.UPGRADES.size():
 		_buy(i)
 		get_viewport().set_input_as_handled()
-	elif UI.is_close(event):
+	elif nav != "" and _cursor.handle(nav):
+		get_viewport().set_input_as_handled()
+	elif UI.is_close(event) or nav == "accept":
 		close()
 		get_viewport().set_input_as_handled()
 
@@ -112,10 +116,11 @@ func _build() -> void:
 	box.add_child(_pearls_label)
 	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
-	var leave := UI.text_button("Leave   [E]")
+	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
 	box.add_child(leave)
 	_root = center
+	_cursor = UI.Cursor.new(_rows.map(func(r): return r[3]))
 	_refresh()
 
 
