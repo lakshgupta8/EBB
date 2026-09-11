@@ -9,6 +9,15 @@ const FLASH_SHADER := preload("res://src/combat/hit_flash.gdshader")
 @export var speed: float = 32.0
 @export var knockback_resist: float = 0.0  # 0..1
 @export var death_color: Color = Color(0.6, 0.7, 0.5)
+@export var flying: bool = false  # ignores water
+@export var salt_drop: int = 2
+@export var pearl_drop: int = 0
+
+const WATER_SPEED_MULT := 0.7
+
+var is_elite: bool = false
+var is_boss: bool = false
+var room: Room
 
 var state: StringName = &"idle"
 var state_t: float = 0.0  # seconds in current state
@@ -33,7 +42,36 @@ func _ready() -> void:
 		hitbox.source = self
 		hitbox.landed.connect(_on_hit_landed)
 	player = get_tree().get_first_node_in_group("player") as Player
+	room = get_tree().get_first_node_in_group("room") as Room
 	_enter_state(&"idle")
+
+
+## Tougher variant with a pearl drop. Call right after instantiating, before add_child completes.
+func make_elite() -> void:
+	is_elite = true
+	display_name = "Elite " + display_name
+	scale = Vector2(1.25, 1.25)
+	call_deferred("_apply_stat_mult", 2.5, 1.15)
+	pearl_drop += 1
+	salt_drop += 3
+	death_color = Color(0.95, 0.8, 0.4)
+
+
+func make_boss(p_name: String) -> void:
+	is_boss = true
+	display_name = p_name
+	scale = Vector2(1.9, 1.9)
+	call_deferred("_apply_stat_mult", 9.0, 1.3)
+	knockback_resist = 0.9
+	pearl_drop += 4
+	salt_drop += 10
+	death_color = Color(0.95, 0.8, 0.4)
+
+
+func _apply_stat_mult(hp_mult: float, speed_mult: float) -> void:
+	health.max_hp = int(health.max_hp * hp_mult)
+	health.hp = health.max_hp
+	speed *= speed_mult
 
 
 func _setup_animations() -> void:
@@ -86,6 +124,8 @@ func _physics_process(delta: float) -> void:
 		velocity = _knockback
 	else:
 		_tick(delta)
+		if not flying and room and room.is_flooded_at(global_position):
+			velocity *= WATER_SPEED_MULT
 		velocity += _knockback
 	_knockback = _knockback.lerp(Vector2.ZERO, 12.0 * delta)
 	move_and_slide()

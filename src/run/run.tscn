@@ -1,0 +1,53 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/run/run.gd" id="1_run"]
+[ext_resource type="PackedScene" path="res://src/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://src/world/camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://src/ui/hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://src/ui/results.gd" id="5_results"]
+
+[node name="Run" type="Node2D"]
+script = ExtResource("1_run")
+
+[node name="RoomHolder" type="Node2D" parent="."]
+
+[node name="Content" type="Node2D" parent="."]
+y_sort_enabled = true
+z_index = 2
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(320, 176)
+z_index = 2
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(320, 180)
+script = ExtResource("3_camera")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Bars" type="Control" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("4_hud")
+
+[node name="RoomLabel" type="Label" parent="HUD"]
+offset_left = 4.0
+offset_top = 349.0
+offset_right = 400.0
+offset_bottom = 360.0
+theme_override_font_sizes/font_size = 8
+text = "The Flats"
+
+[node name="Fade" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.06, 0.05, 0.1, 1)
+
+[node name="Results" type="CanvasLayer" parent="."]
+layer = 2
+visible = false
+script = ExtResource("5_results")

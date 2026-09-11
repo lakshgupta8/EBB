@@ -10,7 +10,9 @@ func _root() -> Node:
 
 
 func slash(pos: Vector2, angle: float, mirror: bool = false, scale_mult: float = 1.0) -> void:
-	_one_shot(SLASH, 32, 3, 30.0, pos, angle, Vector2(1, -1 if mirror else 1) * scale_mult)
+	# Sheet pivot is at (4, 24) of a 48px cell; offset so the pivot sits on `pos`.
+	var s := _one_shot(SLASH, 48, 4, 36.0, pos, angle, Vector2(1, -1 if mirror else 1) * scale_mult)
+	s.offset = Vector2(20, 0)
 
 
 func spark(pos: Vector2) -> void:
@@ -38,7 +40,7 @@ func burst(pos: Vector2, color: Color, amount: int = 12, speed: float = 60.0) ->
 	get_tree().create_timer(p.lifetime + 0.1).timeout.connect(p.queue_free)
 
 
-func _one_shot(tex: Texture2D, cell: int, frames: int, fps: float, pos: Vector2, angle: float, scl: Vector2) -> void:
+func _one_shot(tex: Texture2D, cell: int, frames: int, fps: float, pos: Vector2, angle: float, scl: Vector2) -> AnimatedSprite2D:
 	var s := AnimatedSprite2D.new()
 	var idx := range(frames)
 	s.sprite_frames = SheetFrames.build(tex, cell, {"play": {"frames": idx, "fps": fps, "loop": false}})
@@ -49,3 +51,4 @@ func _one_shot(tex: Texture2D, cell: int, frames: int, fps: float, pos: Vector2,
 	s.animation_finished.connect(s.queue_free)
 	_root().add_child(s)
 	s.play("play")
+	return s

@@ -21,6 +21,7 @@ var in_water: bool = false
 var dead: bool = false
 ## Bots and tests set this to steer aim without a mouse. Vector2.ZERO = use the mouse.
 var aim_override: Vector2 = Vector2.ZERO
+var last_hit_tags: PackedStringArray = []
 
 const MASK_WORLD := 1
 const MASK_WORLD_AND_ENEMIES := 1 | 4
@@ -153,7 +154,19 @@ func _animate(input: Vector2) -> void:
 		sprite.speed_scale = 1.0
 
 
+## Chip damage from deep water: ignores i-frames, no knockback, softer feedback.
+func take_tide_damage(info: DamageInfo) -> void:
+	if dead or health.invulnerable:
+		return
+	if health.take(info, true):
+		last_hit_tags = info.tags
+		_flash()
+		EventBus.request_shake.emit(0.15)
+		FX.burst(global_position + Vector2(0, 2), Color(0.5, 0.75, 0.9, 0.9), 6, 40.0)
+
+
 func _on_hurt(info: DamageInfo) -> void:
+	last_hit_tags = info.tags
 	_knockback = info.direction * info.knockback
 	_hurt_timer = 0.25
 	weapon.cancel()

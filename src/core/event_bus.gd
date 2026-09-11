@@ -14,6 +14,7 @@ signal room_cleared(room: Node)
 signal run_started(seed: int)
 signal run_ended(result: Dictionary)
 signal tide_changed(level: float)
+signal pickup_collected(kind: int, value: int)
 
 # Meta / hub
 signal pearls_changed(amount: int)
