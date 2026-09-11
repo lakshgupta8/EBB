@@ -171,6 +171,8 @@ func _handle_screenshot_arg() -> void:
 		open_wren()
 	elif "--maren" in args:
 		open_maren()
+	elif "--pause" in args:
+		$Pause.toggle()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")

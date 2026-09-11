@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/hub/hub.gd" id="1_hub"]
 [ext_resource type="PackedScene" path="res://src/player/player.tscn" id="2_player"]
@@ -6,6 +6,7 @@
 [ext_resource type="FontFile" path="res://assets/fonts/ebb.fnt" id="4_font"]
 [ext_resource type="PackedScene" path="res://src/ui/ledger_ui.tscn" id="5_ledger"]
 [ext_resource type="PackedScene" path="res://src/ui/choice_ui.tscn" id="6_choice"]
+[ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="7_pause"]
 
 [node name="Hub" type="Node2D"]
 script = ExtResource("1_hub")
@@ -33,6 +34,8 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_fonts/font = ExtResource("4_font")
 theme_override_font_sizes/font_size = 8
 text = "Marrow Rock"
+
+[node name="Pause" parent="." instance=ExtResource("7_pause")]
 
 [node name="LedgerUI" parent="." instance=ExtResource("5_ledger")]
 

@@ -21,13 +21,13 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 |---|---|
 | WASD / mouse | move / aim |
 | LMB | attack (weapon combo; hold to keep going) |
-| LMB hold (gaff) | after a swing, keep holding to charge a heavy sweep: cracks shells (double damage for 3 s) |
+| LMB hold (gaff) | keep holding to charge; when the hook rings, release for a heavy sweep that cracks shells (double damage for 3 s). Release early: nothing happens |
 | Space, then LMB | lunge out of the dash |
 | Space through an attack | riptide: slow-mo, dash refunded, next hit crits |
 | RMB | weapon special: hook throw (gaff) or net throw (knife) |
 | Q | lantern flare when the glow meter is full (hits charge it): stuns and damages everything nearby |
 | E | interact (fountains, chests, cages, people, results screen) |
-| Esc / F11 | pause / fullscreen toggle |
+| Esc / F11 | pause / fullscreen toggle. The pause menu has Give up [Q] and Quit game [X] |
 | 1-9 or click | pick in any menu; E / Esc / right-click leaves |
 
 Knocking an enemy into a wall deals bonus damage. Enemies flash white and ring right
@@ -36,7 +36,7 @@ before they strike: dash on the flash for a riptide.
 ## Weapons (M4)
 | Weapon | LMB | RMB |
 |---|---|---|
-| Gaff Hook (start) | 3-hit combo, third hit pulls; hold to charge a heavy sweep | throw: light enemies are dragged to you, heavy ones drag you to them |
+| Gaff Hook (start) | 3-hit combo, third hit pulls; hold until it rings, then release for a heavy sweep | throw: light enemies are dragged to you, heavy ones drag you to them |
 | Net & Knife (Bram's gift) | four fast stabs, the fourth cuts deep and bleeds; you stay mobile | throw a net at the cursor: everything under it is rooted for 2 s and takes +25% |
 | Harpoon Gun (25 pearls) | piercing bolts, three then a reload; hold to keep firing | tether an enemy: every dash you make drags it along; bosses barely move |
 | Storm Lantern (40 pearls) | wide quick arcs of light; everything hit is LIT (+30% damage from anything) and charges the flare fast | beacon: a pool of light at the cursor that lits and slows what stands in it |

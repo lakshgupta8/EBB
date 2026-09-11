@@ -258,7 +258,7 @@ func _fight(target: Enemy) -> void:
 		Input.action_press("attack")
 		_attack_cd = 6
 		if randf() < 0.2:
-			_hold_ticks = 40
+			_hold_ticks = 75
 			_heavies_fired += 1
 	if dist > 30.0 and dist < 90.0 and _special_cd <= 0 and player.weapon.special_ready():
 		player.aim_dist = dist
