@@ -6,7 +6,7 @@ extends RefCounted
 ## Tuning target: a 10-minute biome-1 run (9 rooms) reaches ~2.0 at the boss, so sand
 ## is shallow by mid-run and only turns deep if you dawdle through the boss.
 const RATE := 0.0015       # per second  (600 s -> 0.9)
-const ROOM_STEP := 0.12    # per room entered (9 rooms -> 1.08)
+const ROOM_STEP := 0.16    # per room entered (9 rooms -> 1.44): sand is shallow by room 7
 const MAX_LEVEL := 4.0
 const DEEP_DAMAGE := 1     # per tick to the player
 const DEEP_TICK := 0.5     # seconds

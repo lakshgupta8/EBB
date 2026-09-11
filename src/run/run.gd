@@ -5,6 +5,8 @@ extends Node2D
 
 const SHELLBACK := preload("res://src/enemies/shellback.tscn")
 const GULL := preload("res://src/enemies/gull.tscn")
+const CRAB := preload("res://src/enemies/wrack_crab.tscn")
+const WRECK := preload("res://src/enemies/wreck.tscn")
 const ROOM_DIR := "res://data/rooms/biome1/"
 const BIOME_LENGTH := 8
 
@@ -27,6 +29,7 @@ var _transitioning: bool = false
 @onready var fade: ColorRect = $HUD/Fade
 @onready var results: CanvasLayer = $Results
 @onready var room_label: Label = $HUD/RoomLabel
+@onready var banner: Label = $HUD/Banner
 
 
 func _ready() -> void:
@@ -112,7 +115,7 @@ func _enter_room(type: int) -> void:
 		room.queue_free()
 	room = Room.new()
 	room_holder.add_child(room)
-	room.build(_pick_template(type))
+	room.build(_pick_template(type), _rng.randi())
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	player.velocity = Vector2.ZERO
 	state.tide.room_entered()
@@ -138,6 +141,8 @@ func _enter_room(type: int) -> void:
 			_set_cleared()
 		RoomGraph.BOSS:
 			_spawn_boss()
+			_show_banner("THE WRECK", 2.2, Color(0.95, 0.75, 0.6), 20)
+			EventBus.request_shake.emit(0.6)
 
 	room_label.text = "The Flats  %d / %d   %s" % [state.depth + 1, BIOME_LENGTH + 1, RoomGraph.NAMES[type]]
 	EventBus.room_entered.emit(room)
@@ -151,7 +156,12 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 	spawns.shuffle()
 	for i in count:
 		var cell: Vector2i = spawns[i % spawns.size()]
-		var scene := SHELLBACK if (_rng.randf() < 0.55) else GULL
+		var r := _rng.randf()
+		var scene: PackedScene
+		if state.depth < 2:
+			scene = SHELLBACK if r < 0.6 else GULL
+		else:
+			scene = SHELLBACK if r < 0.4 else (GULL if r < 0.7 else CRAB)
 		var e: Enemy = _spawn(scene, room.cell_to_world(cell))
 		if with_elite and i == 0:
 			e.make_elite()
@@ -159,9 +169,24 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 
 func _spawn_boss() -> void:
 	var cell: Vector2i = room.template.enemy_spawns[0]
-	boss = _spawn(SHELLBACK, room.cell_to_world(cell))
-	boss.make_boss("The Wreck")
+	boss = _spawn(WRECK, room.cell_to_world(cell))
+	boss.phase_changed.connect(func(_p):
+		_show_banner("THE WRECK STIRS", 1.6, Color(0.95, 0.5, 0.45), 16)
+		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + 0.35)
+	)
 	hud.set_boss(boss)
+
+
+func _show_banner(text: String, duration: float, color: Color, size: int = 14) -> void:
+	banner.text = text
+	banner.add_theme_font_size_override("font_size", size)
+	banner.modulate = Color(color.r, color.g, color.b, 0.0)
+	banner.visible = true
+	var tw := create_tween()
+	tw.tween_property(banner, "modulate:a", 1.0, 0.15)
+	tw.tween_interval(duration)
+	tw.tween_property(banner, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(func(): banner.visible = false)
 
 
 func _spawn(scene: PackedScene, at: Vector2) -> Enemy:
@@ -177,6 +202,8 @@ func _set_cleared() -> void:
 	room_cleared = true
 	state.rooms_cleared += 1
 	room.open_doors()
+	if room_type == RoomGraph.COMBAT or room_type == RoomGraph.ELITE:
+		_show_banner("THE WAY OPENS", 1.2, Color(0.7, 0.9, 1.0), 12)
 	EventBus.room_cleared.emit(room)
 
 
@@ -199,7 +226,7 @@ func _on_enemy_died(enemy: Node) -> void:
 
 
 func _on_door_entered(door: Door) -> void:
-	if _transitioning or state.ended:
+	if _transitioning or state.ended or not room_cleared:
 		return
 	_transitioning = true
 	state.depth += 1

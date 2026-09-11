@@ -1,0 +1,63 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://src/enemies/wrack_crab.gd" id="1_script"]
+[ext_resource type="Script" path="res://src/combat/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://src/combat/hurtbox.gd" id="3_hurtbox"]
+[ext_resource type="Script" path="res://src/combat/hitbox.gd" id="4_hitbox"]
+[ext_resource type="Texture2D" path="res://assets/sprites/shadow.png" id="5_shadow"]
+
+[sub_resource type="CircleShape2D" id="body_shape"]
+radius = 6.0
+
+[sub_resource type="RectangleShape2D" id="hurt_shape"]
+size = Vector2(16, 12)
+
+[sub_resource type="CircleShape2D" id="charge_shape"]
+radius = 9.0
+
+[node name="WrackCrab" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_script")
+display_name = "Wrack Crab"
+speed = 78.0
+knockback_resist = 0.2
+death_color = Color(0.77, 0.3, 0.24, 1)
+salt_drop = 2
+
+[node name="Shadow" type="Sprite2D" parent="."]
+position = Vector2(0, 2)
+scale = Vector2(1.2, 1)
+texture = ExtResource("5_shadow")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -8)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("body_shape")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_hp = 7
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 0
+script = ExtResource("3_hurtbox")
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -6)
+shape = SubResource("hurt_shape")
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 64
+script = ExtResource("4_hitbox")
+damage = 10
+knockback = 110.0
+hitstop = 0.06
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(6, -4)
+shape = SubResource("charge_shape")

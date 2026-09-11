@@ -4,6 +4,10 @@ extends Node2D
 ## doors, props, spawn points. Content (enemies, pickups) is added by the run.
 
 const WATER_ANIM_PERIOD := 0.55
+const DECOR := preload("res://assets/sprites/decor.png")
+const DECOR_COUNT := 8
+const DECOR_PUDDLE := 4
+const TINTS := [Color(1, 1, 1), Color(0.97, 0.99, 1.0), Color(1.0, 0.97, 0.93), Color(0.95, 0.97, 0.95)]
 
 var template: RoomTemplate
 var doors: Array[Door] = []
@@ -18,13 +22,14 @@ var _flooded: Array[Vector2i] = []
 var _astar: AStarGrid2D
 
 
-func build(t: RoomTemplate) -> void:
+func build(t: RoomTemplate, decor_seed: int = 0) -> void:
 	template = t
 	add_to_group("room")
 	_ground = TileMapLayer.new()
 	_ground.name = "Ground"
 	_ground.tile_set = Tiles.tileset()
 	add_child(_ground)
+	_scatter_decor(decor_seed)
 	_water = TileMapLayer.new()
 	_water.name = "Water"
 	_water.tile_set = Tiles.tileset()
@@ -36,6 +41,39 @@ func build(t: RoomTemplate) -> void:
 			_ground.set_cell(Vector2i(x, y), 0, Tiles.coords(t.tile_at(x, y)))
 	_build_nav()
 	set_tide(0.0)
+
+
+## Scatter shells, kelp, driftwood... on open sand so rooms do not look identical.
+func _scatter_decor(decor_seed: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = decor_seed if decor_seed != 0 else hash(template.name)
+	_ground.modulate = TINTS[rng.randi() % TINTS.size()]
+	var layer := Node2D.new()
+	layer.name = "Decor"
+	layer.z_index = 0
+	add_child(layer)
+	var candidates: Array[Vector2i] = []
+	for y in range(1, template.height - 1):
+		for x in range(1, template.width - 1):
+			var ch := template.char_at(x, y)
+			if ch == "." or ch == "_":
+				candidates.append(Vector2i(x, y))
+	var count := mini(candidates.size(), rng.randi_range(16, 28))
+	for i in count:
+		var idx := rng.randi() % candidates.size()
+		var cell := candidates[idx]
+		candidates.remove_at(idx)
+		var kind := rng.randi() % DECOR_COUNT
+		if template.char_at(cell.x, cell.y) == "_" and rng.randf() < 0.5:
+			kind = DECOR_PUDDLE
+		var s := Sprite2D.new()
+		var at := AtlasTexture.new()
+		at.atlas = DECOR
+		at.region = Rect2(kind * 16, 0, 16, 16)
+		s.texture = at
+		s.position = cell_to_world(cell) + Vector2(rng.randi_range(-3, 3), rng.randi_range(-3, 3))
+		s.flip_h = rng.randf() < 0.5
+		layer.add_child(s)
 
 
 func _build_nav() -> void:

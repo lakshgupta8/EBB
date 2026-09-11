@@ -82,13 +82,16 @@ func _draw() -> void:
 
 	# Boss bar
 	if _boss and is_instance_valid(_boss) and _boss.health.is_alive():
-		var bw := 200
+		var bw := 320
 		var bx := 320 - bw / 2
-		var by := 340
-		draw_rect(Rect2(bx - 1, by - 1, bw + 2, 6), Color(0.09, 0.08, 0.14))
+		var by := 334
+		draw_rect(Rect2(bx - 2, by - 2, bw + 4, 12), Color(0.09, 0.08, 0.14))
+		draw_rect(Rect2(bx, by, bw, 8), Color(0.3, 0.12, 0.14))
 		var bf := float(_boss.health.hp) / float(_boss.health.max_hp)
-		draw_rect(Rect2(bx, by, int(bw * bf), 4), Color(0.8, 0.35, 0.3))
-		draw_string(_font, Vector2(bx, by - 3), _boss.display_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.95, 0.85, 0.8))
+		draw_rect(Rect2(bx, by, int(bw * bf), 8), Color(0.85, 0.35, 0.3))
+		draw_rect(Rect2(bx, by, int(bw * bf), 2), Color(0.95, 0.6, 0.5))
+		draw_rect(Rect2(bx + bw / 2 - 1, by, 2, 8), Color(0.09, 0.08, 0.14, 0.6))  # phase mark
+		draw_string(_font, Vector2(bx, by - 4), _boss.display_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.95, 0.85, 0.8))
 
 
 func _draw_icon(at: Vector2, index: int) -> void:

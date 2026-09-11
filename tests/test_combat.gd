@@ -54,7 +54,8 @@ func test_health_invulnerable_flag() -> void:
 
 
 func test_enemy_scenes_load() -> void:
-	for path in ["res://src/enemies/shellback.tscn", "res://src/enemies/gull.tscn"]:
+	for path in ["res://src/enemies/shellback.tscn", "res://src/enemies/gull.tscn",
+			"res://src/enemies/wrack_crab.tscn", "res://src/enemies/wreck.tscn"]:
 		var s: PackedScene = load(path)
 		assert_true(s != null, path + " loads")
 		var inst = s.instantiate()

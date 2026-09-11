@@ -20,7 +20,7 @@ func show_result(r: Dictionary) -> void:
 
 	var title := Label.new()
 	if r.victory:
-		title.text = "THE FLATS ARE QUIET"
+		title.text = "THE WRECK IS BROKEN"
 	elif r.taken:
 		title.text = "TAKEN BY THE TIDE"
 	else:
