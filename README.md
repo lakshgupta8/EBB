@@ -9,7 +9,8 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 ## Commands
 | What | Command |
 |---|---|
-| Run the game | `.\tools\run.ps1` |
+| Run the game | `.\tools\run.ps1` (title screen; `.\tools\run.ps1 src/hub/hub.tscn` skips it) |
+| Build the Windows .exe | `.\tools\export.ps1` (fetches the 4.7.2 export templates once, ~1 GB) -> `dist\EBB.exe` |
 | Jump to a biome / its boss | `.\tools\run.ps1 -- --biome=1` (streets), `--biome=2` (hall), add `--boss` |
 | Run tests (headless) | `.\tools\test.ps1` |
 | Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern) |
@@ -27,9 +28,19 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | RMB | weapon special: hook throw (gaff) or net throw (knife) |
 | Q | lantern flare when the glow meter is full (hits charge it): stuns and damages everything nearby |
 | E | interact (fountains, chests, cages, people, results screen) |
-| Esc / F11 | pause / fullscreen toggle. The pause menu has Codex [C], Give up [Q] and Quit game [X] |
+| Esc / F11 | pause / fullscreen toggle. The pause menu has Codex [C], Settings [S], Give up [Q] / Back to the title [T], Quit game [X] |
 | C | the codex: the drowned, tidemarks, people and places you have met |
-| 1-9 or click | pick in any menu; E / Esc / right-click leaves |
+| 1-9 or click | pick in any menu; arrows / WASD move a highlight, Enter picks it; E / Esc / right-click leaves |
+
+### Gamepad
+Left stick moves, right stick aims (tilt further to throw further; without it you aim where you walk).
+A dash, X or right trigger attack, Y or left trigger special, LB flare, B use / talk / leave, Start pause,
+Back codex. Menus: d-pad or stick to highlight, A picks, B leaves. Prompts switch to pad buttons the
+moment a pad is used.
+
+### Settings
+From the pause menu or the title: master / music / sound volume, screen shake (off, low, full), screen
+flashes, fullscreen. Saved to `user://settings.json`.
 
 Knocking an enemy into a wall deals bonus damage. Enemies flash white and ring right
 before they strike: dash on the flash for a riptide.
@@ -62,7 +73,8 @@ Beating the Ebb wins the night and brings Maren home to the lighthouse, where sh
   people as they come home, places as you reach them. Every entry has a line of lore.
 - **Fen** stands on the rock too: the village kid, only ever has something to say.
 
-To watch an ending without earning it: `.	oolsun.ps1 src/hub/hub.tscn -- --screenshot --sim-save --ending=break`
+To watch an ending without earning it: `.	ools
+un.ps1 src/hub/hub.tscn -- --screenshot --sim-save --ending=break`
 (the `--sim-save` profile, never yours).
 
 - The tide meter on the right rises with time and every room; low ground floods first, then the
@@ -93,6 +105,11 @@ Keeper's Shade (fights with a dark copy of whatever weapon you carry, then slips
 in the floor; opens when you are near, hangs open and vulnerable after it bites). Elites here are
 Echoes of Maren. The Ebb sends walls of water with one gap, hauls you in and slams, calls shades,
 and rises twice.
+
+## Music and art (M5)
+Five procedural loops in `tools/gen_music.py` (hub, flats, streets, hall, boss), on their own bus.
+The title screen, enemy bodies that squash and fade, and the keeper falling when the night ends
+are the M5 polish pass; every sprite is still drawn by `tools/gen_sprites*.py`.
 
 ## Progression
 - Tidemarks: 42 per-run boons in four families (salt = offence, brine = defence, current = mobility,

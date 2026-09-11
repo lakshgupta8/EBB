@@ -102,7 +102,7 @@ func _next() -> void:
 	tw.tween_interval(0.5)
 	tw.tween_callback(func():
 		can_advance = true
-		_hint.text = "[E] continue")
+		_hint.text = UI.hint("interact") + " continue")
 	_effect()
 
 
@@ -148,7 +148,7 @@ func _show_title() -> void:
 	tw.tween_property(_sub, "modulate:a", 1.0, 0.6)
 	tw.tween_callback(func():
 		can_advance = true
-		_hint.text = "[E] back to the lighthouse")
+		_hint.text = UI.hint("interact") + " back to the lighthouse")
 	Audio.play("rescue", 0.0, -6.0)
 
 
@@ -156,7 +156,7 @@ func _input(event: InputEvent) -> void:
 	if not is_open:
 		return
 	var click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
-	if UI.is_close(event) or click or event.is_action_pressed("dash"):
+	if UI.is_close(event) or click or UI.nav(event) == "accept":
 		get_viewport().set_input_as_handled()
 		if not can_advance:
 			return

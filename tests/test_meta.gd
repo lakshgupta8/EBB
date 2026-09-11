@@ -120,6 +120,49 @@ func test_codex_discovery_and_endings_gate() -> void:
 	SaveManager.use_path(SaveManager.PATH)
 
 
+func test_settings_and_menu_cursor() -> void:
+	Settings.path = "user://test_settings.json"
+	Settings.set_value("master", 1.7)
+	assert_eq(float(Settings.value("master")), 1.0, "volumes clamp to 1")
+	Settings.set_value("flash", false)
+	assert_true(not Settings.flashes(), "flash toggles")
+	Settings.set_value("shake", 0.5)
+	assert_eq(Settings.shake(), 0.5)
+	Settings.load_settings()
+	assert_eq(float(Settings.value("master")), 1.0, "settings persist to disk")
+	assert_true(AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0, "audio buses exist")
+	Settings.data = Settings.DEFAULTS.duplicate()
+	Settings.apply()
+	Settings.path = Settings.PATH
+	# The menu cursor walks rows and presses the highlighted one.
+	var hits := []
+	var buttons := []
+	for i in 3:
+		var b := Button.new()
+		b.pressed.connect(func(): hits.append(i))
+		buttons.append(b)
+	var c := UI.Cursor.new(buttons)
+	assert_true(not c.handle("accept"), "accept with nothing highlighted is refused")
+	c.handle("down")
+	c.handle("down")
+	assert_true(c.handle("accept"), "accept presses the row")
+	assert_eq(hits, [1])
+	c.handle("up")
+	c.handle("up")
+	assert_eq(c.index, 2, "wraps around")
+	for b in buttons:
+		b.free()
+	# Pad events map onto the menu actions.
+	var ev := InputEventJoypadButton.new()
+	ev.button_index = JOY_BUTTON_DPAD_DOWN
+	ev.pressed = true
+	assert_eq(UI.nav(ev), "down", "d-pad down navigates")
+	ev.button_index = JOY_BUTTON_A
+	assert_eq(UI.nav(ev), "accept", "A accepts")
+	ev.button_index = JOY_BUTTON_B
+	assert_true(UI.is_close(ev), "B closes")
+
+
 func test_room_graph_offers_altar_early() -> void:
 	var g := RoomGraph.new(3, 8)
 	assert_true(RoomGraph.ALTAR in g.options_for(1), "altar at depth 1")

@@ -29,6 +29,8 @@ func text(pos: Vector2, msg: String, color: Color, size: int = 8) -> void:
 
 ## Full-screen colour flash.
 func flash_screen(color: Color, duration: float = 0.25) -> void:
+	if not Settings.flashes():
+		return
 	if _flash_layer == null:
 		_flash_layer = CanvasLayer.new()
 		_flash_layer.layer = 4

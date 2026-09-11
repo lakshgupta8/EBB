@@ -120,13 +120,88 @@ static func menu_index(event: InputEvent) -> int:
 	return -1
 
 
-## E, Esc, Enter, Space or right-click all mean "close this menu".
+## E, Esc, right-click, or the pad's B / Start all mean "close this menu".
 static func is_close(event: InputEvent) -> bool:
 	if event.is_action_pressed("interact") or event.is_action_pressed("pause"):
 		return true
 	if event is InputEventKey and event.pressed and not event.echo:
-		return event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE, KEY_E] \
-			or event.physical_keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE, KEY_E]
+		return event.keycode in [KEY_ESCAPE, KEY_E] or event.physical_keycode in [KEY_ESCAPE, KEY_E]
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		return true
 	return false
+
+
+## Menu navigation from arrows, WASD, the d-pad or the left stick; Enter / Space / A accept.
+static func nav(event: InputEvent) -> String:
+	if event.is_action_pressed("ui_up") or event.is_action_pressed("move_up"):
+		return "up"
+	if event.is_action_pressed("ui_down") or event.is_action_pressed("move_down"):
+		return "down"
+	if event.is_action_pressed("ui_left") or event.is_action_pressed("move_left"):
+		return "left"
+	if event.is_action_pressed("ui_right") or event.is_action_pressed("move_right"):
+		return "right"
+	if event.is_action_pressed("ui_accept"):
+		return "accept"
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A:
+		return "accept"
+	return ""
+
+
+## The key or button to show for an action, for whichever device was used last.
+static func hint(action: String) -> String:
+	if Game.gamepad:
+		match action:
+			"interact": return "[B]"
+			"accept": return "[A]"
+			"pause": return "[Start]"
+			"leftright": return "[d-pad]"
+			"codex": return "[Back]"
+		return ""
+	match action:
+		"interact": return "[E]"
+		"accept": return "[Enter]"
+		"pause": return "[Esc]"
+		"leftright": return "[A / D]"
+		"codex": return "[C]"
+	return ""
+
+
+## A highlighted row that the keyboard or pad moves through. `handle(nav)` moves on
+## up / down, presses the row on accept (false when nothing is highlighted).
+class Cursor:
+	var buttons: Array = []
+	var index: int = -1
+
+	func _init(p_buttons: Array) -> void:
+		buttons = p_buttons
+
+	func handle(nav: String) -> bool:
+		match nav:
+			"up":
+				_move(-1)
+				return true
+			"down":
+				_move(1)
+				return true
+			"accept":
+				if index >= 0 and index < buttons.size() and is_instance_valid(buttons[index]):
+					buttons[index].pressed.emit()
+					return true
+				return false
+		return false
+
+	func _move(d: int) -> void:
+		if buttons.is_empty():
+			return
+		if index < 0:
+			index = 0 if d > 0 else buttons.size() - 1
+		else:
+			index = wrapi(index + d, 0, buttons.size())
+		apply()
+		Audio.play("ui", 0.0, -14.0)
+
+	func apply() -> void:
+		for i in buttons.size():
+			if is_instance_valid(buttons[i]):
+				buttons[i].modulate = Color(1.35, 1.35, 1.4) if i == index else Color.WHITE

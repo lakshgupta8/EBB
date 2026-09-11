@@ -6,6 +6,7 @@ var _open: bool = false
 var _root: Control
 var _quit_btn: Button
 var _quit_armed: bool = false
+var _cursor: UI.Cursor
 
 
 func _ready() -> void:
@@ -28,6 +29,20 @@ func _input(event: InputEvent) -> void:
 	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C:
 		_open_codex()
 		get_viewport().set_input_as_handled()
+	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_S:
+		_open_settings()
+		get_viewport().set_input_as_handled()
+	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_T and not _in_run():
+		_to_title()
+		get_viewport().set_input_as_handled()
+	elif _open and event.is_action_pressed("interact") and not (event is InputEventKey):
+		# The pad's B backs out like Esc does.
+		toggle()
+		get_viewport().set_input_as_handled()
+	elif _open:
+		var nav := UI.nav(event)
+		if nav != "" and _cursor.handle(nav):
+			get_viewport().set_input_as_handled()
 
 
 func toggle() -> void:
@@ -38,10 +53,12 @@ func toggle() -> void:
 		_build()
 	if _open:
 		_disarm_quit()
+		_cursor.index = -1
+		_cursor.apply()
 
 
 func _in_run() -> bool:
-	return get_tree().current_scene is Run
+	return get_parent() is Run
 
 
 func _build() -> void:
@@ -62,22 +79,34 @@ func _build() -> void:
 	panel.add_child(box)
 	box.add_child(UI.label("PAUSED", 16, Color(0.9, 0.9, 0.95), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
-	var resume := UI.text_button("Resume   [Esc]")
+	var buttons: Array = []
+	var resume := UI.text_button("Resume   " + UI.hint("pause"))
 	resume.pressed.connect(toggle)
 	box.add_child(resume)
-	var fs := UI.text_button("Fullscreen / window   [F11]")
-	fs.pressed.connect(func(): Game.toggle_fullscreen())
-	box.add_child(fs)
+	buttons.append(resume)
 	var codex := UI.text_button("Codex   [C]")
 	codex.pressed.connect(_open_codex)
 	box.add_child(codex)
+	buttons.append(codex)
+	var settings := UI.text_button("Settings   [S]")
+	settings.pressed.connect(_open_settings)
+	box.add_child(settings)
+	buttons.append(settings)
 	if _in_run():
 		var give_up := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
 		give_up.pressed.connect(_quit_to_hub)
 		box.add_child(give_up)
+		buttons.append(give_up)
+	else:
+		var title := UI.text_button("Back to the title   [T]")
+		title.pressed.connect(_to_title)
+		box.add_child(title)
+		buttons.append(title)
 	_quit_btn = UI.text_button("Quit game   [X]", 8, Color(0.85, 0.7, 0.7))
 	_quit_btn.pressed.connect(_quit_game)
 	box.add_child(_quit_btn)
+	buttons.append(_quit_btn)
+	_cursor = UI.Cursor.new(buttons)
 	box.add_child(UI.spacer(6))
 	var hint := Color(0.6, 0.7, 0.8)
 	if _in_run():
@@ -92,11 +121,27 @@ func _build() -> void:
 
 
 func _open_codex() -> void:
-	var c := get_tree().current_scene.get_node_or_null("CodexUI") as CodexUI
+	var c := get_parent().get_node_or_null("CodexUI") as CodexUI
 	if c == null:
 		return
 	toggle()
 	c.open()
+
+
+func _open_settings() -> void:
+	var s := get_parent().get_node_or_null("SettingsUI") as SettingsUI
+	if s == null:
+		return
+	toggle()
+	s.open()
+
+
+func _to_title() -> void:
+	get_tree().paused = false
+	_open = false
+	visible = false
+	SaveManager.save_profile()
+	Game.go_to_title()
 
 
 ## Quit is two presses so a stray click cannot end the night.
@@ -119,7 +164,7 @@ func _quit_to_hub() -> void:
 	get_tree().paused = false
 	_open = false
 	visible = false
-	var run := get_tree().current_scene as Run
+	var run := get_parent() as Run
 	if run and not run.state.ended:
 		run.give_up()
 	else:
