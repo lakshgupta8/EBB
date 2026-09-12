@@ -22,6 +22,25 @@ func test_damage_info_normalises_direction() -> void:
 	assert_eq(d.amount, 5)
 
 
+## Every script and scene under src/ parses: the unit tests never touch the hub or the title
+## directly, and a typo there would otherwise only show up when the game was opened.
+func test_every_script_and_scene_loads() -> void:
+	var stack: Array = ["res://src/"]
+	var n := 0
+	while stack.size() > 0:
+		var dir: String = stack.pop_back()
+		for d in DirAccess.get_directories_at(dir):
+			stack.append(dir + d + "/")
+		for f in DirAccess.get_files_at(dir):
+			if f.ends_with(".gd") or f.ends_with(".tscn"):
+				var res = load(dir + f)
+				assert_true(res != null, "loads: " + dir + f)
+				if res is GDScript:
+					assert_true(res.can_instantiate() or res.is_abstract(), "compiles: " + dir + f)
+				n += 1
+	assert_true(n >= 100, "found %d scripts and scenes" % n)
+
+
 func test_game_seed_is_deterministic() -> void:
 	var a := RandomNumberGenerator.new()
 	var b := RandomNumberGenerator.new()

@@ -14,7 +14,7 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | Balance table | `.\tools\balance.ps1 [-Ticks 9000] [-Tiers 0,4,8]`: the bot plays every weapon at each spring tide, writes `tools/balance.csv` |
 | Jump to a biome / its boss | `.\tools\run.ps1 -- --biome=1` (streets), `--biome=2` (hall), add `--boss` |
 | Run tests (headless) | `.\tools\test.ps1` |
-| Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern) |
+| Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern, bell, line); `tests/sim_run.tscn -- --take-wet --fish --tier=N` |
 | Regenerate sprites / rooms / audio | `python tools\gen_sprites.py --preview`, `python tools\gen_rooms.py`, `python tools\gen_audio.py` |
 | Open Godot editor | `.\tools\editor.ps1` |
 
@@ -28,7 +28,10 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | Space through an attack | riptide: slow-mo, dash refunded, next hit crits |
 | RMB | weapon special: hook throw (gaff) or net throw (knife) |
 | Q | lantern flare when the glow meter is full (hits charge it): stuns and damages everything nearby |
-| E | interact (fountains, chests, cages, people, results screen) |
+| R | the active tidemark in hand (one per family at altars: Salt Storm, Breakwater, Keeper's Step, Slack Call); the HUD shows its cooldown |
+| F | eat the first fish in the bag (Nessa sells them: heal, a shield, a held tide, more health) |
+| L | the Keeper's Log: milestones, Fen's shells, Nessa's board |
+| E | interact (fountains, chests, cages, people, results screen; let the Choir finish when its note falters) |
 | Esc / F11 | pause / fullscreen toggle. The pause menu has Codex [C], Settings [S], Rest here [R], Give up [Q] / Back to the title [T], Quit game [X] |
 | R (paused) | rest: once a room is cleared and its doors are open, the night is saved and you go back up. The shore continues it next time, once; the tide, your health, salt and tidemarks are exactly as you left them |
 | C | the codex: the drowned, tidemarks, people and places you have met |
@@ -110,10 +113,56 @@ un.ps1 src/hub/hub.tscn -- --screenshot --sim-save --ending=break`
 ### Who you can bring back
 | Echo | Found | At the lighthouse |
 |---|---|---|
-| Bram the Drowned | The Flats, an echo room | forge: choose your weapon |
+| Bram the Drowned | The Flats, an echo room | forge: choose your weapon; aspects |
+| Pell the Diver | The Sunken Harbour, an echo room | salt-glass; a word about the deep |
 | Sister Wren | The Drowned Streets | bless a tidemark family: every altar offers one from it |
 | The Cartographer | The Drowned Streets (after Wren) | chart a room: fountain, chest or merchant guaranteed two rooms into every biome |
+| The Choir | The Drowned Streets: bring the named elite to a quarter health and press E when its note falters | hymns; the hub music changes |
+| Keeper Aldous | The Deep Hall, an echo room | reads his journal pages; knows the way out |
 | Maren | under the Ebb | the endings: keep, break, or walk out |
+
+Break the tide needs five echoes home (Bram, Wren and the Cartographer among them); Walk out needs all seven.
+
+## The village (M7)
+- **Nessa the Fisher** comes down to the rock after two nights. Her board holds three **contracts** a
+  night (36 in all: kill counts, reach a room untouched, bosses, wet rooms, a night without the
+  merchant...), judged when the night ends and paid in pearls, sometimes shards or a fish. She sells
+  **fish**: smoked eel (heal 30), shell broth (absorb a hit), still fish (the tide holds 8 s), salt cod
+  (+15 max health). Three fit in the bag; F eats the first.
+- **Idris the Harbourmaster** arrives once the Chainmother has fallen. At the dock: **launch from the
+  harbour** (the night starts past the flats, 15 pearls a night), four **keels** (one on the boat at a
+  time: iron, salt, lamp, deep, each a trade), and the chest of **lanterns and coats** the Log and
+  the village open.
+- **Keeper Aldous's journal**: nine pages hidden in vaults (one each) and dive chests (half the time).
+  Each is a fragment of what the lantern is. Aldous reads what you have found; with all nine he tells
+  you the way out. Pages are kept even if the night is lost.
+- **Gifts and affinity**: salt-glass (every dive chest) and shells (Fen's chain) are gifts. Give one
+  to anyone on the rock and they talk (a short chain, typed out at the speed in Settings) and pay:
+  pearls at the first level, shards at the second, a permanent perk at the third (Orla: +5 health,
+  Bram: the lantern starts half charged, Aldous: +8% damage, Pell: deep water bites half as often,
+  Idris: launching is free, Nessa: a fourth fish, and so on). Thirty-three chains in
+  `data/dialog/affinity.json`; idle lines for the new people in `data/dialog/npcs.json`, both linted
+  by the tests.
+- **Fen's shells**: six small asks in order (past the second room, break the Wreck, the wet way,
+  salt-glass, Wren home, win a night). Each hands over a shell and pearls.
+- **The Keeper's Log** (L): forty milestones claimed the moment you step onto the rock; pearls, shards
+  and lantern colours (cold, sea green, violet, white). Lantern posts light along the rock, one for
+  every eight.
+- **The Ledger** is twenty-five nodes in five branches (Keeper, Sea, Purse, Lantern, Memory); each
+  node needs the one before it, the Lantern branch needs Bram home, Memory needs a win. Memory holds
+  Long Memory (last night's first tidemark returns), Second Look (an altar reroll), Two Hands (a
+  second active tidemark), Kept Count, Deep Memory.
+- **Epilogues**: the rock keeps the shape of the last ending. Keep: Maren's lamp lit on the tower.
+  Break: the lower village under water, a dock built by the Drowned. Walk: still sea, faint echoes,
+  a quiet loop. Everyone has post-ending lines; another night continues in that state.
+- **Codex** gains Weapons (with their aspects), Journal and Contracts tabs (1-7), and every enemy
+  entry earns a second paragraph after twenty kills.
+- **Wet forks are shortcuts**: the wet door's room counts for two, unless that would skip a cage.
+- Settings: dialogue speed (slow, normal, fast, at once), skip dialogue seen before, journal hints.
+
+Screenshots of any of it: `.\tools\run.ps1 src/hub/hub.tscn -- --screenshot --sim-save --nessa`
+(`--idris --aldous --pell --choir --log --quests --contracts --gift --cosmetics --codex=5`), with
+`python tools\sim_profile.py village|epilogue-break|epilogue-walk|keep|fresh` to shape the sim profile.
 
 ### Flats and Hall additions (M6e)
 | Enemy | Tell | Answer |
@@ -159,9 +208,10 @@ are the M5 polish pass; every sprite is still drawn by `tools/gen_sprites*.py`.
   tiers, each keeping the ones below: faster tide, crusted enemies, second-wind bosses, dry wells,
   salt tax, blind altars, drowned elites, the Ebb remembers. A win at tier n opens n+1. Pearls pay
   +15% per tier and a win pays echo shards. Bot: `tests/sim_run.tscn -- --tier=N`.
-- Ledger: permanent tiers bought from Orla with pearls. Defined in `src/hub/ledger.gd`.
-- Save: `user://save.json` (pearls, echo shards, ledger, story flags, weapons forged, aspects,
-  blessing, chart, spring tide reached, and a night rested at the shore).
+- Ledger: permanent tiers bought from Orla with pearls, 25 nodes in five branches. Defined in `src/hub/ledger.gd`.
+- Save: `user://save.json`, version 2 (pearls, echo shards, ledger, story flags, weapons forged, aspects,
+  blessing, chart, spring tide reached, a night rested at the shore, affinity, gifts, journal pages,
+  contracts, the Log, kill counts, fish, keel, cosmetics, epilogue). Version 1 profiles migrate.
 
 Sandbox arena for feel tuning: `.\tools\run.ps1 src/sandbox.tscn`
 

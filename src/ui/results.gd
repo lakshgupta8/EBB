@@ -65,6 +65,9 @@ func show_result(r: Dictionary) -> void:
 		["", ""],
 		["Pearls total", "%d" % SaveManager.data.pearls],
 	]
+	# Nessa's board: what the night paid for.
+	for c in r.get("contracts", []):
+		rows.insert(rows.size() - 2, ["Contract: " + str(c.name), LogUI._reward_text(c)])
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 16)

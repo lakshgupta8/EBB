@@ -73,9 +73,11 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Spring tide 5+: the merchant charges half again.
+## Spring tide 5+: the merchant charges half again. The Haggler knocks a fifth off.
 func _price(i: int) -> int:
 	var mult := 1.5 if (_run and _run.state.tier >= 5) else 1.0
+	if _run and _run.player:
+		mult *= float(_run.player.mods.shop_mult)
 	return int(ceil(ITEMS[i].price * mult))
 
 
@@ -91,6 +93,7 @@ func buy(i: int) -> bool:
 		return false
 	var it: Dictionary = ITEMS[i]
 	_run.state.salt -= _price(i)
+	_run.state.count("shop_buys")
 	_stock[i] -= 1
 	EventBus.salt_changed.emit(_run.state.salt)
 	var p: Player = _run.player

@@ -1,0 +1,57 @@
+{
+	"orla": [
+		{"lines": ["Salt-glass. I had a piece once, from Maren. I threw it in the sea the night she did not come back.", "Keep this one. No. Give it to me. I am old enough to hold two things at once."], "reward": {"pearls": 10}},
+		{"lines": ["I sent you down with a lantern and no words. I want you to know I knew what I was doing.", "I knew, and I did it, and here you are. Take these. They are not an apology. There is not one big enough."], "reward": {"shards": 2}},
+		{"lines": ["I will tell you the thing I have not told anyone. Maren asked me to send you. She chose you.", "She said you were the only one on the rock who would come back up. So far she is right. Keep being right."], "reward": {"perk": "orla", "text": "Orla's word: +5 max health"}}
+	],
+	"fen": [
+		{"lines": ["A shell! From down there? Is it a drowned shell? Does it sound like the drowned?", "It sounds like the sea. That is fine. That is better, actually."], "reward": {"pearls": 8}},
+		{"lines": ["Ma says I am not to go down to the shore any more because you might not come back one night.", "I told her you always come back. That is what the lantern is for. I am right, aren't I?"], "reward": {"shards": 2}},
+		{"lines": ["I am going to be a keeper. Not yet. When I am tall enough to hold the lantern up.", "You can teach me. You will still be here. Say you will still be here."], "reward": {"perk": "fen", "text": "Fen's pockets: +10 starting salt"}}
+	],
+	"bram": [
+		{"lines": ["Salt-glass. The sea's slag. I have never worked it; it will not take an edge.", "It takes a shine though. Put it on the anvil. I like to look at something I cannot fix."], "reward": {"pearls": 10}},
+		{"lines": ["I drowned with a hammer in my hand. Three hundred years I held it. First thing I did up here was put it down.", "Second thing was pick it up again. What else would I do with my hands? Here."], "reward": {"shards": 2}},
+		{"lines": ["The forge is warm. Warm, keeper. Nothing has been warm since the water came, and you did that.", "I will put a bit of that warmth in every blade I make you. You will not feel it. It will be there."], "reward": {"perk": "bram", "text": "Bram's warmth: the lantern starts half charged"}}
+	],
+	"wren": [
+		{"lines": ["A gift. I have not been given anything in three hundred years. I have only been asked.", "I will pray over it. It will not change the glass. It changes me a little. That is what praying is for."], "reward": {"pearls": 10}},
+		{"lines": ["I rang the bell. You know that. What you do not know is that I was told to, and by whom.", "It was the sea. It asked to be asked. That is the whole secret of Saltmere, and it is a small one."], "reward": {"shards": 2}},
+		{"lines": ["I have decided what to pray for. Not safety. We asked for that and look at us.", "I pray you get a choice, every night, and that you take the one you can live with."], "reward": {"perk": "wren", "text": "Wren's prayer: the first altar of the night offers four marks"}}
+	],
+	"cartographer": [
+		{"lines": ["Salt-glass. I can see the room it was in, in the way the light bends. Do not ask me how.", "Thank you. I will draw it. Something the sea made that is not a person, for once."], "reward": {"pearls": 10}},
+		{"lines": ["I have no name because I gave it away. There was a map that needed one at the bottom and I signed it.", "The sea kept the name and I kept the map. I think I got the better of it."], "reward": {"shards": 2}},
+		{"lines": ["Here. I have drawn the rock. You, Orla, the tower, the shore. It is the first map I have made of somewhere that is not drowned.", "It is not to scale. I find I do not care."], "reward": {"perk": "cartographer", "text": "The Cartographer's eye: chests hold one more pearl"}}
+	],
+	"maren": [
+		{"lines": ["You brought me glass. I used to bring Orla glass. She threw every piece in the sea and I kept bringing it.", "I will not throw this one. Somebody should keep one."], "reward": {"pearls": 10}},
+		{"lines": ["I was not brave, going down. I was tired. I want you to know the difference so you do not make my mistake.", "You are not tired yet. When you are, come and tell me. Do not go down instead."], "reward": {"shards": 2}},
+		{"lines": ["I chose you because you fall over and get up. That is all keeping is. Falling over, at the bottom of the sea, and getting up.", "Take my old coat. It has been under longer than I have. It knows the way."], "reward": {"perk": "maren", "text": "Maren's coat: the riptide lasts a second longer", "cosmetic": "verger"}}
+	],
+	"nessa": [
+		{"lines": ["Salt-glass. I have a shelf of it. My husband used to bring it up in the nets.", "He is down there somewhere, in one of your rooms, I expect. If he throws anything at you, duck. He never could aim."], "reward": {"pearls": 10}},
+		{"lines": ["The fish come in stranger every year. Eyes where there should not be eyes. They still smoke well.", "Here. Something for the bottom of the sea. Do not eat it all at once."], "reward": {"fish": "eel"}},
+		{"lines": ["You are the first keeper who has ever done a job for me. The others thought fishing was beneath them.", "Nothing is beneath anyone here. We are all at the bottom. Take a bigger bag."], "reward": {"perk": "nessa", "text": "Nessa's bag: carry four fish", "cosmetic": "fisher"}}
+	],
+	"idris": [
+		{"lines": ["Glass from the harbour floor. I stood on that floor. I am glad something down there was making something.", "Set it on the desk. I like to see the light come through what the sea has done to it."], "reward": {"pearls": 10}},
+		{"lines": ["I held the lines the night the ships tried to go. I want to say I did not know what the crane would do.", "I knew. I held them anyway, because I was told to. I have had three hundred years to work out what that makes me."], "reward": {"shards": 2}},
+		{"lines": ["The harbour book has every ship that ever came in and every one that never went out. I have added a line.", "Keeper. Launches at will. No fee. Go on, then. Go."], "reward": {"perk": "idris", "text": "Idris's book: launching from the harbour is free", "cosmetic": "harbour"}}
+	],
+	"aldous": [
+		{"lines": ["Salt-glass. I wrote about it, page four. What the sea makes of the drowned when it has finished with them.", "I was wrong about that, as it happens. It is only what the sea makes. Nobody is in it. Good."], "reward": {"pearls": 10}},
+		{"lines": ["I stood in the hall eleven hundred nights. Every keeper who went down stood with me. We did not speak.", "There was nothing to say that the water had not already said. Here. Something for the walk down."], "reward": {"shards": 2}},
+		{"lines": ["You have read every page and you are still here, which is more than I managed.", "One more thing, then, for the one after you: the lantern does not need to be carried. It needs to be put down."], "reward": {"perk": "aldous", "text": "Aldous's line: +8% damage"}}
+	],
+	"pell": [
+		{"lines": ["You found some yourself. Good eye. The best pieces are under the hulls where the light does not go.", "Give this one to somebody up here. The dead have enough glass."], "reward": {"pearls": 10}},
+		{"lines": ["I could hold my breath four minutes, before. Now I do not need to and I miss it. The counting.", "Here. Count to four, and then to four again, and by then you are through the deep bit."], "reward": {"shards": 2}},
+		{"lines": ["The trick is not the lungs. Everyone thinks it is the lungs. It is not minding the cold.", "You do not mind the cold. I have watched you. Take the diver's share, then."], "reward": {"perk": "pell", "text": "Pell's lungs: deep water bites half as often"}}
+	],
+	"choir": [
+		{"lines": ["Glass. It rings, did you know? Strike it and it rings a true note. Everything in Saltmere does.", "We will keep it. We will sing to it. It will sing back, a little."], "reward": {"pearls": 10}},
+		{"lines": ["We were nine when the water came. We are nine still. Nobody in the choir has ever been anything else.", "You cannot free one of a choir. You freed all of us, or none. Here, from all nine."], "reward": {"shards": 2}},
+		{"lines": ["We have finished the hymn. It took three hundred years and a night. The last line is about you.", "It says: the keeper stood and let it end. That is the whole line. We are proud of it."], "reward": {"perk": "choir", "text": "The Choir's hymn: pearls +5% at the end of a night"}}
+	]
+}

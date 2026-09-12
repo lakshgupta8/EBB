@@ -1,0 +1,49 @@
+{
+	"nessa": [
+		{"when": ["epilogue:walk"], "text": "The sea is only the sea now. I caught a herring this morning. A herring, Tam. It was not anything else."},
+		{"when": ["epilogue:break"], "text": "The dock is under. Fine. I have fished off worse. The Drowned are building me a new one, and they do not need to breathe to do it."},
+		{"when": ["epilogue:keep"], "text": "Maren says you are down there keeping it. You are also up here eating my eel. I do not ask. The fish come in, that is all I need to know."},
+		{"when": ["contracts>=20"], "text": "Twenty jobs. I have run out of things to ask for. Take whatever is on the board and take it as a favour to an old woman."},
+		{"when": ["affinity:nessa>=3"], "text": "You. Sit. Eat. The board can wait a minute; the tide will not, but the board can."},
+		{"when": ["contracts>=5"], "text": "Five jobs done and none of them badly. There is a board by the boat. Pick three before you go down, I pay in pearls and I pay on time."},
+		{"when": ["stat:fish_eaten>=1"], "text": "So you ate it. Good. The dead have no use for it and the living forget to. There is more where that came from."},
+		{"when": ["runs>=4"], "text": "Nessa. I fish. I fished when the tide went out the first time and I will fish when it stops. There is work on the board if you want it, and eel if you do not."},
+		{"when": [], "text": "You are the keeper. I am the fisher. The sea gives us both something to do. Come back when you have been down a few times; I will have work."}
+	],
+	"idris": [
+		{"when": ["epilogue:walk"], "text": "The harbour is a harbour. Boats go out. Boats come in. I stood on that quay three hundred years waiting to say that."},
+		{"when": ["epilogue:break"], "text": "The ships are free. Two of them still float. I am going to sail one of them somewhere the tide does not know my name."},
+		{"when": ["epilogue:keep"], "text": "You hold the bottom, she says. Then the top is mine. Nothing leaves this harbour without my say, and I say: go on, then."},
+		{"when": ["affinity:idris>=3"], "text": "I have written you into the harbour book. Keeper, one, expected back. Every night I cross it out and write it again."},
+		{"when": ["keel"], "text": "That keel will hold. I laid it myself. Whatever else goes wrong down there, it will not be the boat."},
+		{"when": ["wins>=1"], "text": "The crane let go. I felt it from here, a slack in the whole harbour. So. The dock is yours to launch from, if you can pay the mooring."},
+		{"when": [], "text": "Idris. Harbourmaster. I held the ships to the quay the night the crane took them and I have not forgiven either of us. You broke the crane. Come to the dock."}
+	],
+	"aldous": [
+		{"when": ["epilogue:walk"], "text": "Nobody at the bottom. Nobody at all. I stood there eleven hundred nights so that somebody would be. I find I do not mind."},
+		{"when": ["epilogue:break"], "text": "Broken, then. I told the others it could not be. I am glad to have been wrong before the end; it is rare."},
+		{"when": ["epilogue:keep"], "text": "So you keep it. I kept it. She kept it. It is not a bad thing to be, Tam, if you go in knowing what it is."},
+		{"when": ["journals>=9"], "text": "Nine pages. Everything I knew, in your pocket, in order. Sit down. There is one thing I never wrote, and it is the way out."},
+		{"when": ["journals>=6"], "text": "You have most of it. The pages after the sixth are not easy reading. I was not an easy man by then."},
+		{"when": ["journals>=3"], "text": "You found my hand. I wrote nine pages before I went down the last time. The sea has them; it keeps everything. Bring them and I will read them to you."},
+		{"when": ["journals>=1"], "text": "That page is mine. I did not think anything of mine was left. Find the others. There are nine; I was thorough, if nothing else."},
+		{"when": [], "text": "Aldous. I kept the light before Maren, and stood in the hall a long time after. You carried me up. I am not sure I asked you to. Thank you anyway."}
+	],
+	"pell": [
+		{"when": ["epilogue:walk"], "text": "I dived this morning. Clear to the bottom, and the bottom was sand. Sand, Tam. I sat on it a while."},
+		{"when": ["epilogue:break"], "text": "The harbour is deep again and the water in it is water. I am going to dive every wreck in it before the crabs do."},
+		{"when": ["epilogue:keep"], "text": "You are under there. I went down to look. I could not see you, but the water was warm at the bottom and it has never been warm."},
+		{"when": ["affinity:pell>=3"], "text": "You have the lungs for it now. If you ever want to stop keeping and start diving, the bag is yours."},
+		{"when": ["stat:dives>=5"], "text": "Five dives. You are getting the feel of it: go down slow, come up slower, and pick up anything that shines."},
+		{"when": ["stat:glass_found>=1"], "text": "Salt-glass. The sea makes it out of what it takes. Give it to someone who is still here; they will know what it means."},
+		{"when": [], "text": "Pell. I dived the harbour for the crane's chains, before. Now I dive for what the sea has made of us. Go under when you can, keeper. There are things down there worth the breath."}
+	],
+	"choir": [
+		{"when": ["epilogue:walk"], "text": "We have stopped singing. Not because we were made to. Because it was finished. That is the only right way for a song to end."},
+		{"when": ["epilogue:break"], "text": "The note went out over the water with the rest of us and it is out there still. Listen some night. It is not sad any more."},
+		{"when": ["epilogue:keep"], "text": "We sing for you now. Down there you cannot hear it, Maren says. We sing anyway. The sea can hear it."},
+		{"when": ["affinity:choir>=3"], "text": "You let us finish. Everyone else struck. We have a verse for you now; it is short, and it is yours."},
+		{"when": ["stat:hymns>=3"], "text": "The rock has better acoustics than the chapel did. Stone and water. We should have practised here all along."},
+		{"when": [], "text": "You let us finish the note. Three hundred years on one breath and you stood there and let it end. We will sing for the rock, if the rock will have us."}
+	]
+}

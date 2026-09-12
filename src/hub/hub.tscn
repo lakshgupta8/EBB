@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" path="res://src/ui/codex_ui.tscn" id="8_codex"]
 [ext_resource type="PackedScene" path="res://src/ui/ending_ui.tscn" id="9_ending"]
 [ext_resource type="PackedScene" path="res://src/ui/settings_ui.tscn" id="10_settings"]
+[ext_resource type="PackedScene" path="res://src/ui/log_ui.tscn" id="11_log"]
+[ext_resource type="PackedScene" path="res://src/ui/talk_ui.tscn" id="12_talk"]
 
 [node name="Hub" type="Node2D"]
 script = ExtResource("1_hub")
@@ -49,3 +51,7 @@ text = "Marrow Rock"
 [node name="EndingUI" parent="." instance=ExtResource("9_ending")]
 
 [node name="SettingsUI" parent="." instance=ExtResource("10_settings")]
+
+[node name="LogUI" parent="." instance=ExtResource("11_log")]
+
+[node name="TalkUI" parent="." instance=ExtResource("12_talk")]

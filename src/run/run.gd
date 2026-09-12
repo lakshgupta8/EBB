@@ -38,7 +38,7 @@ const BIOMES := [
 		"intro": "The tide has gone out. Saltmere waits."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
 		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
-		"echoes": [], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
+		"echoes": ["pell"], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
 		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82), "wet": BARNACLE,
 		"elite": DECKHAND, "elite_name": "The Bosun", "boss_music": "music_boss",
 		"intro": "The harbour. Every ship that tried to leave is still tied up."},
@@ -50,7 +50,7 @@ const BIOMES := [
 		"intro": "Slack water. The streets of Saltmere, and something still ringing."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
 		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
-		"echoes": [], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
+		"echoes": ["aldous"], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
 		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84), "wet": ANCHOR,
 		"elite": SHADE, "elite_name": "Echo of Maren", "boss_music": "music_deep",
 		"intro": "The Deep Hall. Every keeper before you is standing in it."},
@@ -61,7 +61,12 @@ const ECHOES := {
 	"wren": {"name": "Sister Wren", "line": "The tide is not cruel. It is only patient. Find me by the tower; I remember prayers that still work."},
 	"cartographer": {"name": "The Cartographer", "line": "I mapped every street before the water came. Streets do not move. The water does."},
 	"maren": {"name": "Maren", "line": "Tam. It let go. Take me up to the light."},
+	"pell": {"name": "Pell the Diver", "line": "A keeper. Under the harbour. You have the lungs for it, then. Bring me up; there is glass down here worth the breath."},
+	"aldous": {"name": "Keeper Aldous", "line": "Another keeper. I thought I was the last to come down. Take me up, and I will tell you what I wrote before I did."},
+	"choir": {"name": "The Choir", "line": "It ended. You let it end. Sing for the rock, then. We will find the way up on our own."},
 }
+## The dock: Idris ties the boat up at the harbour for a fee, unless he likes you.
+const LAUNCH_COST := 15
 const SLACK_WATER := 0.25  # tide level after a boss falls
 const WET_BONUS := 0.8       # the wet way starts this much deeper
 const DIVE_BONUS := 1.3      # a dive is deep water from the door
@@ -110,6 +115,7 @@ var _second_wind_used: bool = false
 var _deep_tick: float = 0.0
 var _transitioning: bool = false
 var _echo_queue: Array = []  # echo ids still to be found in this biome, in depth order
+var _skip: int = 0           # the wet way is a shortcut: its door goes this many rooms further
 
 @onready var player: Player = $Player
 @onready var room_holder: Node2D = $RoomHolder
@@ -148,8 +154,13 @@ func _ready() -> void:
 	player.hurtbox.hit.connect(_on_player_hit)
 	player.hurtbox.shielded.connect(_on_player_shielded)
 	EventBus.enemy_died.connect(_on_enemy_died)
+	EventBus.enemy_spared.connect(_on_enemy_spared)
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.pickup_collected.connect(_on_pickup)
+	EventBus.flared.connect(func(): state.count("flares"); SaveManager.count("flares"))
+	EventBus.riptided.connect(func(): state.count("riptides"); SaveManager.count("riptides"))
+	altar_ui.rerolled.connect(_on_altar_reroll)
+	state.stats["weapon"] = player.weapon.id
 	EventBus.run_started.emit(state.seed)
 	fade.color.a = 1.0
 	Atmosphere.build(self, Vector2(640, 368))
@@ -177,6 +188,23 @@ func _ready() -> void:
 				_dev_wet = true
 			elif a == "--named":
 				_dev_named = true
+		# Nessa's fish come down with you; Long Memory brings one mark from last night.
+		state.fish = []
+		for f in SaveManager.data.get("fish", []):
+			state.fish.append(str(f))
+		SaveManager.data["fish"] = []
+		var kept := str(SaveManager.data.get("kept_mark", ""))
+		if Ledger.tier("keep_mark") > 0 and kept != "" and Tidemarks.get_mark(kept).size() > 0:
+			_on_tidemark_chosen(kept)
+		# Idris's dock: the night starts at the harbour, for a fee.
+		if start_biome == 0 and bool(SaveManager.data.get("launch_harbour", false)) and SaveManager.flag("boss_chainmother_broken"):
+			var cost := 0 if Story.perk("idris") else LAUNCH_COST
+			if int(SaveManager.data.pearls) >= cost:
+				SaveManager.data["pearls"] = int(SaveManager.data.pearls) - cost
+				SaveManager.count("launches")
+				start_biome = 1
+				_whisper("launch", 4.5)
+		SaveManager.save_profile()
 		if start_biome > 0:
 			state.tide.level = SLACK_WATER
 		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
@@ -193,6 +221,9 @@ func _process(delta: float) -> void:
 	_apply_water(delta)
 	_tick_challenge(delta)
 	_tick_marks(delta)
+	_tick_actives(delta)
+	if Input.is_action_just_pressed("consume") and not player.dead and not get_tree().paused:
+		eat_fish()
 
 
 func _apply_water(delta: float) -> void:
@@ -206,7 +237,7 @@ func _apply_water(delta: float) -> void:
 	player.in_water = room.is_flooded_at(player.global_position)
 	if room.is_deep_at(player.global_position):
 		_deep_tick += delta
-		if _deep_tick >= TideSystem.DEEP_TICK:
+		if _deep_tick >= TideSystem.DEEP_TICK * float(player.mods.deep_tick_mult):
 			_deep_tick = 0.0
 			var info := DamageInfo.make(TideSystem.DEEP_DAMAGE, null, Vector2.ZERO, 0.0)
 			info.tags = PackedStringArray(["tide"])
@@ -234,6 +265,8 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	_enter_room(_dev_first if _dev_first >= 0 else RoomGraph.COMBAT, _dev_wet)
 	_dev_first = -1
 	_dev_wet = false
+	if state.slack_start > 0.0:
+		state.tide.pause(state.slack_start)
 	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
 	_whisper(b.whisper, 3.6)
 	if state.tier > 0 and index == 0:
@@ -334,7 +367,8 @@ func _enter_room(type: int, wet: bool = false) -> void:
 	state.tide.room_entered()
 	room.set_tide(state.tide.level)
 
-	var next_depth := state.depth + 1
+	_skip = 1 if _shortcut(wet) else 0
+	var next_depth := state.depth + 1 + _skip
 	_place_doors(type, next_depth)
 
 	match type:
@@ -390,6 +424,12 @@ func _enter_room(type: int, wet: bool = false) -> void:
 	fade_tw.tween_callback(func(): _transitioning = false)
 
 
+## The wet way is a shortcut: the water carries you a room further, unless that would skip
+## a cage or land past the boss.
+func _shortcut(wet: bool) -> bool:
+	return wet and state.depth + 2 <= biome().length and not (state.depth + 1 in _echo_depths)
+
+
 ## How much deeper this room sits than the run's tide.
 func _room_bonus(type: int, wet: bool) -> float:
 	if type == RoomGraph.DIVE:
@@ -406,7 +446,8 @@ func _place_doors(type: int, next_depth: int) -> void:
 		room.place_doors(graph.options_for(next_depth))
 		for i in room.doors.size():
 			if graph.is_wet(next_depth, i):
-				room.doors[i].set_wet()
+				# The door leads to next_depth; the shortcut is judged from there.
+				room.doors[i].set_wet(next_depth + 2 <= biome().length and not (next_depth + 1 in _echo_depths))
 	for d in room.doors:
 		d.entered.connect(_on_door_entered)
 
@@ -456,6 +497,8 @@ func _end_challenge() -> void:
 		_add_room_prop(Prop.Kind.CHEST, cell)
 	_show_banner("THE TIDE TURNS", 2.0, Color(0.75, 0.9, 1.0), 14)
 	Audio.play("clear", 0.0, -2.0)
+	state.count("challenges")
+	SaveManager.count("challenges")
 	_set_cleared()
 
 
@@ -472,13 +515,51 @@ func _on_vault(p: Prop) -> void:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
 	for i in 25:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.SALT)
+	_drop_page(p.global_position + Vector2(0, 8))
+	state.count("vaults")
+	SaveManager.count("vaults")
 	FX.burst(p.global_position, Color(0.95, 0.85, 0.5), 20, 90.0)
 	Audio.play("altar")
-	var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")),
-		state.depth_total, Tidemarks.families_of(state.tidemarks))
+	_offer_marks(3, str(SaveManager.data.get("blessed_family", "")))
+
+
+## Aldous's journal: the next page the sea still holds, from a vault or a dive.
+func _drop_page(at: Vector2) -> void:
+	var have: Array = SaveManager.data.get("journals", [])
+	for n in range(1, Story.JOURNAL.size() + 1):
+		if not n in have:
+			Pickup.spawn(content, at, Pickup.Kind.PAGE, n)
+			return
+
+
+## Roll an altar's offers and open it. The first altar of the night can offer one more
+## (Wren's prayer); Deep Memory lets legendaries in a room early.
+var _altar_blessed: String = ""
+var _altar_count: int = 3
+
+
+func _offer_marks(count: int, blessed: String) -> void:
+	if state.first_altar_extra > 0 and int(state.stats.get("altars", 0)) == 0:
+		count += state.first_altar_extra
+	state.count("altars")
+	_altar_blessed = blessed
+	_altar_count = count
+	var offers := Tidemarks.roll(_rng, state.tidemarks, count, blessed,
+		state.depth_total + state.legendary_early, Tidemarks.families_of(state.tidemarks), state.active_slots)
 	for id in offers:
 		Codex.discover("mark", id)
-	altar_ui.open(offers)
+	altar_ui.open(offers, state.rerolls)
+
+
+func _on_altar_reroll() -> void:
+	if state.rerolls <= 0:
+		return
+	state.rerolls -= 1
+	var offers := Tidemarks.roll(_rng, state.tidemarks, _altar_count, _altar_blessed,
+		state.depth_total + state.legendary_early, Tidemarks.families_of(state.tidemarks), state.active_slots)
+	for id in offers:
+		Codex.discover("mark", id)
+	altar_ui.set_offers(offers, state.rerolls)
 
 
 ## A usable prop with its handler: fountains heal, chests spill, altars offer, merchants trade.
@@ -493,11 +574,10 @@ func _add_room_prop(kind: Prop.Kind, cell: Vector2i) -> Prop:
 			p.used.connect(func(_p):
 				# A dive's altar always has something from the Deep in it.
 				var blessed := "deep" if room_type == RoomGraph.DIVE else str(SaveManager.data.get("blessed_family", ""))
-				var offers := Tidemarks.roll(_rng, state.tidemarks, 2 if state.tier >= 6 else 3, blessed,
-					state.depth_total, Tidemarks.families_of(state.tidemarks))
-				for id in offers:
-					Codex.discover("mark", id)
-				altar_ui.open(offers))
+				if room_type == RoomGraph.DIVE:
+					state.count("dives")
+					SaveManager.count("dives")
+				_offer_marks(2 if state.tier >= 6 else 3, blessed))
 		Prop.Kind.MERCHANT:
 			p.used.connect(func(_p): shop.open())
 		Prop.Kind.VAULT:
@@ -604,12 +684,15 @@ func _spawn_echo_room() -> void:
 	if cage_echo != "":
 		_show_banner("SOMEONE IS STILL HERE", 2.0, Color(0.75, 0.9, 1.0), 12)
 		_whisper("cage", 2.6)
+		if Story.WHISPERS.has(cage_echo):
+			_whisper(cage_echo, 8.5)
 
 
 func _spawn_boss() -> void:
 	var spawns: Array = room.template.enemy_spawns
 	boss = _spawn(biome().boss, room.cell_to_world(spawns[0]))
 	_second_wind_used = false
+	state.stats["tide_at_boss_%d" % state.biome] = state.tide.level
 	var last := state.biome + 1 >= BIOMES.size()
 	if state.tier >= 3:
 		boss.call_deferred("_apply_stat_mult", 1.6 if (state.tier >= 8 and last) else 1.3, 1.0)
@@ -642,6 +725,12 @@ func _boss_second_wind(current: int, max_hp: int) -> void:
 # --- tidemark hooks that live in the run ------------------------------------------------
 ## Salt Purse: a hit costs salt instead of health while there is salt to pay with.
 func _on_player_hit(info: DamageInfo) -> void:
+	# The night's ledger: how far you got before the first hit, and how much landed.
+	if not info.tags.has("tide"):
+		if not state.stats.has("untouched_depth"):
+			state.stats["untouched_depth"] = state.depth_total
+		state.count("damage_taken", info.amount)
+		SaveManager.count("damage_taken", info.amount)
 	if player.dead or not player.mods.salt_shield or info.tags.has("tide") or state.salt < 5:
 		return
 	state.salt -= 5
@@ -687,6 +776,51 @@ func _tick_marks(delta: float) -> void:
 			if player.hurtbox.shield_count < 1:
 				player.hurtbox.shield_count = 1
 				FX.text(player.global_position + Vector2(0, -16), "SKIN", Color(0.6, 0.8, 1.0))
+
+
+## Active tidemarks: R fires the first one that is ready, in the order they were taken.
+func _tick_actives(delta: float) -> void:
+	for id in state.active_cd.keys():
+		state.active_cd[id] = maxf(0.0, float(state.active_cd[id]) - delta)
+	if Input.is_action_just_pressed("active") and not player.dead and not get_tree().paused:
+		for id in state.actives():
+			if float(state.active_cd.get(id, 0.0)) <= 0.0:
+				_use_active(id)
+				return
+
+
+func _use_active(id: String) -> void:
+	state.active_cd[id] = Tidemarks.cooldown_of(id)
+	state.count("actives_used")
+	SaveManager.count("actives_used")
+	var col := Tidemarks.color_of(id)
+	var at := player.global_position
+	match id:
+		"act_storm":
+			for e in get_tree().get_nodes_in_group("enemies"):
+				if not (e is Enemy) or e.global_position.distance_to(at) > 70.0:
+					continue
+				var info := DamageInfo.make(int(12 * float(player.mods.damage)), player, e.global_position - at, 160.0)
+				info.tags = PackedStringArray(["storm", "melee"])
+				if e.hurtbox.receive(info):
+					EventBus.damage_dealt.emit(e, info)
+					FX.spark(e.global_position)
+			EventBus.request_shake.emit(0.5)
+			Audio.play("heavy", 0.1)
+		"act_wall":
+			player.hurtbox.shield_count = maxi(player.hurtbox.shield_count, 1)
+			state.tide.pause(3.0)
+			Audio.play("splash", 0.1, -4.0)
+		"act_step":
+			player.dash_charges = player.max_dash
+			player.health._iframes = maxf(player.health._iframes, 1.0)
+			Audio.play("riptide", 0.05, -4.0)
+		"act_call":
+			state.tide.pause(10.0)
+			Audio.play("altar", 0.0, -2.0)
+	FX.ring(at, col, 1.8)
+	FX.burst(at, col, 14, 70.0)
+	FX.text(at + Vector2(0, -18), Tidemarks.get_mark(id).name.to_upper(), col)
 
 
 ## The lantern's one-time lines, a moment after whatever they comment on.
@@ -742,10 +876,16 @@ func _set_cleared() -> void:
 		return
 	room.open_doors()
 	if room_type in [RoomGraph.COMBAT, RoomGraph.ELITE, RoomGraph.ECHO]:
-		_show_banner("THE WAY OPENS", 1.2, Color(0.7, 0.9, 1.0), 12)
+		_show_banner("THE WATER CARRIES YOU: A ROOM SKIPPED" if _skip > 0 else "THE WAY OPENS", 1.4, Color(0.7, 0.9, 1.0), 12)
 		Audio.play("clear", 0.0, -4.0)
 		if _wet_room and not player.dead:
 			Pickup.spawn(content, player.global_position + Vector2(0, -12), Pickup.Kind.PEARL)
+			state.count("wet_rooms")
+			SaveManager.count("wet_rooms")
+			if _skip > 0:
+				state.count("shortcuts")
+				SaveManager.count("shortcuts")
+				_whisper("shortcut", 1.6)
 	elif room_type == RoomGraph.BOSS:
 		_show_banner("THE WAY DOWN OPENS", 2.0, Color(0.7, 0.9, 1.0), 14)
 		Audio.play("door", 0.0, 0.0)
@@ -758,7 +898,8 @@ func _on_cage_opened(p: Prop) -> void:
 	var info: Dictionary = ECHOES[id]
 	state.echoes.append(id)
 	SaveManager.set_flag("echo_" + id)
-	SaveManager.data["echoes"] = int(SaveManager.data.get("echoes", 0)) + 1
+	SaveManager.data["echoes"] = Story.echoes_home()
+	SaveManager.count("cages")
 	SaveManager.save_profile()
 	p.show_echo(id)
 	_give_shards(3, p.global_position + Vector2(0, -20))
@@ -780,8 +921,23 @@ func _on_cage_opened(p: Prop) -> void:
 
 func _on_enemy_died(enemy: Node) -> void:
 	state.kills += 1
+	SaveManager.count("kills")
 	if enemy is Enemy:
-		Codex.discover("enemy", Codex.enemy_id(enemy))
+		var eid := Codex.enemy_id(enemy)
+		Codex.discover("enemy", eid)
+		state.count("kills_" + eid)
+		SaveManager.data["kills_by"][eid] = int(SaveManager.data["kills_by"].get(eid, 0)) + 1
+		if enemy.is_boss:
+			state.count("bosses")
+			state.count("boss_" + eid)
+			SaveManager.count("bosses")
+			SaveManager.set_flag("boss_%s_broken" % eid)
+		elif enemy.is_elite:
+			state.count("elites")
+			SaveManager.count("elites")
+			if enemy.affix == "":
+				state.count("named_elites")
+				SaveManager.count("named_elites")
 		var pos: Vector2 = enemy.global_position
 		for i in int(round(enemy.salt_drop * player.mods.salt_mult * (1.5 if _wet_room else 1.0))):
 			Pickup.spawn(content, pos, Pickup.Kind.SALT)
@@ -796,6 +952,38 @@ func _on_enemy_died(enemy: Node) -> void:
 		if enemy == boss:
 			_on_boss_died()
 			return
+	await get_tree().process_frame
+	if state.ended or _challenge_t >= 0.0:
+		return
+	if get_tree().get_nodes_in_group("enemies").is_empty():
+		_set_cleared()
+
+
+## The Choir let go alive: it counts as the room's clearing, not as a kill, and it comes
+## home like any echo.
+func _on_enemy_spared(enemy: Node) -> void:
+	if not (enemy is Enemy):
+		return
+	var pos: Vector2 = enemy.global_position
+	state.count("spared")
+	SaveManager.count("spared")
+	if not SaveManager.flag("echo_choir"):
+		SaveManager.set_flag("echo_choir")
+		SaveManager.data["echoes"] = Story.echoes_home()
+		SaveManager.save_profile()
+		state.echoes.append("choir")
+		_give_shards(3, pos + Vector2(0, -20))
+		var p := room.add_prop(Prop.Kind.ECHO_GHOST, room.world_to_cell(pos))
+		p.show_echo("choir")
+		Juice.slowmo(0.3, 0.4)
+		FX.flash_screen(Color(0.85, 0.8, 1.0, 0.45), 0.5)
+		FX.ring(pos, Color(0.85, 0.75, 1.0), 2.4)
+		Audio.play("rescue")
+		_show_banner("THE CHOIR IS FREE", 2.0, Color(0.85, 0.8, 1.0), 16)
+		_whisper("choir_spared", 2.4)
+	else:
+		_show_banner("THE NOTE ENDS", 1.6, Color(0.85, 0.8, 1.0), 14)
+		Pickup.spawn(content, pos, Pickup.Kind.PEARL)
 	await get_tree().process_frame
 	if state.ended or _challenge_t >= 0.0:
 		return
@@ -831,7 +1019,7 @@ func _give_shards(n: int, at: Vector2) -> void:
 func _free_maren() -> void:
 	if not SaveManager.flag("echo_maren"):
 		SaveManager.set_flag("echo_maren")
-		SaveManager.data["echoes"] = int(SaveManager.data.get("echoes", 0)) + 1
+		SaveManager.data["echoes"] = Story.echoes_home()
 		_give_shards(3, boss.global_position + Vector2(0, -20))
 	SaveManager.set_flag("ebb_broken")
 	state.echoes.append("maren")
@@ -846,8 +1034,8 @@ func _on_door_entered(door: Door) -> void:
 	if _transitioning or state.ended or not room_cleared:
 		return
 	_transitioning = true
-	state.depth += 1
-	state.depth_total += 1
+	state.depth += 1 + _skip
+	state.depth_total += 1 + _skip
 	var tw := create_tween()
 	tw.tween_property(fade, "color:a", 1.0, 0.2)
 	if door.room_type == Door.DESCEND:
@@ -878,6 +1066,8 @@ func _on_fountain(_p: Prop) -> void:
 	player.health.heal(amount)
 	if state.still_water:
 		state.tide.pause(12.0)
+	if float(player.mods.fountain_hold) > 0.0:
+		state.tide.pause(float(player.mods.fountain_hold))
 	FX.burst(player.global_position, Color(0.5, 0.8, 0.95), 14, 60.0)
 
 
@@ -886,23 +1076,64 @@ func _on_chest(p: Prop) -> void:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
 	for i in 10:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.SALT)
+	# A dive's chest holds what the sea made down there: salt-glass, and a page when one is left.
+	if room_type == RoomGraph.DIVE:
+		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.GLASS)
+		if _rng.randf() < 0.5:
+			_drop_page(p.global_position + Vector2(0, 8))
 
 
 func _on_pickup(kind: int, value: int) -> void:
-	if kind == Pickup.Kind.SALT:
-		state.salt += value
-		EventBus.salt_changed.emit(state.salt)
-		if player.mods.salt_mend:
-			_mend_salt += value
-			while _mend_salt >= 10:
-				_mend_salt -= 10
-				player.health.heal(1)
-	elif kind == Pickup.Kind.KEY:
-		state.keys += value
-		EventBus.keys_changed.emit(state.keys)
-	else:
-		state.pearls += value
-		EventBus.pearls_changed.emit(state.pearls)
+	match kind:
+		Pickup.Kind.SALT:
+			state.salt += value
+			EventBus.salt_changed.emit(state.salt)
+			SaveManager.count("salt_collected", value)
+			if player.mods.salt_mend:
+				_mend_salt += value
+				while _mend_salt >= 10:
+					_mend_salt -= 10
+					player.health.heal(1)
+		Pickup.Kind.KEY:
+			state.keys += value
+			EventBus.keys_changed.emit(state.keys)
+		Pickup.Kind.PAGE:
+			# Straight into the profile: the sea keeps everything, and so do you now.
+			var have: Array = SaveManager.data.get("journals", [])
+			if not value in have:
+				have.append(value)
+				SaveManager.data["journals"] = have
+				SaveManager.count("pages")
+				state.count("pages")
+				SaveManager.save_profile()
+				_show_banner("JOURNAL PAGE %d OF %d" % [value, Story.JOURNAL.size()], 2.0, Color(0.95, 0.92, 0.8), 12)
+				_whisper("page", 2.4)
+		Pickup.Kind.GLASS:
+			SaveManager.data["glass"] = int(SaveManager.data.get("glass", 0)) + value
+			SaveManager.count("glass_found", value)
+			state.count("glass", value)
+			SaveManager.save_profile()
+			_whisper("glass", 0.8)
+		Pickup.Kind.SHELL:
+			SaveManager.data["shells"] = int(SaveManager.data.get("shells", 0)) + value
+			SaveManager.count("shells_found", value)
+			SaveManager.save_profile()
+		_:
+			state.pearls += value
+			EventBus.pearls_changed.emit(state.pearls)
+
+
+## F: eat the first fish carried.
+func eat_fish() -> void:
+	if state.fish.is_empty():
+		return
+	var id: String = state.fish.pop_front()
+	var text := Fish.eat(id, player, self)
+	state.count("fish_eaten")
+	SaveManager.count("fish_eaten")
+	FX.burst(player.global_position, Color(0.95, 0.8, 0.6), 10, 50.0)
+	FX.text(player.global_position + Vector2(0, -18), text, Color(0.95, 0.85, 0.6))
+	Audio.play("bite", 0.1, -4.0)
 
 
 # --- resting -----------------------------------------------------------------------
@@ -946,6 +1177,8 @@ func snapshot() -> Dictionary:
 func rest() -> bool:
 	if not can_rest():
 		return false
+	state.count("rested")
+	SaveManager.count("rests")
 	SaveManager.data["suspended"] = snapshot()
 	SaveManager.save_profile()
 	state.ended = true
@@ -1006,7 +1239,8 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	player.velocity = Vector2.ZERO
 	room.set_tide(state.tide.level)
-	_place_doors(type, state.depth + 1)
+	_skip = 1 if _shortcut(wet) else 0
+	_place_doors(type, state.depth + 1 + _skip)
 	if type == RoomGraph.SHOP:
 		shop.restock()
 	for pd in props:
@@ -1054,6 +1288,14 @@ func _end_run() -> void:
 	# Let the last drops get collected before the ledger is written.
 	await get_tree().create_timer(1.2).timeout
 	var result := state.result()
+	if state.victory:
+		if not SaveManager.flag("won_" + player.weapon.id):
+			SaveManager.set_flag("won_" + player.weapon.id)
+			SaveManager.count("weapons_won")
+	# Long Memory: the first mark of this night waits for the next one.
+	SaveManager.data["kept_mark"] = str(state.tidemarks[0]) if state.tidemarks.size() > 0 else ""
+	# Nessa's board is judged before the run number moves on.
+	result["contracts"] = Contracts.settle(state.ledger())
 	Game.run_finished(result)
 	results.show_result(result)
 

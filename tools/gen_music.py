@@ -25,6 +25,10 @@ TRACKS = {
     "music_harbour": (65.41, "dorian", 62, 8, [0, 3, 4, 5], 0.4, False),
     # The deeper half of the night gets its own boss pulse: slower, lower, meaner.
     "music_deep": (61.74, "harmonic", 96, 16, [0, 6, 1, 5], 0.55, True),
+    # M7: the rock with the Choir singing on it (the hub loop, warmer, a voice on top), and
+    # the still sea after Walk out (nearly nothing: a drone and a note now and then).
+    "music_hub_choir": (110.0, "dorian", 58, 8, [0, 5, 2, 6], 0.55, False),
+    "music_still": (98.0, "aeolian", 48, 8, [0, 0, 5, 0], 0.15, False),
 }
 
 

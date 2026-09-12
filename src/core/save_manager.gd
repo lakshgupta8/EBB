@@ -2,7 +2,7 @@ extends Node
 ## Persistent profile in user://save.json. Versioned; migrate() is the place for upgrades.
 
 const PATH := "user://save.json"
-const VERSION := 1
+const VERSION := 2
 
 var data: Dictionary = _defaults()
 var path: String = PATH
@@ -37,6 +37,26 @@ static func _defaults() -> Dictionary:
 		"aspects_owned": [],      # aspect ids bought from Bram
 		"tide_tier": 0,           # spring tide chosen at the Ledger (0 = calm)
 		"tide_unlocked": 0,       # highest tier that may be chosen; a win at tier n opens n+1
+		# --- M7: the village ---
+		"affinity": {},           # npc id -> level 0..3, raised with gifts
+		"glass": 0,               # salt-glass, from dives: a gift
+		"shells": 0,              # shells, from Fen's quests: a gift
+		"journals": [],           # keeper journal pages found (1..9), in order found
+		"contracts_done": [],     # Nessa's contracts completed, ever
+		"contracts_offered": [],  # the three on offer for the next night
+		"contracts_run": -1,      # the run number the offer was rolled for
+		"fen_quest": 0,           # how far along Fen's shell chain you are
+		"log": [],                # Keeper's Log milestones claimed
+		"kills_by": {},           # enemy id -> kills, ever (the codex's second paragraph)
+		"stats": {},              # counters the Log and contracts read (see Run.count)
+		"fish": [],               # consumables carried into the next night (Nessa)
+		"keel": "",               # Idris: the keel in use ("" = none)
+		"keels_owned": [],
+		"launch_harbour": false,  # Idris: the next night starts at the harbour
+		"cosmetics": {"lantern": "warm", "coat": "keeper"},
+		"cosmetics_owned": ["warm", "keeper"],
+		"epilogue": "",           # the last ending chosen: the hub stays that way
+		"chains_seen": [],        # affinity chains already read (skippable)
 	}
 
 
@@ -65,7 +85,38 @@ func save_profile() -> void:
 		f.store_string(JSON.stringify(data, "\t"))
 
 
+## Older profiles: fill in what they never had, recount what changed meaning.
 func migrate() -> void:
+	var from := int(data.get("version", 1))
+	var fresh := _defaults()
+	for k in fresh:
+		if not data.has(k):
+			data[k] = fresh[k]
+		elif typeof(data[k]) != typeof(fresh[k]):
+			# JSON hands every number back as a float; anything else of the wrong shape is reset.
+			if fresh[k] is int and data[k] is float:
+				data[k] = int(data[k])
+			elif fresh[k] is bool and (data[k] is float or data[k] is int):
+				data[k] = bool(data[k])
+			elif not (fresh[k] is float and data[k] is int):
+				data[k] = fresh[k]
+	for k in fresh.cosmetics:
+		if not data.cosmetics.has(k):
+			data.cosmetics[k] = fresh.cosmetics[k]
+	# Page numbers come back from JSON as floats; keep them ints so `in` finds them.
+	var pages: Array = []
+	for n in data.get("journals", []):
+		if not int(n) in pages:
+			pages.append(int(n))
+	data["journals"] = pages
+	if from < 2:
+		# Echoes are now counted from their flags: seven people can come home, and the
+		# old counter only ever knew four.
+		var n := 0
+		for id in Story.ECHO_IDS:
+			if flag("echo_" + id):
+				n += 1
+		data["echoes"] = maxi(n, int(data.get("echoes", 0)))
 	data["version"] = VERSION
 
 
@@ -79,16 +130,33 @@ func flag(name: String) -> bool:
 	return bool(data["flags"].get(name, false))
 
 
+## A counter in the profile's stats (the Log and the contracts read these).
+func count(key: String, by: int = 1) -> void:
+	data["stats"][key] = int(data["stats"].get(key, 0)) + by
+
+
+func stat(key: String) -> int:
+	return int(data.get("stats", {}).get(key, 0))
+
+
 func record_run(result: Dictionary) -> void:
 	data["runs"] += 1
 	data["pearls"] += int(result.get("pearls", 0))
 	data["total_kills"] += int(result.get("kills", 0))
 	data["best_depth"] = maxi(int(data["best_depth"]), int(result.get("depth", 0)))
+	count("pearls_earned", int(result.get("pearls", 0)))
+	count("time_played", int(result.get("time", 0.0)))
 	if result.get("victory", false):
 		data["wins"] += 1
 		var t := int(result.get("tier", 0))
 		if t >= int(data.get("tide_unlocked", 0)):
 			data["tide_unlocked"] = mini(8, t + 1)
+		count("wins_" + str(result.get("weapon", "")))
+		count("wins_tier_%d" % t)
+	elif result.get("taken", false):
+		count("taken")
+	else:
+		count("deaths")
 	data["suspended"] = {}  # a finished night cannot also be waiting at the shore
 	save_profile()
 

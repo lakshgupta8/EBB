@@ -10,6 +10,9 @@ const DEFAULTS := {
 	"shake": 1.0,      # 0 off, 0.5 low, 1 full
 	"flash": true,     # full-screen flashes (riptide, rescues, the flare)
 	"fullscreen": true,
+	"dialog_speed": 1.0,  # letters per tick of talk: 0.5 slow, 1 normal, 2 fast; 0 = at once
+	"skip_seen": false,   # chains already read show all at once
+	"hints": true,        # journal hints and the door's second look
 }
 
 var data: Dictionary = DEFAULTS.duplicate()
@@ -52,7 +55,9 @@ func save_settings() -> void:
 func set_value(key: String, value) -> void:
 	if not DEFAULTS.has(key):
 		return
-	if DEFAULTS[key] is float:
+	if key == "dialog_speed":
+		value = clampf(float(value), 0.0, 2.0)
+	elif DEFAULTS[key] is float:
 		value = clampf(float(value), 0.0, 1.0)
 	elif DEFAULTS[key] is bool:
 		value = bool(value)
@@ -97,3 +102,15 @@ func shake() -> float:
 
 func flashes() -> bool:
 	return bool(data.flash)
+
+
+func dialog_speed() -> float:
+	return float(data.get("dialog_speed", 1.0))
+
+
+func skip_seen() -> bool:
+	return bool(data.get("skip_seen", false))
+
+
+func hints() -> bool:
+	return bool(data.get("hints", true))
