@@ -1,7 +1,6 @@
 # Godot
 .godot/
 export/
-export_presets.cfg
 .godot_cache/
 
 # OS / editor
