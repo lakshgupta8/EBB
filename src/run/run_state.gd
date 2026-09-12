@@ -10,6 +10,7 @@ var rooms_cleared: int = 0
 var kills: int = 0
 var salt: int = 0
 var pearls: int = 0
+var keys: int = 0        # vault keys, dropped by elites
 var time: float = 0.0
 var ended: bool = false
 var victory: bool = false
@@ -22,7 +23,7 @@ var tidemarks: Array = []  # ids, in the order they were taken
 var echoes: Array = []     # echo ids rescued this run
 
 ## Plain fields that a rested night keeps (ended / victory / taken are never saved).
-const SAVED := ["seed", "biome", "depth", "depth_total", "rooms_cleared", "kills", "salt", "pearls",
+const SAVED := ["seed", "biome", "depth", "depth_total", "rooms_cleared", "kills", "salt", "pearls", "keys",
 	"time", "bargain", "full_fountain", "still_water"]
 
 

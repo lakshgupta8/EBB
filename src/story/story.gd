@@ -46,6 +46,8 @@ const WHISPERS := {
 	"first_night": "Keep the tide, Orla said. The lantern is warm in your hand. Lanterns are not warm.",
 	"wreck": "A keeper's boat, upturned, with something living under it. The lantern pulls toward it like a compass needle.",
 	"harbour": "The ships are all still here. Nobody left. Something on the quay made sure of that.",
+	"challenge": "No door. The sea wants to see what you do when there is no door.",
+	"dive": "Under the water the lantern burns brighter, not dimmer. It was made for down here.",
 	"chainmother": "The crane was asked to hold the ships. Everything in Saltmere does exactly what it was asked, forever.",
 	"death": "The water closed over you and the lantern pulled, hard, upward. You are at the foot of the tower and the tide is out again. That is what the lantern is for.",
 	"taken": "The tide took you and the lantern brought you back, and half your salt came with you. The sea is patient, not cruel.",

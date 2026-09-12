@@ -12,6 +12,7 @@ var _max_hp: int = 100
 var _tide: float = 0.0
 var _salt: int = 0
 var _pearls: int = 0
+var _keys: int = 0
 var _player: Player
 var _boss: Enemy
 var _run: Node
@@ -22,6 +23,7 @@ func _ready() -> void:
 	EventBus.tide_changed.connect(func(l): _tide = l)
 	EventBus.salt_changed.connect(func(v): _salt = v)
 	EventBus.pearls_changed.connect(func(v): _pearls = v)
+	EventBus.keys_changed.connect(func(v): _keys = v)
 	_player = get_tree().get_first_node_in_group("player") as Player
 
 
@@ -95,6 +97,9 @@ func _draw() -> void:
 		return
 	# Currency (top right)
 	var rx := 640 - 8
+	if _keys > 0:
+		_draw_icon(Vector2(rx - 98, y - 1), 2)
+		_text(Vector2(rx - 88, y + 7), "%d" % _keys, Color(0.95, 0.85, 0.5))
 	_draw_icon(Vector2(rx - 64, y - 1), 0)
 	_text(Vector2(rx - 54, y + 7), "%d" % _salt, Color(0.98, 0.9, 0.6))
 	_draw_icon(Vector2(rx - 30, y - 1), 1)

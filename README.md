@@ -62,6 +62,15 @@ Chainmother) -> The Drowned Streets (11 rooms + The Bell of Saltmere) -> The Dee
 The Ebb), with slack water after every boss.
 Beating the Ebb wins the night and brings Maren home to the lighthouse, where she holds the endings.
 A night can be rested at any cleared room (pause, Rest here) and continued from the shore later.
+
+Halfway down every biome the second door is marked WET: the same fight, already under water,
+with the drowned mixed in, half again the salt, and a pearl for clearing it. Three room kinds
+joined the graph in M6b: the **Challenge** (no way out for 45 s while the floor floods and four
+waves come; two chests when the tide turns), the **Vault** (a locked strongroom: elites drop
+keys, and a key buys five pearls, salt and a tidemark pick) and the **Dive** (deep water from
+the door, an altar with something from the Deep on a dry island, a chest on another).
+Elites now carry an affix: Salt-crusted (takes less), Lit (fast, glows), Anchored (cannot be
+moved; its hits drag you in) or Hollow (splits in two when it dies).
 Bot check of the same: `.\tools\sim.ps1 -RestAt 3` rests at depth 3, resumes, and compares every field.
 
 ## Story (M5)

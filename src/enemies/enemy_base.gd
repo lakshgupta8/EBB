@@ -21,6 +21,13 @@ const NET_TEX := preload("res://assets/sprites/net.png")
 
 var is_elite: bool = false
 var is_boss: bool = false
+## Elite affixes: salt-crusted (armour), lit (fast, glows), anchored (cannot be moved, and
+## its hits drag you a step), hollow (splits into two of its kind when it dies).
+const AFFIXES := ["crusted", "lit", "anchored", "hollow"]
+const AFFIX_NAMES := {"crusted": "Salt-crusted", "lit": "Lit", "anchored": "Anchored", "hollow": "Hollow"}
+var affix: String = ""
+var armour: float = 1.0          # incoming damage multiplier from the crust
+var hollow_child: bool = false   # a half of a hollow elite: weaker, drops little
 var room: Room
 var cracked_t: float = 0.0       # takes double damage while > 0 (heavy hit)
 var _wall_slam_armed: bool = false
@@ -96,7 +103,7 @@ func _refresh_mult() -> void:
 		m *= 1.3 + (float(player.mods.lit_bonus) if player else 0.0)
 	if player and player.mods.execute and health.hp * 4 <= health.max_hp:
 		m *= 2.0
-	hurtbox.damage_mult = m
+	hurtbox.damage_mult = m * armour
 
 
 ## Dragged to a point (the hook). Stunned for a moment on arrival.
@@ -140,15 +147,24 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player") as Player
 	room = get_tree().get_first_node_in_group("room") as Room
 	health.changed.connect(func(_c, _m): _refresh_mult())
+	if hollow_child:
+		health.max_hp = maxi(1, health.max_hp * 2 / 5)
+		health.hp = health.max_hp
+		salt_drop = 1
+		scale *= 0.85
 	_enter_state(&"idle")
 
 
 ## Tougher variant with a pearl drop. Call right after instantiating, before add_child completes.
-func make_elite() -> void:
+## With an affix (see AFFIXES) it also gets a quirk and a name to warn you.
+func make_elite(p_affix: String = "") -> void:
 	is_elite = true
-	display_name = "Elite " + display_name
+	affix = p_affix if p_affix in AFFIXES else ""
+	display_name = (str(AFFIX_NAMES[affix]) + " " if affix != "" else "Elite ") + display_name
 	scale = Vector2(1.25, 1.25)
 	call_deferred("_apply_stat_mult", 2.5, 1.15)
+	if affix != "":
+		call_deferred("_apply_affix")
 	pearl_drop += 1
 	salt_drop += 6
 	death_color = Color(0.95, 0.8, 0.4)
@@ -169,6 +185,46 @@ func _apply_stat_mult(hp_mult: float, speed_mult: float) -> void:
 	health.max_hp = int(health.max_hp * hp_mult)
 	health.hp = health.max_hp
 	speed *= speed_mult
+
+
+func _apply_affix() -> void:
+	match affix:
+		"crusted":
+			armour = 0.6
+			sprite.modulate = Color(0.92, 0.97, 0.92)
+			_refresh_mult()
+		"lit":
+			speed *= 1.35
+			var l := Atmosphere.light(self, Color(1.0, 0.85, 0.5), 2.2, 0.8, Vector2(0, -8))
+			Atmosphere.breathe(l, 0.6, 1.0, 1.0)
+		"anchored":
+			knockback_resist = 1.0
+			if hitbox:
+				hitbox.landed.connect(_anchored_pull)
+		"hollow":
+			pass
+
+
+## Anchored: every hit it lands drags you a step toward it.
+func _anchored_pull(_target: Hurtbox, _info: DamageInfo) -> void:
+	if player and not player.dead:
+		var to := global_position - player.global_position
+		player.yank_to(player.global_position + to.normalized() * 18.0, 0.1)
+		FX.text(player.global_position, "ANCHORED", Color(0.85, 0.8, 0.7))
+
+
+## Hollow: two smaller copies of its kind climb out of the body.
+func _hollow_split() -> void:
+	if affix != "hollow" or scene_file_path == "" or get_parent() == null:
+		return
+	var scene: PackedScene = load(scene_file_path)
+	for i in 2:
+		var e: Enemy = scene.instantiate()
+		e.hollow_child = true
+		var side := 1.0 if i == 0 else -1.0
+		e.global_position = global_position + Vector2(side * 12.0, randf_range(-4.0, 4.0))
+		get_parent().call_deferred("add_child", e)
+	FX.text(global_position + Vector2(0, -14), "HOLLOW", Color(0.8, 0.9, 0.85))
 
 
 func _setup_animations() -> void:
@@ -369,6 +425,7 @@ func _on_died() -> void:
 	Audio.play("death", 0.2, 0.0 if not is_boss else 4.0)
 	EventBus.request_hitstop.emit(0.1)
 	EventBus.request_shake.emit(0.3)
+	_hollow_split()
 	_leave_body()
 	EventBus.enemy_died.emit(self)
 	queue_free()

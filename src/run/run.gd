@@ -29,22 +29,22 @@ const BIOMES := [
 	{"id": "flats", "name": "THE FLATS", "dir": "res://data/rooms/biome1/", "length": 10, "theme": Tiles.Look.FLATS,
 		"boss": WRECK, "boss_name": "THE WRECK", "stir": "THE WRECK STIRS", "won": "THE WRECK IS BROKEN",
 		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
-		"boss_sfx": "roar", "tint": Color(0.6, 0.68, 0.86),
+		"boss_sfx": "roar", "tint": Color(0.6, 0.68, 0.86), "wet": GULL,
 		"intro": "The tide has gone out. Saltmere waits."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
 		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
 		"echoes": [], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
-		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82),
+		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82), "wet": BARNACLE,
 		"intro": "The harbour. Every ship that tried to leave is still tied up."},
 	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
 		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "won": "THE BELL IS SILENCED",
 		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
-		"boss_sfx": "bell", "tint": Color(0.56, 0.6, 0.8),
+		"boss_sfx": "bell", "tint": Color(0.56, 0.6, 0.8), "wet": SWIMMER,
 		"intro": "Slack water. The streets of Saltmere, and something still ringing."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
 		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
 		"echoes": [], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
-		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84),
+		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84), "wet": ANCHOR,
 		"intro": "The Deep Hall. Every keeper before you is standing in it."},
 ]
 ## The people you can bring back, and what they say when the cage opens.
@@ -55,6 +55,11 @@ const ECHOES := {
 	"maren": {"name": "Maren", "line": "Tam. It let go. Take me up to the light."},
 }
 const SLACK_WATER := 0.25  # tide level after a boss falls
+const WET_BONUS := 0.8       # the wet way starts this much deeper
+const DIVE_BONUS := 1.3      # a dive is deep water from the door
+const CHALLENGE_TIME := 45.0
+const CHALLENGE_WAVES := 4
+const CHALLENGE_BONUS := 1.5
 
 var state := RunState.new()
 var graph: RoomGraph
@@ -70,6 +75,13 @@ var _templates: Dictionary = {}  # type -> Array[RoomTemplate]
 var _room_seed: int = 0          # decor seed of the current room (kept when the night rests)
 var _echo_depths: Array = []     # where this biome's cages sit (kept so a rested graph matches)
 var resumed: bool = false        # this run was picked up from the shore
+var _wet_room: bool = false      # the flooded way: drowned enemies, more salt, a pearl
+var _challenge_t: float = -1.0   # seconds into the challenge, or -1 outside one
+var _challenge_wave: int = 0
+var challenge_label: Label
+## Dev aids: `--first=challenge|vault|dive|elite|combat` and `--wet` shape the first room.
+var _dev_first: int = -1
+var _dev_wet: bool = false
 var _deep_tick: float = 0.0
 var _transitioning: bool = false
 var _echo_queue: Array = []  # echo ids still to be found in this biome, in depth order
@@ -98,6 +110,11 @@ func _ready() -> void:
 	_rng.seed = state.seed
 	hud.bind(self)
 	shop.setup(self)
+	challenge_label = UI.label("", 14, Color(0.8, 0.92, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	challenge_label.position = Vector2(220, 44)
+	challenge_label.size = Vector2(200, 16)
+	challenge_label.visible = false
+	$HUD.add_child(challenge_label)
 	altar_ui.chosen.connect(_on_tidemark_chosen)
 	Ledger.apply(player, self)
 	EventBus.enemy_died.connect(_on_enemy_died)
@@ -122,6 +139,12 @@ func _ready() -> void:
 		for a in OS.get_cmdline_user_args():
 			if a.begins_with("--biome="):
 				start_biome = clampi(int(a.trim_prefix("--biome=")), 0, BIOMES.size() - 1)
+			elif a.begins_with("--first="):
+				for k in RoomGraph.NAMES:
+					if str(RoomGraph.NAMES[k]).to_lower() == a.trim_prefix("--first="):
+						_dev_first = k
+			elif a == "--wet":
+				_dev_wet = true
 		if start_biome > 0:
 			state.tide.level = SLACK_WATER
 		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
@@ -136,14 +159,15 @@ func _process(delta: float) -> void:
 	room.set_tide(state.tide.level)
 	EventBus.tide_changed.emit(state.tide.level)
 	_apply_water(delta)
+	_tick_challenge(delta)
 
 
 func _apply_water(delta: float) -> void:
 	if player.dead:
 		return
-	var h := room.height_at(player.global_position)
-	player.in_water = state.tide.is_flooded(h)
-	if state.tide.is_deep(h):
+	# The room's own water (a wet way, a dive, the challenge) counts, not just the run's tide.
+	player.in_water = room.is_flooded_at(player.global_position)
+	if room.is_deep_at(player.global_position):
 		_deep_tick += delta
 		if _deep_tick >= TideSystem.DEEP_TICK:
 			_deep_tick = 0.0
@@ -170,7 +194,9 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 		state.depth = b.length
 		_enter_room(RoomGraph.BOSS)
 		return
-	_enter_room(RoomGraph.COMBAT)
+	_enter_room(_dev_first if _dev_first >= 0 else RoomGraph.COMBAT, _dev_wet)
+	_dev_first = -1
+	_dev_wet = false
 	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
 	_whisper(b.whisper, 3.6)
 
@@ -200,7 +226,8 @@ func _next_biome() -> void:
 # --- rooms -----------------------------------------------------------------------
 func _load_templates(dir: String) -> void:
 	_templates = {RoomGraph.COMBAT: [], RoomGraph.ELITE: [], RoomGraph.FOUNTAIN: [], RoomGraph.TREASURE: [],
-		RoomGraph.BOSS: [], RoomGraph.SHOP: [], RoomGraph.ALTAR: [], RoomGraph.ECHO: []}
+		RoomGraph.BOSS: [], RoomGraph.SHOP: [], RoomGraph.ALTAR: [], RoomGraph.ECHO: [],
+		RoomGraph.CHALLENGE: [], RoomGraph.VAULT: [], RoomGraph.DIVE: []}
 	for f in DirAccess.get_files_at(dir):
 		if not f.ends_with(".txt"):
 			continue
@@ -217,6 +244,12 @@ func _load_templates(dir: String) -> void:
 			_templates[RoomGraph.BOSS].append(t)
 		elif f.begins_with("echo"):
 			_templates[RoomGraph.ECHO].append(t)
+		elif f.begins_with("challenge"):
+			_templates[RoomGraph.CHALLENGE].append(t)
+		elif f.begins_with("vault"):
+			_templates[RoomGraph.VAULT].append(t)
+		elif f.begins_with("dive"):
+			_templates[RoomGraph.DIVE].append(t)
 		else:
 			_templates[RoomGraph.COMBAT].append(t)
 			_templates[RoomGraph.ELITE].append(t)
@@ -234,11 +267,15 @@ func _pick_template(type: int) -> RoomTemplate:
 	return t
 
 
-func _enter_room(type: int) -> void:
+func _enter_room(type: int, wet: bool = false) -> void:
 	room_type = type
 	room_cleared = false
 	boss = null
 	cage = null
+	_wet_room = wet
+	_challenge_t = -1.0
+	if challenge_label:
+		challenge_label.visible = false
 	for c in content.get_children():
 		c.queue_free()
 	if room:
@@ -248,6 +285,7 @@ func _enter_room(type: int) -> void:
 	var template := _pick_template(type)
 	_room_seed = _rng.randi()
 	room.build(template, _room_seed, biome().theme)
+	room.tide_bonus = _room_bonus(type, wet)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	player.velocity = Vector2.ZERO
 	player.rally = 0.0
@@ -255,13 +293,7 @@ func _enter_room(type: int) -> void:
 	room.set_tide(state.tide.level)
 
 	var next_depth := state.depth + 1
-	if type == RoomGraph.BOSS:
-		# The way down opens when the boss is dead; the last biome has no way down.
-		room.place_doors([Door.DESCEND] if state.biome + 1 < BIOMES.size() else [])
-	else:
-		room.place_doors(graph.options_for(next_depth))
-	for d in room.doors:
-		d.entered.connect(_on_door_entered)
+	_place_doors(type, next_depth)
 
 	match type:
 		RoomGraph.COMBAT:
@@ -285,6 +317,19 @@ func _enter_room(type: int) -> void:
 			for cell in room.template.marker_cells("M"):
 				_add_room_prop(Prop.Kind.MERCHANT, cell)
 			_set_cleared()
+		RoomGraph.CHALLENGE:
+			_start_challenge()
+		RoomGraph.VAULT:
+			for cell in room.template.marker_cells("T"):
+				_add_room_prop(Prop.Kind.VAULT, cell)
+			_set_cleared()
+		RoomGraph.DIVE:
+			for cell in room.template.marker_cells("A"):
+				_add_room_prop(Prop.Kind.ALTAR, cell)
+			for cell in room.template.marker_cells("T"):
+				_add_room_prop(Prop.Kind.CHEST, cell)
+			_whisper("dive", 1.2)
+			_set_cleared()
 		RoomGraph.ECHO:
 			_spawn_echo_room()
 		RoomGraph.BOSS:
@@ -295,11 +340,101 @@ func _enter_room(type: int) -> void:
 			Audio.play(biome().boss_sfx)
 			_whisper(biome().boss_whisper, 2.8)
 
-	_show_room_label(biome().name, "%d / %d   %s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type]])
+	_show_room_label(biome().name, "%d / %d   %s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type], "  (wet)" if wet else ""])
 	EventBus.room_entered.emit(room)
 	var fade_tw := create_tween()
 	fade_tw.tween_property(fade, "color:a", 0.0, 0.25)
 	fade_tw.tween_callback(func(): _transitioning = false)
+
+
+## How much deeper this room sits than the run's tide.
+func _room_bonus(type: int, wet: bool) -> float:
+	if type == RoomGraph.DIVE:
+		return DIVE_BONUS
+	return WET_BONUS if wet else 0.0
+
+
+## Doors for the rooms offered next; the boss room's single way down; the wet mark at the fork.
+func _place_doors(type: int, next_depth: int) -> void:
+	if type == RoomGraph.BOSS:
+		# The way down opens when the boss is dead; the last biome has no way down.
+		room.place_doors([Door.DESCEND] if state.biome + 1 < BIOMES.size() else [])
+	else:
+		room.place_doors(graph.options_for(next_depth))
+		for i in room.doors.size():
+			if graph.is_wet(next_depth, i):
+				room.doors[i].set_wet()
+	for d in room.doors:
+		d.entered.connect(_on_door_entered)
+
+
+# --- the challenge: no way out until the tide turns ---------------------------------
+func _start_challenge() -> void:
+	_challenge_t = 0.0
+	_challenge_wave = 0
+	_show_banner("HOLD UNTIL THE TIDE TURNS", 2.2, Color(0.75, 0.9, 1.0), 12)
+	_whisper("challenge", 2.6)
+	_spawn_wave()
+
+
+func _spawn_wave() -> void:
+	_challenge_wave += 1
+	_spawn_enemies(maxi(2, 1 + state.depth / 3 + state.biome), _challenge_wave == CHALLENGE_WAVES)
+	Audio.play("wave", 0.0, -4.0)
+	FX.flash_screen(Color(0.5, 0.7, 1.0, 0.18), 0.3)
+
+
+func _tick_challenge(delta: float) -> void:
+	if _challenge_t < 0.0 or state.ended:
+		return
+	_challenge_t += delta
+	room.tide_bonus = CHALLENGE_BONUS * minf(1.0, _challenge_t / CHALLENGE_TIME)
+	var wave_at := float(_challenge_wave) * CHALLENGE_TIME / CHALLENGE_WAVES
+	if _challenge_wave < CHALLENGE_WAVES and _challenge_t >= wave_at:
+		_spawn_wave()
+	challenge_label.text = "HOLD   %d" % int(ceil(CHALLENGE_TIME - _challenge_t))
+	challenge_label.visible = true
+	if _challenge_t >= CHALLENGE_TIME:
+		_end_challenge()
+
+
+## The tide turns: whatever is still standing drowns, the water drains, the chests are yours.
+func _end_challenge() -> void:
+	_challenge_t = -1.0
+	challenge_label.visible = false
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e is Enemy and is_instance_valid(e):
+			var info := DamageInfo.make(9999, null, Vector2.ZERO, 0.0)
+			info.tags = PackedStringArray(["tide"])
+			e.health.take(info, true)
+	var tw := create_tween()
+	tw.tween_property(room, "tide_bonus", 0.0, 3.0)
+	for cell in room.template.marker_cells("T"):
+		_add_room_prop(Prop.Kind.CHEST, cell)
+	_show_banner("THE TIDE TURNS", 2.0, Color(0.75, 0.9, 1.0), 14)
+	Audio.play("clear", 0.0, -2.0)
+	_set_cleared()
+
+
+## The vault: a key (elites carry them) opens it for pearls, salt and a tidemark.
+func _on_vault(p: Prop) -> void:
+	if state.keys <= 0:
+		FX.text(p.global_position + Vector2(0, -16), "LOCKED: NO KEY", Color(0.9, 0.8, 0.6))
+		Audio.play("reload", 0.0, -6.0)
+		return
+	state.keys -= 1
+	EventBus.keys_changed.emit(state.keys)
+	p.mark_used()
+	for i in 5:
+		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
+	for i in 25:
+		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.SALT)
+	FX.burst(p.global_position, Color(0.95, 0.85, 0.5), 20, 90.0)
+	Audio.play("altar")
+	var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))
+	for id in offers:
+		Codex.discover("mark", id)
+	altar_ui.open(offers)
 
 
 ## A usable prop with its handler: fountains heal, chests spill, altars offer, merchants trade.
@@ -312,12 +447,16 @@ func _add_room_prop(kind: Prop.Kind, cell: Vector2i) -> Prop:
 			p.used.connect(_on_chest)
 		Prop.Kind.ALTAR:
 			p.used.connect(func(_p):
-				var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))
+				# A dive's altar always has something from the Deep in it.
+				var blessed := "deep" if room_type == RoomGraph.DIVE else str(SaveManager.data.get("blessed_family", ""))
+				var offers := Tidemarks.roll(_rng, state.tidemarks, 3, blessed)
 				for id in offers:
 					Codex.discover("mark", id)
 				altar_ui.open(offers))
 		Prop.Kind.MERCHANT:
 			p.used.connect(func(_p): shop.open())
+		Prop.Kind.VAULT:
+			p.used.connect(_on_vault)
 	return p
 
 
@@ -382,13 +521,16 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 	for i in count:
 		var cell: Vector2i = spawns[i % spawns.size()]
 		var scene := _enemy_scene()
-		if with_elite and i == 0 and biome().id == "hall":
+		if _wet_room and _rng.randf() < 0.4:
+			scene = biome().wet
+		var named: bool = with_elite and i == 0 and biome().id in ["hall", "harbour"]
+		if named and biome().id == "hall":
 			scene = SHADE
-		elif with_elite and i == 0 and biome().id == "harbour":
+		elif named:
 			scene = DECKHAND
 		var e: Enemy = _spawn(scene, room.cell_to_world(cell))
 		if with_elite and i == 0:
-			e.make_elite()
+			e.make_elite("" if named else Enemy.AFFIXES[_rng.randi() % Enemy.AFFIXES.size()])
 			if biome().id == "hall":
 				e.display_name = "Echo of Maren"
 			elif biome().id == "harbour":
@@ -473,6 +615,8 @@ func _set_cleared() -> void:
 	if room_type in [RoomGraph.COMBAT, RoomGraph.ELITE, RoomGraph.ECHO]:
 		_show_banner("THE WAY OPENS", 1.2, Color(0.7, 0.9, 1.0), 12)
 		Audio.play("clear", 0.0, -4.0)
+		if _wet_room and not player.dead:
+			Pickup.spawn(content, player.global_position + Vector2(0, -12), Pickup.Kind.PEARL)
 	elif room_type == RoomGraph.BOSS:
 		_show_banner("THE WAY DOWN OPENS", 2.0, Color(0.7, 0.9, 1.0), 14)
 		Audio.play("door", 0.0, 0.0)
@@ -509,16 +653,18 @@ func _on_enemy_died(enemy: Node) -> void:
 	if enemy is Enemy:
 		Codex.discover("enemy", Codex.enemy_id(enemy))
 		var pos: Vector2 = enemy.global_position
-		for i in int(round(enemy.salt_drop * player.mods.salt_mult)):
+		for i in int(round(enemy.salt_drop * player.mods.salt_mult * (1.5 if _wet_room else 1.0))):
 			Pickup.spawn(content, pos, Pickup.Kind.SALT)
 		var pearls: int = enemy.pearl_drop + (int(player.mods.pearl_bonus) if (enemy.is_elite or enemy.is_boss) else 0)
 		for i in pearls:
 			Pickup.spawn(content, pos, Pickup.Kind.PEARL)
+		if enemy.is_elite and not enemy.is_boss:
+			Pickup.spawn(content, pos, Pickup.Kind.KEY)
 		if enemy == boss:
 			_on_boss_died()
 			return
 	await get_tree().process_frame
-	if state.ended:
+	if state.ended or _challenge_t >= 0.0:
 		return
 	if get_tree().get_nodes_in_group("enemies").is_empty():
 		_set_cleared()
@@ -564,7 +710,7 @@ func _on_door_entered(door: Door) -> void:
 	if door.room_type == Door.DESCEND:
 		tw.tween_callback(_next_biome)
 	else:
-		tw.tween_callback(_enter_room.bind(door.room_type))
+		tw.tween_callback(_enter_room.bind(door.room_type, door.wet))
 
 
 func _on_tidemark_chosen(id: String) -> void:
@@ -597,6 +743,9 @@ func _on_pickup(kind: int, value: int) -> void:
 	if kind == Pickup.Kind.SALT:
 		state.salt += value
 		EventBus.salt_changed.emit(state.salt)
+	elif kind == Pickup.Kind.KEY:
+		state.keys += value
+		EventBus.keys_changed.emit(state.keys)
 	else:
 		state.pearls += value
 		EventBus.pearls_changed.emit(state.pearls)
@@ -628,10 +777,11 @@ func snapshot() -> Dictionary:
 	d["echo_depths"] = _echo_depths.duplicate()
 	d["echo_queue"] = _echo_queue.duplicate()
 	d["last_template"] = _last_template
+	d["wet"] = _wet_room
 	# Props still waiting to be used come back with the room; used ones stay used.
 	var props: Array = []
 	for p in room.props:
-		if is_instance_valid(p) and not p.used_up and p.kind in [Prop.Kind.FOUNTAIN, Prop.Kind.CHEST, Prop.Kind.ALTAR, Prop.Kind.MERCHANT]:
+		if is_instance_valid(p) and not p.used_up and p.kind in [Prop.Kind.FOUNTAIN, Prop.Kind.CHEST, Prop.Kind.ALTAR, Prop.Kind.MERCHANT, Prop.Kind.VAULT]:
 			props.append({"kind": int(p.kind), "cell": [room.world_to_cell(p.global_position).x, room.world_to_cell(p.global_position).y]})
 	d["props"] = props
 	return d
@@ -675,15 +825,18 @@ func _resume(d: Dictionary) -> void:
 	_setup_biome(state.biome, Array(d.get("echo_depths", [])))
 	_last_template = str(d.get("last_template", ""))
 	_enter_rested_room(int(d.get("room_type", RoomGraph.COMBAT)), str(d.get("template", "")), int(d.get("room_seed", 0)),
-		Array(d.get("props", [])))
+		Array(d.get("props", [])), bool(d.get("wet", false)))
+	EventBus.keys_changed.emit(state.keys)
 
 
 ## Rebuild the room the night was left in: cleared, doors open, nothing left to fight,
 ## and whatever was still unused (an altar, a fountain, the merchant) waiting where it was.
-func _enter_rested_room(type: int, template_name: String, room_seed: int, props: Array) -> void:
+func _enter_rested_room(type: int, template_name: String, room_seed: int, props: Array, wet: bool = false) -> void:
 	room_type = type
 	boss = null
 	cage = null
+	_wet_room = wet
+	_challenge_t = -1.0
 	var t: RoomTemplate = null
 	for cand in _templates.get(type, []):
 		if cand.name == template_name:
@@ -694,15 +847,11 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 	room_holder.add_child(room)
 	_room_seed = room_seed
 	room.build(t, room_seed, biome().theme)
+	room.tide_bonus = _room_bonus(type, wet)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	player.velocity = Vector2.ZERO
 	room.set_tide(state.tide.level)
-	if type == RoomGraph.BOSS:
-		room.place_doors([Door.DESCEND] if state.biome + 1 < BIOMES.size() else [])
-	else:
-		room.place_doors(graph.options_for(state.depth + 1))
-	for d in room.doors:
-		d.entered.connect(_on_door_entered)
+	_place_doors(type, state.depth + 1)
 	if type == RoomGraph.SHOP:
 		shop.restock()
 	for pd in props:
