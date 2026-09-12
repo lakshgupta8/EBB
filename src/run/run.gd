@@ -650,10 +650,9 @@ func _enemy_scene() -> PackedScene:
 
 
 func _spawn_enemies(count: int, with_elite: bool) -> void:
-	var spawns: Array = room.template.enemy_spawns.duplicate()
-	spawns.shuffle()
+	var spawns: Array[Vector2i] = room.template.spawn_cells(count, _rng)
 	for i in count:
-		var cell: Vector2i = spawns[i % spawns.size()]
+		var cell: Vector2i = spawns[i]
 		var scene := _enemy_scene()
 		if _wet_room and _rng.randf() < 0.4:
 			scene = biome().wet

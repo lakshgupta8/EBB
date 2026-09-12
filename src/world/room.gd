@@ -130,12 +130,26 @@ func clamp_inside(pos: Vector2) -> Vector2:
 		clampf(pos.y, margin, size_px().y - margin))
 	var c := world_to_cell(p)
 	if template.is_solid(c.x, c.y):
-		# Push toward the nearest open neighbour cell.
-		for off: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		# Push to the nearest open floor cell (never a door).
+		for off in _RINGS:
 			var n: Vector2i = c + off
-			if not template.is_solid(n.x, n.y):
+			if not template.is_solid(n.x, n.y) and template.char_at(n.x, n.y) != "D":
 				return cell_to_world(n)
 	return p
+
+
+## Cell offsets out to three tiles, nearest first.
+static var _RINGS: Array[Vector2i] = _rings(3)
+
+
+static func _rings(radius: int) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for dy in range(-radius, radius + 1):
+		for dx in range(-radius, radius + 1):
+			if dx != 0 or dy != 0:
+				out.append(Vector2i(dx, dy))
+	out.sort_custom(func(a, b): return Vector2(a).length_squared() < Vector2(b).length_squared())
+	return out
 
 
 func height_at(pos: Vector2) -> int:
