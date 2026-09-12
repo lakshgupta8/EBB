@@ -389,6 +389,9 @@ def main():
     import gen_rooms_m4b
     gen_rooms_m4b.fix_widths()
     ROOMS.update(gen_rooms_m4b.ROOMS)
+    import gen_rooms_m6
+    gen_rooms_m6.fix_widths()
+    ROOMS.update(gen_rooms_m6.ROOMS)
     for name, txt in ROOMS.items():
         rows = txt.strip("\n").split("\n")
         assert len(rows) == H, (name, len(rows))

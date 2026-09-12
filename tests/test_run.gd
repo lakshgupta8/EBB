@@ -63,7 +63,7 @@ func test_tide_levels() -> void:
 
 
 func test_templates_parse() -> void:
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
 		_check_templates(dir)
 
 
@@ -76,7 +76,7 @@ func _check_templates(dir: String) -> void:
 		assert_eq(t.height, 23, f + " height (16:9 stretch)")
 		assert_true(t.player_spawn.x >= 0, f + " has a player spawn")
 		assert_true(t.doors.size() >= 1, f + " has a door slot")
-		if f.begins_with("flats") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
+		if f.begins_with("flats") or f.begins_with("harbour") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
 			assert_true(t.enemy_spawns.size() >= 1, f + " has enemy spawns")
 		if f.begins_with("echo"):
 			assert_eq(t.marker_cells("E").size(), 1, f + " has one cage")
@@ -85,6 +85,31 @@ func _check_templates(dir: String) -> void:
 		assert_eq(t.height_at(0, 0), RoomTemplate.WALL_HEIGHT)
 		assert_true(t.is_solid(0, 0))
 		assert_true(not t.is_solid(t.player_spawn.x, t.player_spawn.y))
+
+
+## Every biome carries everything the run needs, and the tide adds up the same way in each.
+func test_biome_table() -> void:
+	var ids := {}
+	assert_eq(Run.BIOMES.size(), 4, "four biomes")
+	for b in Run.BIOMES:
+		assert_true(not ids.has(b.id), "unique biome id " + str(b.id))
+		ids[b.id] = true
+		assert_true(DirAccess.dir_exists_absolute(b.dir), "rooms for " + str(b.id))
+		for k in ["name", "length", "theme", "boss", "boss_name", "stir", "echoes", "intro", "music", "place",
+				"whisper", "boss_whisper", "boss_sfx", "tint", "won"]:
+			assert_true(b.has(k), "%s has %s" % [b.id, k])
+		assert_true(Story.WHISPERS.has(b.whisper) and Story.WHISPERS.has(b.boss_whisper), "whispers for " + str(b.id))
+		var found := false
+		for p in Codex.PLACES:
+			if p.id == b.place:
+				found = true
+		assert_true(found, "codex place for " + str(b.id))
+		var tide := TideSystem.new()
+		tide.room_step = 1.44 / float(b.length + 1)
+		for i in b.length + 1:
+			tide.room_entered()
+		assert_near(tide.level, 1.44, 0.01)
+	assert_eq(Run.BIOMES[1].id, "harbour", "the harbour sits between the flats and the streets")
 
 
 func test_hub_template() -> void:
@@ -164,7 +189,7 @@ func test_run_result_conversion() -> void:
 ## Every open cell in every template must be walkable from the player spawn (no
 ## diagonal-only gaps, no sealed chest rooms). Pure flood fill on the template.
 func test_templates_are_connected() -> void:
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
 		for f in DirAccess.get_files_at(dir):
 			var t := RoomTemplate.load_file(dir + f)
 			var seen := {}

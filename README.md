@@ -57,8 +57,9 @@ before they strike: dash on the flash for a riptide.
 Pick and forge weapons at Bram's forge on Marrow Rock. The HUD shows the harpoon's ammo next to the special bar.
 
 ## The night (M4)
-Hub (lighthouse) -> The Flats (8 rooms + The Wreck) -> slack water -> The Drowned Streets
-(9 rooms + The Bell of Saltmere) -> slack water -> The Deep Hall (7 rooms + The Ebb).
+Hub (lighthouse) -> The Flats (10 rooms + The Wreck) -> The Sunken Harbour (9 rooms + The
+Chainmother) -> The Drowned Streets (11 rooms + The Bell of Saltmere) -> The Deep Hall (9 rooms +
+The Ebb), with slack water after every boss.
 Beating the Ebb wins the night and brings Maren home to the lighthouse, where she holds the endings.
 A night can be rested at any cleared room (pause, Rest here) and continued from the shore later.
 Bot check of the same: `.\tools\sim.ps1 -RestAt 3` rests at depth 3, resumes, and compares every field.
@@ -95,6 +96,15 @@ un.ps1 src/hub/hub.tscn -- --screenshot --sim-save --ending=break`
 | Sister Wren | The Drowned Streets | bless a tidemark family: every altar offers one from it |
 | The Cartographer | The Drowned Streets (after Wren) | chart a room: fountain, chest or merchant guaranteed two rooms into every biome |
 | Maren | under the Ebb | the endings: keep, break, or walk out |
+
+### Harbour enemies (M6a)
+| Enemy | Tell | Answer |
+|---|---|---|
+| Mooring | keeps a chain's length off, the chain uncoils toward you, flash | sidestep the line; caught, you are dragged a step toward him |
+| Barnacle Swarm | short scuttles, rises, flash | dash the bite; it splits into two small swarms when it dies |
+| Deckhand | shield up, walks in; blade raised, flash | the shield turns front hits: hit him from behind, or wait for OPEN after the swing |
+| The Bosun (elite) | a bigger Deckhand | same rules, more of it |
+| The Chainmother (boss) | chain sweep (dash through it), orange rings (anchors fall there), chain to you (dash), barnacles off the hull | at half health she stirs: faster, two anchors, and the tide jumps |
 
 ### Streets enemies
 Still Citizen (statue until you are close, then fast), Lamplighter (kindles the others; throws its

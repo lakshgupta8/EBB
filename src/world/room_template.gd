@@ -67,6 +67,14 @@ func is_solid(x: int, y: int) -> bool:
 func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 	var ch := char_at(x, y)
 	var v := (x * 7 + y * 13) % 5 == 0  # cheap variation
+	if theme == Tiles.Look.HARBOUR:
+		match ch:
+			"#": return Tiles.HULL2 if v else Tiles.HULL
+			"_", "X": return Tiles.SILT
+			"=", "h": return Tiles.QUAY
+			"o": return Tiles.ROCK
+			"D": return Tiles.DOOR
+			_: return Tiles.DECK2 if v else Tiles.DECK
 	if theme == Tiles.Look.DEEP:
 		match ch:
 			"#": return Tiles.HALLWALL2 if v else Tiles.HALLWALL

@@ -13,6 +13,7 @@ const DEEP_TICK := 0.5     # seconds
 
 var level: float = 0.0
 var rate_mult: float = 1.0  # tidemarks / ledger can slow it
+var room_step: float = ROOM_STEP  # set per biome: rooms + boss always add up to ~1.44
 var pause_t: float = 0.0    # Still Water: seconds the tide holds
 
 
@@ -31,7 +32,7 @@ func pause(seconds: float) -> void:
 
 
 func room_entered() -> void:
-	level = minf(MAX_LEVEL, level + ROOM_STEP * rate_mult)
+	level = minf(MAX_LEVEL, level + room_step * rate_mult)
 
 
 func is_flooded(h: int) -> bool:
