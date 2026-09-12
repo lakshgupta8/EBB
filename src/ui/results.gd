@@ -29,6 +29,8 @@ func show_result(r: Dictionary) -> void:
 	var title_color: Color
 	if r.victory:
 		title_text = str(Run.BIOMES[clampi(int(r.get("biome", 0)), 0, Run.BIOMES.size() - 1)].won)
+		if int(r.get("tier", 0)) >= 8 and int(r.get("biome", 0)) >= Run.BIOMES.size() - 1:
+			title_text = "THE SEA REMEMBERS"
 		title_color = Color(0.95, 0.85, 0.6)
 	elif r.taken:
 		title_text = "TAKEN BY THE TIDE"
@@ -59,6 +61,7 @@ func show_result(r: Dictionary) -> void:
 		["Pearls kept", "%d  (+%d from salt)" % [r.pearls, r.pearls_from_salt]],
 		["Time", "%d:%02d" % [mins, secs]],
 		["Echoes freed", str(r.get("echoes", []).size())],
+		["Spring tide", "tier %d  (pearls +%d%%)" % [int(r.get("tier", 0)), 15 * int(r.get("tier", 0))]] if int(r.get("tier", 0)) > 0 else ["", ""],
 		["", ""],
 		["Pearls total", "%d" % SaveManager.data.pearls],
 	]

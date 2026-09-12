@@ -60,6 +60,18 @@ const DIVE_BONUS := 1.3      # a dive is deep water from the door
 const CHALLENGE_TIME := 45.0
 const CHALLENGE_WAVES := 4
 const CHALLENGE_BONUS := 1.5
+## The spring tide: eight tiers of a harder night, chosen at Orla's Ledger once the Ebb
+## has fallen. Each tier keeps the ones below it. Pearls pay +15% per tier.
+const TIERS := [
+	{"name": "Faster tide", "desc": "the water rises half again as fast"},
+	{"name": "Crusted", "desc": "everything has a quarter more health"},
+	{"name": "Second wind", "desc": "bosses are tougher and rally once at a quarter"},
+	{"name": "Dry wells", "desc": "fountains heal half"},
+	{"name": "Salt tax", "desc": "the merchant charges half again"},
+	{"name": "Blind altars", "desc": "altars offer two marks, not three"},
+	{"name": "Drowned elites", "desc": "every fight past the fourth room brings an elite"},
+	{"name": "The Ebb remembers", "desc": "the last boss is far stronger; the tide answers it"},
+]
 
 var state := RunState.new()
 var graph: RoomGraph
@@ -82,6 +94,10 @@ var challenge_label: Label
 ## Dev aids: `--first=challenge|vault|dive|elite|combat` and `--wet` shape the first room.
 var _dev_first: int = -1
 var _dev_wet: bool = false
+var _mend_salt: int = 0          # Salt Mend: salt counted toward the next point of health
+var _drown_t: float = 0.0        # Drowning: tick timer
+var _water_shield_t: float = 0.0  # Drowned Skin: seconds spent in water toward a shield
+var _second_wind_used: bool = false
 var _deep_tick: float = 0.0
 var _transitioning: bool = false
 var _echo_queue: Array = []  # echo ids still to be found in this biome, in depth order
@@ -117,6 +133,11 @@ func _ready() -> void:
 	$HUD.add_child(challenge_label)
 	altar_ui.chosen.connect(_on_tidemark_chosen)
 	Ledger.apply(player, self)
+	state.tier = clampi(int(SaveManager.data.get("tide_tier", 0)), 0, TIERS.size())
+	if state.tier >= 1:
+		state.tide.rate_mult *= 1.5
+	player.hurtbox.hit.connect(_on_player_hit)
+	player.hurtbox.shielded.connect(_on_player_shielded)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.pickup_collected.connect(_on_pickup)
@@ -160,10 +181,15 @@ func _process(delta: float) -> void:
 	EventBus.tide_changed.emit(state.tide.level)
 	_apply_water(delta)
 	_tick_challenge(delta)
+	_tick_marks(delta)
 
 
 func _apply_water(delta: float) -> void:
 	if player.dead:
+		return
+	if player.mods.dry_feet:
+		player.in_water = false
+		_deep_tick = 0.0
 		return
 	# The room's own water (a wet way, a dive, the challenge) counts, not just the run's tide.
 	player.in_water = room.is_flooded_at(player.global_position)
@@ -199,6 +225,8 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	_dev_wet = false
 	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
 	_whisper(b.whisper, 3.6)
+	if state.tier > 0 and index == 0:
+		_whisper("tide_%d" % state.tier, 7.5)
 
 
 ## The parts of a biome that do not depend on where in it you are: graph, templates, light, music.
@@ -297,7 +325,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 
 	match type:
 		RoomGraph.COMBAT:
-			_spawn_enemies(2 + state.depth / 2 + state.biome, false)
+			_spawn_enemies(2 + state.depth / 2 + state.biome, state.tier >= 7 and state.depth >= 4)
 		RoomGraph.ELITE:
 			_spawn_enemies(1 + state.depth / 3 + state.biome, true)
 		RoomGraph.FOUNTAIN:
@@ -340,7 +368,8 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			Audio.play(biome().boss_sfx)
 			_whisper(biome().boss_whisper, 2.8)
 
-	_show_room_label(biome().name, "%d / %d   %s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type], "  (wet)" if wet else ""])
+	_show_room_label(biome().name, "%d / %d   %s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
+		"  (wet)" if wet else "", "   spring tide %d" % state.tier if state.tier > 0 else ""])
 	EventBus.room_entered.emit(room)
 	var fade_tw := create_tween()
 	fade_tw.tween_property(fade, "color:a", 0.0, 0.25)
@@ -431,7 +460,8 @@ func _on_vault(p: Prop) -> void:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.SALT)
 	FX.burst(p.global_position, Color(0.95, 0.85, 0.5), 20, 90.0)
 	Audio.play("altar")
-	var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))
+	var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")),
+		state.depth_total, Tidemarks.families_of(state.tidemarks))
 	for id in offers:
 		Codex.discover("mark", id)
 	altar_ui.open(offers)
@@ -449,7 +479,8 @@ func _add_room_prop(kind: Prop.Kind, cell: Vector2i) -> Prop:
 			p.used.connect(func(_p):
 				# A dive's altar always has something from the Deep in it.
 				var blessed := "deep" if room_type == RoomGraph.DIVE else str(SaveManager.data.get("blessed_family", ""))
-				var offers := Tidemarks.roll(_rng, state.tidemarks, 3, blessed)
+				var offers := Tidemarks.roll(_rng, state.tidemarks, 2 if state.tier >= 6 else 3, blessed,
+					state.depth_total, Tidemarks.families_of(state.tidemarks))
 				for id in offers:
 					Codex.discover("mark", id)
 				altar_ui.open(offers))
@@ -552,10 +583,15 @@ func _spawn_echo_room() -> void:
 func _spawn_boss() -> void:
 	var spawns: Array = room.template.enemy_spawns
 	boss = _spawn(biome().boss, room.cell_to_world(spawns[0]))
+	_second_wind_used = false
+	var last := state.biome + 1 >= BIOMES.size()
+	if state.tier >= 3:
+		boss.call_deferred("_apply_stat_mult", 1.6 if (state.tier >= 8 and last) else 1.3, 1.0)
+		boss.health.changed.connect(_boss_second_wind)
 	boss.phase_changed.connect(func(_p):
 		_show_banner(biome().stir, 1.6, Color(0.95, 0.5, 0.45), 16)
 		Audio.play(biome().boss_sfx, 0.0, 2.0)
-		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + 0.35)
+		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + (0.7 if state.tier >= 8 else 0.35))
 	)
 	hud.set_boss(boss)
 	# The square's statues: dormant until the bell cracks.
@@ -564,6 +600,67 @@ func _spawn_boss() -> void:
 			var c: Enemy = _spawn(CITIZEN, room.cell_to_world(spawns[i]))
 			c.dormant = true
 			c.salt_drop = 1
+
+
+## Spring tide 3+: a boss rallies once when it is nearly done.
+func _boss_second_wind(current: int, max_hp: int) -> void:
+	if _second_wind_used or boss == null or not is_instance_valid(boss) or current <= 0 or current * 4 > max_hp:
+		return
+	_second_wind_used = true
+	boss.health.heal(int(max_hp * 0.2))
+	_show_banner("SECOND WIND", 1.4, Color(0.95, 0.6, 0.5), 14)
+	FX.ring(boss.global_position, Color(1.0, 0.5, 0.4), 2.0)
+	Audio.play(biome().boss_sfx, 0.0, -2.0)
+
+
+# --- tidemark hooks that live in the run ------------------------------------------------
+## Salt Purse: a hit costs salt instead of health while there is salt to pay with.
+func _on_player_hit(info: DamageInfo) -> void:
+	if player.dead or not player.mods.salt_shield or info.tags.has("tide") or state.salt < 5:
+		return
+	state.salt -= 5
+	EventBus.salt_changed.emit(state.salt)
+	player.health.heal(info.amount)
+	FX.text(player.global_position + Vector2(0, -18), "-5 SALT", Color(0.98, 0.9, 0.6))
+
+
+## Barnacle Plate: an absorbed hit bites back.
+func _on_player_shielded(info: DamageInfo) -> void:
+	var enemy := info.source as Enemy
+	if int(player.mods.thorns) <= 0 or enemy == null or not is_instance_valid(enemy):
+		return
+	var back := DamageInfo.make(int(player.mods.thorns), player, enemy.global_position - player.global_position, 90.0)
+	back.tags = PackedStringArray(["thorns"])
+	if enemy.hurtbox.receive(back):
+		EventBus.damage_dealt.emit(enemy, back)
+		FX.spark(enemy.global_position)
+
+
+## Slack Water, Drowning, Drowned Skin: things that happen every frame.
+func _tick_marks(delta: float) -> void:
+	if player.dead or room == null:
+		return
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if player.mods.slack and not enemies.is_empty():
+		state.tide.pause(0.05)
+	if int(player.mods.drown) > 0:
+		_drown_t += delta
+		if _drown_t >= 0.5:
+			_drown_t = 0.0
+			for e in enemies:
+				if e is Enemy and not e.flying and is_instance_valid(e) and room.is_deep_at(e.global_position):
+					var info := DamageInfo.make(maxi(1, int(player.mods.drown) / 2), null, Vector2.ZERO, 0.0)
+					info.tags = PackedStringArray(["tide"])
+					info.hitstop = 0.0
+					if e.hurtbox.receive(info):
+						EventBus.damage_dealt.emit(e, info)
+	if player.mods.water_shield and player.in_water:
+		_water_shield_t += delta
+		if _water_shield_t >= 4.0:
+			_water_shield_t = 0.0
+			if player.hurtbox.shield_count < 1:
+				player.hurtbox.shield_count = 1
+				FX.text(player.global_position + Vector2(0, -16), "SKIN", Color(0.6, 0.8, 1.0))
 
 
 ## The lantern's one-time lines, a moment after whatever they comment on.
@@ -595,6 +692,8 @@ func _spawn(scene: PackedScene, at: Vector2) -> Enemy:
 	var e: Enemy = scene.instantiate()
 	e.global_position = at
 	content.add_child(e)
+	if state.tier >= 2 and scene != biome().boss:
+		e.call_deferred("_apply_stat_mult", 1.25, 1.0)
 	Codex.discover("enemy", Codex.enemy_id(e))
 	return e
 
@@ -604,6 +703,10 @@ func _set_cleared() -> void:
 		return
 	room_cleared = true
 	state.rooms_cleared += 1
+	if int(player.mods.clear_heal) > 0 and not player.dead:
+		player.health.heal(int(player.mods.clear_heal))
+	if player.mods.tithe and state.rooms_cleared % 3 == 0 and not player.dead:
+		Pickup.spawn(content, player.global_position + Vector2(0, -12), Pickup.Kind.PEARL)
 	if room_type == RoomGraph.ECHO and cage and cage_echo != "":
 		# Doors wait: the cage opens first.
 		cage.unlock()
@@ -663,7 +766,7 @@ func _on_enemy_died(enemy: Node) -> void:
 			Pickup.spawn(content, pos, Pickup.Kind.KEY)
 		# Named elites (no affix) and bosses leave an echo shard behind.
 		if enemy.is_boss or (enemy.is_elite and enemy.affix == ""):
-			_give_shards(1, pos)
+			_give_shards(1 + (int(player.mods.shard_bonus) if enemy.is_boss else 0), pos)
 		if enemy == boss:
 			_on_boss_died()
 			return
@@ -730,6 +833,7 @@ func _on_door_entered(door: Door) -> void:
 func _on_tidemark_chosen(id: String) -> void:
 	state.tidemarks.append(id)
 	Tidemarks.apply(id, player, self)
+	player.mods.mark_count = state.tidemarks.size()
 	if state.still_water:
 		state.tide.pause(12.0)
 	var m := Tidemarks.get_mark(id)
@@ -740,14 +844,19 @@ func _on_tidemark_chosen(id: String) -> void:
 
 
 func _on_fountain(_p: Prop) -> void:
-	player.health.heal(player.health.max_hp if state.full_fountain else 35)
+	var amount := player.health.max_hp if state.full_fountain else 35
+	if state.tier >= 4:
+		amount = amount / 2
+	if int(player.mods.fountain_max) > 0:
+		player.health.max_hp += int(player.mods.fountain_max)
+	player.health.heal(amount)
 	if state.still_water:
 		state.tide.pause(12.0)
 	FX.burst(player.global_position, Color(0.5, 0.8, 0.95), 14, 60.0)
 
 
 func _on_chest(p: Prop) -> void:
-	for i in 3:
+	for i in 3 + int(player.mods.chest_bonus):
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
 	for i in 10:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.SALT)
@@ -757,6 +866,11 @@ func _on_pickup(kind: int, value: int) -> void:
 	if kind == Pickup.Kind.SALT:
 		state.salt += value
 		EventBus.salt_changed.emit(state.salt)
+		if player.mods.salt_mend:
+			_mend_salt += value
+			while _mend_salt >= 10:
+				_mend_salt -= 10
+				player.health.heal(1)
 	elif kind == Pickup.Kind.KEY:
 		state.keys += value
 		EventBus.keys_changed.emit(state.keys)
@@ -823,6 +937,7 @@ func _resume(d: Dictionary) -> void:
 		player._equip(wid)
 	for id in state.tidemarks:
 		Tidemarks.apply(id, player, self)
+	player.mods.mark_count = state.tidemarks.size()
 	# Tidemarks and the Ledger have just re-applied their bonuses; the saved totals win.
 	state.tide.rate_mult = float(d.get("tide_rate", state.tide.rate_mult))
 	player.max_dash = int(d.get("max_dash", player.max_dash))
@@ -873,7 +988,8 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 		_add_room_prop(int(pd.get("kind", 0)) as Prop.Kind, Vector2i(int(cell[0]), int(cell[1])))
 	room_cleared = true
 	room.open_doors()
-	_show_room_label(biome().name, "%d / %d   %s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type]])
+	_show_room_label(biome().name, "%d / %d   %s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
+		"   spring tide %d" % state.tier if state.tier > 0 else ""])
 	_show_banner("THE NIGHT GOES ON", 2.4, Color(0.8, 0.9, 1.0), 12)
 	EventBus.room_entered.emit(room)
 	var fade_tw := create_tween()
@@ -893,6 +1009,8 @@ func _win() -> void:
 	if state.ended:
 		return
 	state.victory = true
+	if state.tier > 0:
+		_give_shards(maxi(1, state.tier / 2), player.global_position + Vector2(0, -20))
 	_end_run()
 
 

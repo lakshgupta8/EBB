@@ -10,6 +10,9 @@ var _rows: Array = []
 var _pearls_label: Label
 var _hint: Label
 var _cursor: UI.Cursor
+var _tide_btn: Button
+var _tide_label: Label
+var _tide_desc: Label
 
 
 func _ready() -> void:
@@ -49,6 +52,9 @@ func _input(event: InputEvent) -> void:
 	var nav := UI.nav(event)
 	if i >= 0 and i < Ledger.UPGRADES.size():
 		_buy(i)
+		get_viewport().set_input_as_handled()
+	elif _tide_btn and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_T:
+		_cycle_tide()
 		get_viewport().set_input_as_handled()
 	elif nav != "" and _cursor.handle(nav):
 		get_viewport().set_input_as_handled()
@@ -111,6 +117,22 @@ func _build() -> void:
 		b.pressed.connect(_buy.bind(i))
 		box.add_child(b)
 		_rows.append([a, d, c, b])
+	# The spring tide gauge, once the Ebb has fallen: a harder night for more pearls.
+	_tide_btn = null
+	if int(SaveManager.data.get("tide_unlocked", 0)) > 0:
+		_tide_btn = UI.row_button()
+		var th := HBoxContainer.new()
+		th.add_theme_constant_override("separation", 8)
+		_tide_label = UI.label("", 8, Color(0.75, 0.9, 1.0))
+		_tide_label.custom_minimum_size = Vector2(130, 0)
+		_tide_desc = UI.flex_label("")
+		th.add_child(_tide_label)
+		th.add_child(_tide_desc)
+		_tide_btn.add_child(th)
+		UI.fill(th, 6.0, 4.0)
+		_tide_btn.custom_minimum_size = Vector2(420, 20)
+		_tide_btn.pressed.connect(_cycle_tide)
+		box.add_child(_tide_btn)
 	box.add_child(UI.spacer(4))
 	_pearls_label = UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_pearls_label)
@@ -120,12 +142,32 @@ func _build() -> void:
 	leave.pressed.connect(close)
 	box.add_child(leave)
 	_root = center
-	_cursor = UI.Cursor.new(_rows.map(func(r): return r[3]))
+	var buttons: Array = _rows.map(func(r): return r[3])
+	if _tide_btn:
+		buttons.append(_tide_btn)
+	_cursor = UI.Cursor.new(buttons)
+	_refresh()
+
+
+## Turn the gauge: calm, then each unlocked tier, then round to calm again.
+func _cycle_tide() -> void:
+	var unlocked := int(SaveManager.data.get("tide_unlocked", 0))
+	var t := (int(SaveManager.data.get("tide_tier", 0)) + 1) % (unlocked + 1)
+	SaveManager.data["tide_tier"] = t
+	SaveManager.save_profile()
+	Audio.play("ui", 0.0, -8.0)
+	_hint.text = "calm water tonight" if t == 0 else "spring tide %d: %s" % [t, str(Run.TIERS[t - 1].name).to_lower()]
+	_hint.modulate = Color(0.75, 0.9, 1.0)
 	_refresh()
 
 
 func _refresh() -> void:
 	_pearls_label.text = "you have %d pearls" % int(SaveManager.data.pearls)
+	if _tide_btn:
+		var t := int(SaveManager.data.get("tide_tier", 0))
+		var unlocked := int(SaveManager.data.get("tide_unlocked", 0))
+		_tide_label.text = "[T] Spring tide  %d / %d" % [t, unlocked]
+		_tide_desc.text = "calm water; turn it for a harder night and more pearls" if t == 0 else "%s: %s" % [Run.TIERS[t - 1].name, Run.TIERS[t - 1].desc]
 	for i in _rows.size():
 		var u: Dictionary = Ledger.UPGRADES[i]
 		var t := Ledger.tier(u.id)

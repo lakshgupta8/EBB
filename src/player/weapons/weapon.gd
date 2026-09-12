@@ -146,6 +146,14 @@ func ammo_text() -> String:
 func arm_mult(player: Player, heavy: bool, lunge: bool, crit: bool, ranged: bool = false) -> float:
 	var m: Dictionary = player.mods
 	var mult := float(m.damage) * (1.0 + player.rally)
+	if m.first_strike and player.first_ready:
+		player.first_ready = false
+		mult *= 3.0
+		FX.text(player.global_position + Vector2(0, -16), "FIRST BLOOD", Color(1.0, 0.6, 0.5))
+	if float(m.low_damage) > 0.0 and player.health and player.health.hp * 2 < player.health.max_hp:
+		mult *= 1.0 + float(m.low_damage)
+	if float(m.per_mark) > 0.0:
+		mult *= 1.0 + float(m.per_mark) * float(m.mark_count)
 	if ranged:
 		mult *= float(m.ranged_mult)
 	if heavy:

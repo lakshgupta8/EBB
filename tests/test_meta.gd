@@ -8,13 +8,66 @@ func test_tidemark_ids_unique_and_coloured() -> void:
 		assert_true(not seen.has(m.id), "duplicate id " + m.id)
 		seen[m.id] = true
 		assert_true(Tidemarks.FAMILY_COLOR.has(m.family), m.id + " has a known family")
-	assert_true(Tidemarks.ALL.size() >= 40, "M4: at least 40 tidemarks")
+	assert_true(Tidemarks.ALL.size() >= 72, "M6d: 72 tidemarks")
 	for fam in Tidemarks.FAMILY_COLOR:
 		var n := 0
 		for m in Tidemarks.ALL:
 			if m.family == fam:
 				n += 1
-		assert_true(n >= 10, fam + " has at least 10 marks")
+		assert_true(n >= (6 if fam == "echo" else 10), fam + " has enough marks")
+	for m in Tidemarks.ALL:
+		assert_true(str(m.get("rarity", "")) in ["", "echo", "duo", "legendary"], m.id + " rarity")
+
+
+func test_rare_marks_need_their_conditions() -> void:
+	SaveManager.use_path("user://test_marks.json")
+	SaveManager.wipe()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	for i in 40:
+		for id in Tidemarks.roll(rng, [], 3):
+			assert_eq(Tidemarks.rarity_of(id), "", "a fresh profile at the top sees only plain marks: " + id)
+	assert_true(not Tidemarks.eligible(Tidemarks.get_mark("echo_bram")), "no Bram, no Smith's Temper")
+	assert_true(not Tidemarks.eligible(Tidemarks.get_mark("duo_edge"), 0, ["salt"]), "a duo needs both families")
+	assert_true(Tidemarks.eligible(Tidemarks.get_mark("duo_edge"), 0, ["salt", "current"]))
+	assert_true(not Tidemarks.eligible(Tidemarks.get_mark("leg_coat"), 4) and Tidemarks.eligible(Tidemarks.get_mark("leg_coat"), 5), "legendaries from depth 5")
+	SaveManager.set_flag("echo_bram")
+	SaveManager.data["echoes"] = 3
+	assert_true(Tidemarks.eligible(Tidemarks.get_mark("echo_bram")) and Tidemarks.eligible(Tidemarks.get_mark("echo_chorus")))
+	assert_eq(Tidemarks.families_of(["salt_edge", "brine_hp", "echo_bram"]), ["salt", "brine"], "echo marks count for no family")
+	var seen := {}
+	for i in 80:
+		for id in Tidemarks.roll(rng, ["salt_edge", "brine_hp", "current_dash", "deep_slow"], 3, "", 9, ["salt", "brine", "current", "deep"]):
+			seen[Tidemarks.rarity_of(id)] = true
+	for r in ["echo", "duo", "legendary"]:
+		assert_true(seen.has(r), "deep in the night with everything in hand, %s marks turn up" % r)
+	SaveManager.wipe()
+	SaveManager.use_path(SaveManager.PATH)
+
+
+func test_spring_tide_unlocks_and_pays() -> void:
+	assert_eq(Run.TIERS.size(), 8, "eight tiers")
+	SaveManager.use_path("user://test_tide.json")
+	SaveManager.wipe()
+	SaveManager.record_run({"pearls": 0, "kills": 0, "depth": 0, "victory": false, "tier": 3})
+	assert_eq(int(SaveManager.data.tide_unlocked), 0, "a loss opens nothing")
+	SaveManager.record_run({"pearls": 0, "kills": 0, "depth": 0, "victory": true, "tier": 0})
+	assert_eq(int(SaveManager.data.tide_unlocked), 1, "the first win opens tier 1")
+	SaveManager.record_run({"pearls": 0, "kills": 0, "depth": 0, "victory": true, "tier": 0})
+	assert_eq(int(SaveManager.data.tide_unlocked), 1, "winning calm again opens nothing more")
+	SaveManager.record_run({"pearls": 0, "kills": 0, "depth": 0, "victory": true, "tier": 1})
+	assert_eq(int(SaveManager.data.tide_unlocked), 2)
+	SaveManager.record_run({"pearls": 0, "kills": 0, "depth": 0, "victory": true, "tier": 8})
+	assert_eq(int(SaveManager.data.tide_unlocked), 8, "capped at eight")
+	var s := RunState.new()
+	s.salt = 10
+	s.pearls = 3
+	s.victory = true
+	s.tier = 2
+	assert_eq(s.result().pearls, 17, "victory pearls 13 at +30%")
+	assert_eq(s.result().tier, 2)
+	SaveManager.wipe()
+	SaveManager.use_path(SaveManager.PATH)
 
 
 func test_tidemark_roll_excludes_owned() -> void:

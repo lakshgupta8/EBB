@@ -142,8 +142,14 @@ The title screen, enemy bodies that squash and fade, and the keeper falling when
 are the M5 polish pass; every sprite is still drawn by `tools/gen_sprites*.py`.
 
 ## Progression
-- Tidemarks: 42 per-run boons in four families (salt = offence, brine = defence, current = mobility,
-  deep = weird). Defined in `src/tidemarks/tidemarks.gd`; they write into `Player.mods`.
+- Tidemarks: 72 per-run boons in five families (salt = offence, brine = defence, current = mobility,
+  deep = weird, echo = what the rescued lend you). Echo marks need their person freed, duos need a
+  mark from each of two families in hand, legendaries only turn up past the fifth room. Defined in
+  `src/tidemarks/tidemarks.gd`; they write into `Player.mods`.
+- Spring tides (M6d): once the Ebb has fallen, Orla's Ledger grows a gauge ([T] or click). Eight
+  tiers, each keeping the ones below: faster tide, crusted enemies, second-wind bosses, dry wells,
+  salt tax, blind altars, drowned elites, the Ebb remembers. A win at tier n opens n+1. Pearls pay
+  +15% per tier and a win pays echo shards. Bot: `tests/sim_run.tscn -- --tier=N`.
 - Ledger: permanent tiers bought from Orla with pearls. Defined in `src/hub/ledger.gd`.
 - Save: `user://save.json` (pearls, ledger, story flags, weapons forged, blessing, chart).
 

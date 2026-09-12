@@ -47,6 +47,14 @@ const WHISPERS := {
 	"wreck": "A keeper's boat, upturned, with something living under it. The lantern pulls toward it like a compass needle.",
 	"harbour": "The ships are all still here. Nobody left. Something on the quay made sure of that.",
 	"challenge": "No door. The sea wants to see what you do when there is no door.",
+	"tide_1": "The water is coming in faster tonight. You asked it to.",
+	"tide_2": "Everything down here is thicker-skinned tonight. The sea has been feeding them.",
+	"tide_3": "The big ones will not go down the first time. Nothing here ever did.",
+	"tide_4": "The fountains are brackish. What is sweet in this place, the sea took first.",
+	"tide_5": "Even the merchant is afraid tonight. He has raised his prices.",
+	"tide_6": "The altars are quieter. They offer less because they are keeping more.",
+	"tide_7": "The drowned have sent their captains. Every room has one now.",
+	"tide_8": "It remembers you. It has been remembering you all this time, and now it is awake for it.",
 	"dive": "Under the water the lantern burns brighter, not dimmer. It was made for down here.",
 	"chainmother": "The crane was asked to hold the ships. Everything in Saltmere does exactly what it was asked, forever.",
 	"death": "The water closed over you and the lantern pulled, hard, upward. You are at the foot of the tower and the tide is out again. That is what the lantern is for.",
@@ -141,6 +149,8 @@ static func orla() -> String:
 		return "Maren says you are standing at the bottom of it. You are also standing in front of me. Do not explain it. I would rather not know."
 	if ebb_broken():
 		return "The sea came back in last night. All the way in, gentle as anything. Maren is standing on my rock, Tam. Go and talk to her."
+	if int(SaveManager.data.get("tide_unlocked", 0)) > 0 and int(SaveManager.data.get("tide_tier", 0)) == 0:
+		return "You beat it once. The sea noticed. There is a gauge in the Ledger now; turn it if you want the tide to come in harder. I would not. But I am old."
 	if wins() > 0:
 		return "The bell is quiet. I heard it stop from here. Whatever is under the streets heard it too."
 	if echo("cartographer"):

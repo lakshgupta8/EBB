@@ -33,6 +33,7 @@ var _shot_pending: int = -1
 var _shot_name: String = ""
 var _rest_at: int = -1     # --rest-at=N: rest at the first cleared room past this depth, resume, play on
 var _shot_clear: int = -1  # --shot-clear=N: screenshot a moment after the room at this depth is cleared
+var _tier: int = 0         # --tier=N: play at that spring tide
 var _resume_ok: bool = true
 
 
@@ -54,6 +55,7 @@ func _ready() -> void:
 		elif a == "--shot-boss": _shot_boss = true
 		elif a.begins_with("--rest-at="): _rest_at = int(a.trim_prefix("--rest-at="))
 		elif a.begins_with("--shot-clear="): _shot_clear = int(a.trim_prefix("--shot-clear="))
+		elif a.begins_with("--tier="): _tier = int(a.trim_prefix("--tier="))
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
@@ -63,6 +65,8 @@ func _ready() -> void:
 		if a == "--fresh":
 			SaveManager.wipe()
 			SaveManager.data["weapon"] = _weapon
+	SaveManager.data["tide_tier"] = _tier
+	SaveManager.data["tide_unlocked"] = maxi(int(SaveManager.data.get("tide_unlocked", 0)), _tier)
 	Game.run_seed = seed_val
 	run = RUN.instantiate()
 	EventBus.room_entered.connect(func(r): _rooms_seen.append(RoomGraph.NAMES[run.room_type] + ":" + r.template.name))

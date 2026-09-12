@@ -35,6 +35,8 @@ static func _defaults() -> Dictionary:
 		"shards": 0,              # echo shards: from rescues, named elites and bosses; buy aspects
 		"aspects": {},            # weapon id -> aspect id in use ("" or missing = plain)
 		"aspects_owned": [],      # aspect ids bought from Bram
+		"tide_tier": 0,           # spring tide chosen at the Ledger (0 = calm)
+		"tide_unlocked": 0,       # highest tier that may be chosen; a win at tier n opens n+1
 	}
 
 
@@ -84,6 +86,9 @@ func record_run(result: Dictionary) -> void:
 	data["best_depth"] = maxi(int(data["best_depth"]), int(result.get("depth", 0)))
 	if result.get("victory", false):
 		data["wins"] += 1
+		var t := int(result.get("tier", 0))
+		if t >= int(data.get("tide_unlocked", 0)):
+			data["tide_unlocked"] = mini(8, t + 1)
 	data["suspended"] = {}  # a finished night cannot also be waiting at the shore
 	save_profile()
 

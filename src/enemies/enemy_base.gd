@@ -103,6 +103,10 @@ func _refresh_mult() -> void:
 		m *= 1.3 + (float(player.mods.lit_bonus) if player else 0.0)
 	if player and player.mods.execute and health.hp * 4 <= health.max_hp:
 		m *= 2.0
+	if player and stunned > 0.0 and float(player.mods.stun_bonus) > 0.0:
+		m *= 1.0 + float(player.mods.stun_bonus)
+	if player and float(player.mods.wet_bonus) > 0.0 and room and room.is_flooded_at(global_position):
+		m *= 1.0 + float(player.mods.wet_bonus)
 	hurtbox.damage_mult = m * armour
 
 
@@ -290,6 +294,9 @@ func play(anim: StringName) -> void:
 func _physics_process(delta: float) -> void:
 	state_t += delta
 	_tick_bleed(delta)
+	# Stun and water bonuses come and go every frame; the multiplier is cheap to redo.
+	if player and (stunned > 0.0 or float(player.mods.wet_bonus) > 0.0):
+		_refresh_mult()
 	if _pull_timer > 0.0:
 		_pull_timer -= delta
 		var t := 1.0 - maxf(_pull_timer, 0.0) / _pull_total
