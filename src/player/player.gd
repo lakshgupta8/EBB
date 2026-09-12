@@ -41,6 +41,13 @@ var mods: Dictionary = {
 	"ranged_mult": 1.0, "lit_bonus": 0.0, "execute": false, "rally_per": 0.0,
 	"regen": false, "low_guard": false, "dash_grace": DASH_GRACE, "free_water_dash": false,
 	"panic_speed": 1.0, "riptide_heal": 0, "pearl_bonus": 0, "water_kill_heal": 0,
+	# M6d additions
+	"first_strike": false, "stun_bonus": 0.0, "wet_bonus": 0.0, "flare_mult": 1.0,
+	"salt_shield": false, "clear_heal": 0, "fountain_max": 0, "salt_mend": false,
+	"kill_dash": false, "wet_stride": false, "hurt_dash": false, "haste_per": 0.0,
+	"shard_bonus": 0, "tithe": false, "drown": 0, "dry_feet": false, "chest_bonus": 0,
+	"low_damage": 0.0, "per_mark": 0.0, "mark_count": 0, "thorns": 0, "water_shield": false,
+	"armour": 1.0, "slack": false,
 }
 
 var max_dash: int = DASH_CHARGES
@@ -55,6 +62,8 @@ var last_hit_tags: PackedStringArray = []
 var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
 var parry_t: float = 0.0    # the bell's toll: nothing lands while > 0
+var first_ready: bool = true  # First Blood: the room's first swing is still to come
+var _dash_wet: bool = false   # the dash began in water (Otter)
 var attack_held: bool = false
 var aim_dist: float = 64.0  # distance to the cursor (bots: a fixed reach)
 var rally: float = 0.0      # Rally tidemark: damage bonus built up in this room
@@ -98,6 +107,7 @@ func _ready() -> void:
 	hurtbox.dodged.connect(_on_dodged)
 	hurtbox.shielded.connect(_on_shielded)
 	EventBus.room_cleared.connect(_on_room_cleared)
+	EventBus.room_entered.connect(func(_r): first_ready = true)
 	health.died.connect(_on_died)
 	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
 	EventBus.enemy_died.connect(_on_enemy_died)
@@ -211,13 +221,14 @@ func _physics_process(delta: float) -> void:
 		velocity = (target - global_position) / delta
 	elif is_dashing():
 		_dash_timer -= delta
-		velocity = _dash_dir * (DASH_DISTANCE * float(mods.dash_dist) / DASH_TIME)
+		velocity = _dash_dir * (DASH_DISTANCE * float(mods.dash_dist) * (2.0 if (mods.wet_stride and _dash_wet) else 1.0) / DASH_TIME)
 		if _dash_timer <= 0.0 and _wake.active:
 			_wake.deactivate()
 	else:
 		var speed: float = SPEED * float(mods.speed) * (float(mods.water_speed) if in_water else 1.0) * weapon.move_mult()
 		if health.hp * 2 < health.max_hp:
 			speed *= float(mods.panic_speed)
+		speed *= 1.0 + float(mods.haste_per) * float(max_dash - dash_charges)
 		velocity = input * speed + _knockback + _lunge_vel
 		if input != Vector2.ZERO:
 			facing = input.normalized()
@@ -237,6 +248,7 @@ func _physics_process(delta: float) -> void:
 	var taken := 0.7 if (mods.dash_guard and _since_dash < 1.0) else 1.0
 	if mods.low_guard and health.hp * 10 < health.max_hp * 3:
 		taken *= 0.75
+	taken *= float(mods.armour)
 	hurtbox.damage_mult = taken
 	_tick_regen(delta)
 	collision_mask = MASK_WORLD if ghosting else MASK_WORLD_AND_ENEMIES
@@ -251,6 +263,7 @@ func _start_dash(dir: Vector2) -> void:
 	weapon.on_dash(dir)
 	_dash_timer = DASH_TIME
 	_dash_dir = dir
+	_dash_wet = in_water
 	weapon.cancel()
 	FX.burst(global_position + Vector2(0, 4), Color(0.9, 0.85, 0.7, 0.8), 6, 30.0)
 	Audio.play("splash" if in_water else "dash", 0.12, -4.0)
@@ -363,11 +376,12 @@ func flare() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not (e is Enemy) or e.global_position.distance_to(global_position) > FLARE_RADIUS:
 			continue
-		var info := DamageInfo.make(int(FLARE_DAMAGE * mods.damage), self, e.global_position - global_position, 120.0)
+		var info := DamageInfo.make(int(FLARE_DAMAGE * mods.damage * float(mods.flare_mult)), self, e.global_position - global_position, 120.0)
 		info.tags = PackedStringArray(["flare", "lantern"])
 		info.hitstop = 0.0
 		e.hurtbox.receive(info)
-		e.stunned = maxf(e.stunned, FLARE_STUN if not e.is_boss else FLARE_STUN * 0.5)
+		var stun := FLARE_STUN * (1.5 if float(mods.flare_mult) > 1.0 else 1.0)
+		e.stunned = maxf(e.stunned, stun if not e.is_boss else stun * 0.5)
 		FX.spark(e.global_position)
 
 
@@ -379,6 +393,8 @@ func _on_enemy_died(_e: Node) -> void:
 		health.heal(int(mods.water_kill_heal))
 	if float(mods.rally_per) > 0.0:
 		rally = minf(rally + float(mods.rally_per), float(mods.rally_per) * 10.0)
+	if mods.kill_dash and dash_charges < max_dash:
+		dash_charges += 1
 
 
 # --- damage --------------------------------------------------------------------------
@@ -409,6 +425,8 @@ func _on_hurt(info: DamageInfo) -> void:
 	EventBus.request_hitstop.emit(0.08)
 	FX.burst(global_position, Color(0.9, 0.3, 0.3), 10, 70.0)
 	Audio.play("hurt", 0.1)
+	if mods.hurt_dash and dash_charges < max_dash:
+		dash_charges += 1
 
 
 func _on_shielded(_info: DamageInfo) -> void:

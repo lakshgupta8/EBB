@@ -74,6 +74,7 @@ const FAMILY_LORE := {
 	"brine": "Brine: what the drowned are pickled in. It keeps.",
 	"current": "Current: the pull under the surface. Move with it.",
 	"deep": "Deep: things the bottom of the sea knows and should not.",
+	"echo": "Echo: what the people you brought back remember, lent to the living.",
 }
 
 const TABS := ["enemy", "mark", "people", "place"]

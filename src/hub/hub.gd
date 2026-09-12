@@ -225,9 +225,10 @@ func _refresh_info() -> void:
 	var wname := Weapon.name_of(Game.weapon_id()).to_lower()
 	if asp != "":
 		wname = str(Weapon.aspect_entry(asp).get("name", wname)).to_lower()
-	info.text = "MARROW ROCK   %s\npearls %d   shards %d   runs %d   best %d   wins %d   echoes %d%s" % [
+	info.text = "MARROW ROCK   %s\npearls %d   shards %d   runs %d   best %d   wins %d   echoes %d%s%s" % [
 		wname, s.pearls, int(s.get("shards", 0)), s.runs, s.best_depth, s.wins, echoes,
-		"   endings %d/3" % endings if endings > 0 else ""]
+		"   endings %d/3" % endings if endings > 0 else "",
+		"   spring tide %d" % int(s.get("tide_tier", 0)) if int(s.get("tide_tier", 0)) > 0 else ""]
 	if Game.has_suspended():
 		var r: Dictionary = s.suspended
 		var b: Dictionary = Run.BIOMES[clampi(int(r.get("biome", 0)), 0, Run.BIOMES.size() - 1)]

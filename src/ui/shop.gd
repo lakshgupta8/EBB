@@ -73,8 +73,14 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Spring tide 5+: the merchant charges half again.
+func _price(i: int) -> int:
+	var mult := 1.5 if (_run and _run.state.tier >= 5) else 1.0
+	return int(ceil(ITEMS[i].price * mult))
+
+
 func can_buy(i: int) -> bool:
-	return _stock[i] > 0 and _run.state.salt >= ITEMS[i].price
+	return _stock[i] > 0 and _run.state.salt >= _price(i)
 
 
 func buy(i: int) -> bool:
@@ -84,7 +90,7 @@ func buy(i: int) -> bool:
 			_hint.modulate = Color(1.0, 0.6, 0.55)
 		return false
 	var it: Dictionary = ITEMS[i]
-	_run.state.salt -= it.price
+	_run.state.salt -= _price(i)
 	_stock[i] -= 1
 	EventBus.salt_changed.emit(_run.state.salt)
 	var p: Player = _run.player
@@ -134,7 +140,7 @@ func _build() -> void:
 		var a := UI.label("[%d] %s" % [i + 1, it.name], 8)
 		a.custom_minimum_size = Vector2(110, 0)
 		var d := UI.flex_label(it.desc)
-		var c := UI.label("%d salt" % it.price, 8, Color(0.98, 0.9, 0.6), HORIZONTAL_ALIGNMENT_RIGHT)
+		var c := UI.label("%d salt" % _price(i), 8, Color(0.98, 0.9, 0.6), HORIZONTAL_ALIGNMENT_RIGHT)
 		c.custom_minimum_size = Vector2(50, 0)
 		h.add_child(a)
 		h.add_child(d)
