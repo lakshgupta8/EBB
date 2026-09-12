@@ -325,6 +325,7 @@ func _physics_process(delta: float) -> void:
 		velocity += _knockback
 	_knockback = _knockback.lerp(Vector2.ZERO, 12.0 * delta)
 	move_and_slide()
+	_stay_inside()
 	_wall_slam()
 	if cracked_t > 0.0:
 		cracked_t -= delta
@@ -369,6 +370,26 @@ func _tick_bleed(delta: float) -> void:
 		if health.take(info, true):
 			FX.burst(global_position + Vector2(0, -6), Color(0.8, 0.2, 0.2), 3, 25.0)
 			EventBus.damage_dealt.emit(self, info)
+
+
+## A body wedged into a wall or shoved out of the room can never be reached, and the
+## room never clears. Put it back on open floor. (Two bodies spawned on one point once
+## walked each other through a wall this way; flyers cross walls on purpose.)
+func _stay_inside() -> void:
+	if room == null:
+		return
+	var size := room.size_px()
+	var outside := global_position.x < 0.0 or global_position.y < 0.0 or global_position.x >= size.x or global_position.y >= size.y
+	if not outside:
+		if flying:
+			return
+		var c := room.world_to_cell(global_position)
+		if not room.template.is_solid(c.x, c.y):
+			return
+	global_position = room.clamp_inside(global_position)
+	velocity = Vector2.ZERO
+	_knockback = Vector2.ZERO
+	_wall_slam_armed = false
 
 
 ## Knocked hard into a wall: bonus damage and a thud.

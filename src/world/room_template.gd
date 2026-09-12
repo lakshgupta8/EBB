@@ -102,3 +102,68 @@ func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 
 func marker_cells(ch: String) -> Array:
 	return markers.get(ch, [])
+
+
+## Open cells you can walk to from the player's spawn. Doors and marker cells (props)
+## are not floor.
+func reachable_cells() -> Dictionary:
+	var seen := {}
+	if player_spawn.x < 0:
+		return seen
+	var stack: Array = [player_spawn]
+	seen[player_spawn] = true
+	while stack.size() > 0:
+		var c: Vector2i = stack.pop_back()
+		for off: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = c + off
+			if seen.has(n) or is_solid(n.x, n.y) or char_at(n.x, n.y) == "D":
+				continue
+			seen[n] = true
+			stack.append(n)
+	for ch in markers:
+		for cell in markers[ch]:
+			seen.erase(cell)
+	return seen
+
+
+## One cell per body: the `e` markers first (shuffled with `rng`), then the open floor
+## around them, at least two tiles from any body already placed and three from the
+## player. Two bodies spawned on one point jam each other, and the physics recovery
+## can walk the pair straight through a wall and out of the room.
+func spawn_cells(count: int, rng: RandomNumberGenerator = null) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	if enemy_spawns.is_empty():
+		return out
+	var bases: Array[Vector2i] = enemy_spawns.duplicate()
+	if rng != null:
+		for i in range(bases.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var tmp := bases[i]
+			bases[i] = bases[j]
+			bases[j] = tmp
+	var open := reachable_cells()
+	for i in count:
+		out.append(_free_cell_near(bases[i % bases.size()], out, open))
+	return out
+
+
+func _free_cell_near(base: Vector2i, taken: Array[Vector2i], open: Dictionary) -> Vector2i:
+	for gap: int in [2, 1]:
+		for r in 6:
+			for dy in range(-r, r + 1):
+				for dx in range(-r, r + 1):
+					if maxi(absi(dx), absi(dy)) != r:
+						continue
+					var c := base + Vector2i(dx, dy)
+					if not (open.has(c) or (r == 0 and not is_solid(c.x, c.y))):
+						continue
+					if r > 0 and maxi(absi(c.x - player_spawn.x), absi(c.y - player_spawn.y)) < 3:
+						continue
+					var clear := true
+					for t in taken:
+						if maxi(absi(c.x - t.x), absi(c.y - t.y)) < gap:
+							clear = false
+							break
+					if clear:
+						return c
+	return base

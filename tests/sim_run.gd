@@ -143,6 +143,9 @@ func _nearest_enemy() -> Enemy:
 	var best_d := INF
 	for e in get_tree().get_nodes_in_group("enemies"):
 		var d: float = e.global_position.distance_to(player.global_position)
+		# Something you cannot walk to comes last, so the fight goes on while it is stuck.
+		if run.room.nav_path(player.global_position, e.global_position).is_empty():
+			d += 10000.0
 		if d < best_d:
 			best_d = d
 			best = e
@@ -389,8 +392,10 @@ func _walk_to(pos: Vector2, tolerance: float) -> void:
 				goal = path[2]
 		elif path.size() == 1:
 			goal = pos
-		# Final approach: centre precisely so the body clears the door jambs.
-		_press_dir(goal - player.global_position, 0.12 if goal == pos else 0.35)
+		# Press each axis the body is off by more than a couple of pixels: the lanes are
+		# two tiles wide and the body nearly one, so an off-centre push into a gap just
+		# grinds on the corner (seed 202, flats_08).
+		_press_axes(goal - player.global_position)
 	# Unstick: if we have not moved for a while, dash toward the goal.
 	if player.global_position.distance_to(_last_pos) < 0.5:
 		_stuck_t += 1
@@ -400,6 +405,13 @@ func _walk_to(pos: Vector2, tolerance: float) -> void:
 	else:
 		_stuck_t = 0
 	_last_pos = player.global_position
+
+
+func _press_axes(d: Vector2, slack: float = 2.0) -> void:
+	if d.x > slack: Input.action_press("move_right")
+	elif d.x < -slack: Input.action_press("move_left")
+	if d.y > slack: Input.action_press("move_down")
+	elif d.y < -slack: Input.action_press("move_up")
 
 
 func _press_dir(dir: Vector2, threshold: float = 0.35) -> void:

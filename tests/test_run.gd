@@ -242,3 +242,46 @@ func test_templates_are_connected() -> void:
 					if seen.has(d + off):
 						ok = true
 				assert_true(ok, "%s door %s is reachable" % [f, d])
+
+
+func test_spawn_cells_never_stack() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 202
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
+		for f in DirAccess.get_files_at(dir):
+			var t := RoomTemplate.load_file(dir + f)
+			if t.enemy_spawns.is_empty():
+				continue
+			var open := t.reachable_cells()
+			for m in t.enemy_spawns:
+				assert_true(open.has(m), "%s: marker %s is on reachable floor" % [f, m])
+			# A deep streets room asks for more bodies than any template marks (seed 202
+			# put eight on streets_07's four, and a stacked pair fell out of the world).
+			var cells := t.spawn_cells(12, rng)
+			assert_eq(cells.size(), 12, f)
+			for i in cells.size():
+				var c: Vector2i = cells[i]
+				assert_true(open.has(c), "%s: body %d at %s is on reachable floor" % [f, i, c])
+				assert_true(maxi(absi(c.x - t.player_spawn.x), absi(c.y - t.player_spawn.y)) >= 2, "%s: body %d at %s is off the player" % [f, i, c])
+				for j in i:
+					assert_true(cells[j] != c, "%s: bodies %d and %d share %s" % [f, j, i, c])
+			# With no more bodies than markers, the markers themselves are used.
+			var few := t.spawn_cells(t.enemy_spawns.size(), rng)
+			for m in t.enemy_spawns:
+				assert_true(m in few, "%s: marker %s is used when there is room" % [f, m])
+
+
+func test_clamp_inside_finds_floor() -> void:
+	var room := Room.new()
+	room.build(RoomTemplate.load_file("res://data/rooms/biome2/streets_07.txt"))
+	var t := room.template
+	# Out of the world above the top wall (where the stacked pair ended up), inside a
+	# building block, and on the outer wall next to a door.
+	for p in [Vector2(88, -252), Vector2(72, 48), Vector2(400, 900), Vector2(312, 4), Vector2(-40, 200)]:
+		var q: Vector2 = room.clamp_inside(p)
+		var c := room.world_to_cell(q)
+		assert_true(not t.is_solid(c.x, c.y), "%s lands on floor, not %s" % [p, c])
+		assert_true(t.char_at(c.x, c.y) != "D", "%s does not land in a door" % p)
+		assert_true(q.x > 0.0 and q.y > 0.0 and q.x < room.size_px().x and q.y < room.size_px().y, "%s lands inside" % p)
+	assert_eq(room.clamp_inside(Vector2(310, 178)), Vector2(310, 178), "open floor is left alone")
+	room.free()
