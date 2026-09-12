@@ -17,7 +17,6 @@ var wet: bool = false  # the flooded way at the fork
 
 var _icon: Sprite2D
 var _label: Label
-var _blurb: Label
 var _glow: Sprite2D
 var _frame: Sprite2D
 var _room: Room
@@ -73,12 +72,6 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	_label.modulate = Color(1, 1, 1, 0.0)
 	_label.z_index = 4
 	add_child(_label)
-	_blurb = UI.label(RoomGraph.BLURB.get(p_type, "") if p_type >= 0 else "the way down", 8, Color(0.75, 0.8, 0.9), HORIZONTAL_ALIGNMENT_CENTER)
-	_blurb.size = Vector2(140, 10)
-	_blurb.position = _icon.position + Vector2(-70, 22) + Vector2(_interior.x * 50.0, 0)
-	_blurb.modulate = Color(1, 1, 1, 0.0)
-	_blurb.z_index = 4
-	add_child(_blurb)
 	body_entered.connect(_on_body_entered)
 
 
@@ -114,7 +107,6 @@ func open() -> void:
 	_frame.texture = _atlas(FRAME, 1, 32)
 	_icon.modulate = Color(0.65, 0.85, 1.0) if wet else Color.WHITE
 	_label.modulate = Color(1, 1, 1, 1)
-	_blurb.modulate = Color(1, 1, 1, 1)
 	# Pop, then bob forever; glow breathes.
 	_icon.scale = Vector2(1.6, 1.6)
 	var pop := create_tween()

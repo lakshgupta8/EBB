@@ -300,7 +300,7 @@ func whisper(text: String, who: String = "the lantern") -> void:
 func _run_whispers() -> void:
 	_whisper_busy = true
 	while _whispers.size() > 0:
-		while card_showing or _hint_busy:
+		while card_showing:
 			await get_tree().create_timer(0.2, false).timeout
 		var w: Dictionary = _whispers.pop_front()
 		var text: String = "\"%s\"" % w.text
@@ -331,10 +331,9 @@ func _run_whispers() -> void:
 # --- hints -------------------------------------------------------------------------
 func _build_hint() -> void:
 	_hint_box = _pill(Color(INK, 0.74), WARM)
-	_hint_box.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_hint_box.offset_left = 128
-	_hint_box.offset_right = -128
-	_hint_box.offset_top = 232
+	_hint_box.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_hint_box.position = Vector2(8, 80)
+	_hint_box.size = Vector2(236, 0)
 	_hint_box.visible = false
 	_root.add_child(_hint_box)
 	_hint_text = UI.label("", 8, WARM)
@@ -364,7 +363,6 @@ func _run_hints() -> void:
 		_hint_text.text = HINTS[key]
 		_hint_box.modulate = Color(1, 1, 1, 0)
 		_hint_box.visible = true
-		Audio.play("ui", 0.0, -10.0)
 		var tw := create_tween()
 		tw.tween_property(_hint_box, "modulate:a", 1.0, 0.25)
 		await tw.finished

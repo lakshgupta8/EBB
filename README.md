@@ -94,15 +94,14 @@ Everything a run says goes through `src/ui/announcer.gd`, in four voices that ne
 - **Toasts** (under the cards, small): what just happened. A mark taken (name and what it does), a
   journal page, the doors opening, the water crossing a mark on the staff.
 - **Whispers** (bottom strip): the lantern's lines, typed out. Lore only.
-- **Hints** (warm pill, mid-screen): plain words about how a thing works, the first time you meet
+- **Hints** (small warm pill under the HUD, top left): plain words about how a thing works, the first time you meet
   it, once per profile: moving, the goal, salt, pearls, the tide, altars, the merchant, fountains,
   forks, cages, challenges, vaults, dives, bosses, elites, low health, the flare, a riptide, keys.
   Off in Settings if you know it all.
 
 The HUD names its bars (hp, dash, special, lantern, marks, salt, pearls), the tide staff says in a
 word how high the water is (out, pools, flooded, deep) and flashes when it crosses a mark, the edge
-of the screen pulses blue with it and beats red when you are nearly out, and door signboards carry a
-second line saying what the room is for. Tidemark cards say what they do in a sentence.
+of the screen pulses blue with it and beats red when you are nearly out. Tidemark cards say what they do in a sentence.
 
 ## Story (M5)
 - **The lantern whispers.** One-time lines during a run, at the first night, the first cage, each
