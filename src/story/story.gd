@@ -41,6 +41,22 @@ const ENDINGS := {
 }
 const ENDING_ORDER := ["keep", "break", "walk"]
 
+## What Bram says when you are carrying a weapon that remembers someone.
+const ASPECT_LINES := {
+	"gaff_maren": "That is her hook, near enough. She wound it back the same way and she never once let go early.",
+	"gaff_drowned": "The old crews hooked themselves to the hull in a blow. That is all this is. It will not lose you.",
+	"net_wren": "Wren blessed a knife for me once. I laughed at her. It has not gone blunt since.",
+	"net_cart": "He drew the net as a map: every knot a street. Throw it and see how much it covers now.",
+	"harpoon_bosun": "The bosun kept five in the rack and counted them twice. Two more than anyone needs, he said, is one enough.",
+	"harpoon_chain": "That is her chain in the line. Whatever you tie to it will feel what the ships felt.",
+	"lantern_orla": "Orla's oil. She has been burning it in that window since before you were born, waiting for the wrong boat.",
+	"lantern_fen": "The boy polished the glass for a week. It throws further than anything I have made. Do not tell him that.",
+	"bell_keeper": "The keepers rang before they went down, so the village knew. Ring it and see what stops to listen.",
+	"bell_sunken": "That bell sat on the seabed a long time. Everything it says now, it says to the floor as well.",
+	"line_long": "More line than you need is the only kind worth having. Ask any fisher who has run out.",
+	"line_lead": "A proper lead sinker. It goes where you put it and it stays there, and so does what it lands on.",
+}
+
 ## The lantern's lines: shown once each, as a quiet banner, at the moment they fit.
 const WHISPERS := {
 	"first_night": "Keep the tide, Orla said. The lantern is warm in your hand. Lanterns are not warm.",
@@ -57,6 +73,10 @@ const WHISPERS := {
 	"tide_8": "It remembers you. It has been remembering you all this time, and now it is awake for it.",
 	"dive": "Under the water the lantern burns brighter, not dimmer. It was made for down here.",
 	"chainmother": "The crane was asked to hold the ships. Everything in Saltmere does exactly what it was asked, forever.",
+	"harbour_ships": "Every hull is still tied up and every rope is still good. They did not fail to leave. They were not let.",
+	"harbour_hands": "The hands are still on the quay, still holding the lines. Nobody told them the sailing was cancelled.",
+	"netted": "He is wearing the net he drowned in. Down here nothing is ever taken off you; it is only kept on.",
+	"choir": "That note has not stopped since the night it started. They are only louder now that the water is out of the way.",
 	"death": "The water closed over you and the lantern pulled, hard, upward. You are at the foot of the tower and the tide is out again. That is what the lantern is for.",
 	"taken": "The tide took you and the lantern brought you back, and half your salt came with you. The sea is patient, not cruel.",
 	"cage": "The cage is not iron. It is a promise, kept too well. Open it and the promise fails a little.",
@@ -198,6 +218,9 @@ static func bram() -> String:
 	var all_forged: bool = SaveManager.data.get("weapons", []).size() >= Weapon.ALL.size()
 	if all_forged:
 		return "That is everything I know how to make. The rest is in how you hold it."
+	var aspect := Weapon.aspect_of(str(SaveManager.data.get("weapon", "gaff")))
+	if aspect != "" and ASPECT_LINES.has(aspect):
+		return str(ASPECT_LINES[aspect])
 	if int(SaveManager.data.get("shards", 0)) >= Weapon.ASPECT_COST and SaveManager.data.get("aspects_owned", []).is_empty():
 		return "Those shards. That is what the sea leaves of a person. Give me enough and a blade can remember them."
 	if runs() > 6:

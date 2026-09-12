@@ -78,7 +78,7 @@ func test_templates_parse() -> void:
 
 func _check_templates(dir: String) -> void:
 	var files := DirAccess.get_files_at(dir)
-	assert_true(files.size() >= 8, "at least 8 templates in " + dir)
+	assert_true(files.size() >= 18, "at least 18 templates in " + dir)
 	for f in files:
 		var t := RoomTemplate.load_file(dir + f)
 		assert_eq(t.width, 40, f + " width")
@@ -111,8 +111,9 @@ func test_biome_table() -> void:
 		ids[b.id] = true
 		assert_true(DirAccess.dir_exists_absolute(b.dir), "rooms for " + str(b.id))
 		for k in ["name", "length", "theme", "boss", "boss_name", "stir", "echoes", "intro", "music", "place",
-				"whisper", "boss_whisper", "boss_sfx", "tint", "won"]:
+				"whisper", "boss_whisper", "boss_sfx", "tint", "won", "wet", "elite", "elite_name", "boss_music"]:
 			assert_true(b.has(k), "%s has %s" % [b.id, k])
+		assert_true(b.elite is PackedScene and str(b.elite_name) != "", "a named elite for " + str(b.id))
 		assert_true(Story.WHISPERS.has(b.whisper) and Story.WHISPERS.has(b.boss_whisper), "whispers for " + str(b.id))
 		var found := false
 		for p in Codex.PLACES:

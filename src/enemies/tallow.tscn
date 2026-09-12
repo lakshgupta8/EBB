@@ -1,0 +1,47 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/enemies/tallow.gd" id="1_script"]
+[ext_resource type="Script" path="res://src/combat/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://src/combat/hurtbox.gd" id="3_hurtbox"]
+[ext_resource type="Texture2D" path="res://assets/sprites/shadow.png" id="4_shadow"]
+
+[sub_resource type="CircleShape2D" id="body_shape"]
+radius = 6.0
+
+[sub_resource type="RectangleShape2D" id="hurt_shape"]
+size = Vector2(16, 16)
+
+[node name="Tallow" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_script")
+display_name = "Tallow"
+speed = 34.0
+knockback_resist = 0.6
+death_color = Color(0.86, 0.8, 0.66, 1)
+salt_drop = 4
+
+[node name="Shadow" type="Sprite2D" parent="."]
+position = Vector2(0, 2)
+scale = Vector2(1.2, 1)
+texture = ExtResource("4_shadow")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -8)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("body_shape")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_hp = 18
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 0
+script = ExtResource("3_hurtbox")
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -7)
+shape = SubResource("hurt_shape")

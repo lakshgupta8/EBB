@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://beexinix1p5ls"
+
+[deps]
+
+files=["res://tools/balance.tier.translation", "res://tools/balance.seconds.translation", "res://tools/balance.biome.translation", "res://tools/balance.depth.translation", "res://tools/balance.cleared.translation", "res://tools/balance.kills.translation", "res://tools/balance.salt.translation", "res://tools/balance.pearls.translation", "res://tools/balance.hp.translation", "res://tools/balance.ended.translation", "res://tools/balance.victory.translation"]
+
+source_file="res://tools/balance.csv"
+dest_files=["res://tools/balance.tier.translation", "res://tools/balance.seconds.translation", "res://tools/balance.biome.translation", "res://tools/balance.depth.translation", "res://tools/balance.cleared.translation", "res://tools/balance.kills.translation", "res://tools/balance.salt.translation", "res://tools/balance.pearls.translation", "res://tools/balance.hp.translation", "res://tools/balance.ended.translation", "res://tools/balance.victory.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -131,6 +131,18 @@ func test_hurtbox_shield_absorbs_one_hit() -> void:
 
 ## The gaff's heavy sweep only exists once the charge completes. Let go early and the
 ## hook just drops back: no state change into HEAVY, no hitbox, no swing.
+## Every enemy scene must load, wire its sprite and name itself; the M6 additions too.
+func test_new_enemy_scenes() -> void:
+	for f in ["tidewisp", "netted", "choir", "tallow", "mooring", "barnacle", "deckhand", "chainmother"]:
+		var scene: PackedScene = load("res://src/enemies/%s.tscn" % f)
+		assert_true(scene != null, f + " loads")
+		var e = scene.instantiate()
+		assert_true(e is Enemy, f + " is an Enemy")
+		assert_true(e.display_name != "Enemy", f + " is named")
+		assert_true(e.get_node_or_null("Health") != null and e.get_node_or_null("Hurtbox") != null, f + " is wired")
+		e.free()
+
+
 func test_aspects_table() -> void:
 	var seen := {}
 	for w in Weapon.ALL:

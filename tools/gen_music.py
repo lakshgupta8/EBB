@@ -23,6 +23,8 @@ TRACKS = {
     "music_boss": (87.31, "phrygian_dom", 112, 16, [0, 1, 0, 6], 0.7, True),
     # Later tracks go at the end: the seed is the position, so older loops stay byte-identical.
     "music_harbour": (65.41, "dorian", 62, 8, [0, 3, 4, 5], 0.4, False),
+    # The deeper half of the night gets its own boss pulse: slower, lower, meaner.
+    "music_deep": (61.74, "harmonic", 96, 16, [0, 6, 1, 5], 0.55, True),
 }
 
 
