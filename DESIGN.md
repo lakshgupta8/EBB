@@ -162,7 +162,7 @@ Bosses: The Wreck (a ship that fights), The Bell of Saltmere, The Ebb (final).
    the truth -> endings become available. Codex fills with every enemy, tidemark, and room discovered.
    The hub itself visibly changes: more lanterns lit, the Drowned build a small dock.
 
-A run takes 20-30 minutes. First win expected around run 8-15. Full content 15-25 hours.
+A run takes 20-30 minutes. First win expected around run 8-15. Full content 15-25 hours (M0-M5); section 8 plans the expansion to 40-60 hours.
 
 ---
 
@@ -225,6 +225,9 @@ Physics: an Area2D grid per height band toggles as tide crosses thresholds; bodi
 | M3 | Progression | Hub scene, Orla + Ledger, pearls, save/load, altar + 12 tidemarks, shop | Runs feel different and the meta loop pulls you back (done) |
 | M4 | Content | Biomes 2-3 (Drowned Streets, Deep Hall), 11 enemies, 3 bosses (Wreck, Bell, Ebb), 4 weapons, 42 tidemarks, echo rescues (Bram, Wren, Cartographer, Maren) with hub functions | Game is winnable (done: the Ebb falls and Maren comes home) |
 | M5 | Story and polish | Full dialog, endings, codex, audio, real art pass, settings, gamepad, Windows export .exe | Shippable build (done: dialog for all six NPCs, lantern whispers, three endings, codex, five music loops, title screen, death animations, settings, gamepad, `tools/export.ps1`) |
+| M6 | Spring Tides | Sunken Harbour biome, forks, challenge/vault/dive rooms, elite affixes, +8 enemies, +2 weapons, 12 aspects, 72 tidemarks, eight-tier tide ladder | A bot run takes 20 min and the ladder holds eight wins (see section 8) |
+| M7 | The Village | Four NPCs, seven echoes, journals, affinity dialog, quests and contracts, epilogues, 25-node Ledger, Keeper's Log | Something new in the hub after every one of the first 30 runs |
+| M8 | Modes, options, tools | Daily Night, trials, seeds and history, rebinding, assists, save slots, balance harness, room editor | A fresh player can rebind, pick a slot and play a daily; balance table green |
 
 Each milestone ends with you playtesting and giving notes; nothing is "done" until it plays right.
 
@@ -237,3 +240,105 @@ Each milestone ends with you playtesting and giving notes; nothing is "done" unt
 3. Art: pixel art 16px, placeholder-first. If you'd rather hand-drawn or asset-pack from day one, say so.
 4. Difficulty: no difficulty select at launch; the Ledger and tidemarks are the difficulty curve.
 5. Name: EBB is a working title.
+
+---
+
+## 8. Expansion plan: the Long Night (M6-M8)
+
+Goal: about **6 hours** of content for a skilled player who wastes no runs (today: about 1 hour),
+40-60 hours for a normal player. Three modules, each shippable on its own, each touching story,
+progression, gameplay, tools and options. Order: M6, then M7, then M8.
+
+### Where the hours come from (skilled player, no wasted runs)
+| Content | Today | After M6-M8 |
+|---|---|---|
+| One winning run | 12 min | 22 min (four biomes, 10/9/11/9 rooms, forks, challenge rooms) |
+| Three endings | 1 h (4-5 runs) | 2 h (5-6 runs: seven echoes to bring home, nine journals) |
+| Spring Tides ladder | - | 2.5 h (eight tiers, one win each, tiers cannot be skipped) |
+| Weapon aspects, contracts, quests, Keeper's Log | - | 1 h of runs that do not overlap the above, 20 min in the hub |
+| **Total** | **1 h** | **5.5-6.5 h** |
+
+### M6 - Spring Tides (the run)
+**Gameplay**
+- New biome between the Flats and the Streets: **The Sunken Harbour** (9 rooms + boss). Where
+  Saltmere's ships tried to leave. Hulls, chains, cranes, a drydock that floods in stages.
+  Enemies: Mooring (chain lash, pulls you into water), Barnacle Swarm (splits), Deckhand (shield
+  with a parry window), Pilot Gull. Elite: The Bosun (rallies). Boss: **The Chainmother**.
+- Biome lengths 8/9/7 become 10/9/11/9 (Flats, Harbour, Streets, Hall).
+- **Forks**: at mid-depth every biome offers a wet path (already flooded: swimmers, shortcuts,
+  better loot) or a dry path. Door icons say which.
+- Templates 14/13/11 become 20 per biome plus six flood variants each (same room, different heights).
+- New room types: **Challenge** (survive 45 s of rising tide, no doors, chest), **Vault** (locked
+  treasure, key dropped by the biome's named elite), **Dive** (deep water only, Deep family guaranteed).
+- Elite affixes rolled at spawn: Salt-crusted (armour), Lit (fast), Anchored (pulls), Hollow (splits).
+  One named elite per biome with a unique drop.
+- Enemies +8 (four Harbour, one new per other biome, Swimmer variants).
+- Weapons +2: **Keeper's Bell** (heavy hammer: slam waves, parry) and **Line & Sinker** (long whip:
+  hook pulls, spin). **Aspects**: every weapon gets two aspects (Bram, paid in echo shards) that
+  change the combo: 12 aspects.
+- Tidemarks 42 become 72: five more per family, an **Echo** family (8, unlocked by NPCs), six duos
+  (two families present), four legendaries, three **active** tidemarks on Q.
+- **Spring Tides**: after the first win Orla offers a tide gauge before each run. Eight tiers, each a
+  modifier (faster tide, crusted enemies, second-wind bosses, no fountains, salt tax, blind altars,
+  drowned elites, the Ebb remembers). Tier n opens by winning at n-1. Rewards: pearl multiplier,
+  shards, a whisper per tier, and at tier eight a fourth epilogue, **Riptide**.
+- Bosses gain an extra phase from tier three.
+
+**Story**: four Harbour whispers, the Chainmother explains why the ships never left, Bram has a line for every aspect.
+**Progression**: echo shards (section 3) built for real: from cages, named elites and tide wins.
+**Tools**: fork markers in gen_rooms, gen_sprites_m6 (Harbour tiles, 8 enemies, 2 weapons, aspect recolours), Harbour loop and a second boss loop in gen_music, a balance bot per weapon per tier writing `tools/balance.csv`.
+**Options**: tier selector, door preview shows the path kind.
+**Tests**: connectivity for 80 templates, fork graph, affix stacking, aspect combos, tier gating, bot wins at tier 0 and survives tier 4.
+**Done when**: a bot run takes 20 minutes and the ladder holds eight wins.
+
+### M7 - The Village (story and progression)
+**Story**
+- Four new NPCs: **Nessa the Fisher** (contracts, fish consumables), **Idris the Harbourmaster** (the
+  dock: launch from biome two at a cost, keel modifiers, cosmetics), **The Choir** (the Streets elite,
+  spared instead of killed: hymns, the hub music changes), **Keeper Aldous** (an old keeper's echo from
+  the Hall: the keeper line, journals, aspects).
+- Echoes 4 become 7: Bram, **Pell the Diver** (Harbour: Dive keys), Wren, the Cartographer, the Choir,
+  Aldous, Maren. Break needs five home, Walk needs all seven.
+- **Keeper journals**: nine pages hidden in vaults and dives, each a fragment of layer 3. All nine
+  unlock Aldous's last dialog and the hint for Walk out.
+- **Affinity**: gifts (salt-glass from dives, shells from Fen's chain) raise three levels per NPC.
+  About 30 short dialog chains that remember what you did, one reward per level.
+- **Quest log**: Fen's shell chain (six quests) and Nessa's contracts (about 30, three offered per run:
+  kill X with Y, reach a depth untouched, finish under a tide level).
+- **Epilogues**: every ending changes the hub for good (Keep: Maren's lamp lit, the keeper at the
+  window; Break: the lower village flooded, a dock built by the Drowned; Walk: empty ruins, still sea).
+  Every NPC has post-ending lines. "Another night" continues in that state and opens the ladder.
+
+**Progression**
+- Ledger 6 nodes become 25 in five branches (Keeper, Sea, Purse, Lantern, Memory) with prerequisites.
+  Memory adds keep-one-tidemark, altar reroll, a second Q slot. Costs sized so completion is about
+  12 wins of pearls for a skilled player and 40 for a normal one.
+- **Keeper's Log**: 40 milestones with pearl, shard and cosmetic rewards (lantern colours, coats).
+- Codex tabs for tidemarks, weapons, journals and contracts; enemy entries gain a second paragraph after 20 kills.
+**Gameplay**: consumables from Nessa (heal, shield, tide pause), the hub visibly grows (lanterns, dock, Choir singing).
+**Tools**: dialog moves to `data/dialog/*.json` with a lint test (length, duplicates), NPC portrait generator, contract table with a test that the bot can complete every contract.
+**Options**: dialog speed, skip seen dialog, journal hints on or off.
+**Tests**: affinity math, quest state machine, ledger prerequisites, epilogue state, save migration.
+**Done when**: the hub has something new to do after every one of the first 30 runs.
+
+### M8 - Modes, options, tools
+**Modes**
+- **Daily Night**: one seeded attempt per date, local scoreboard with the bot's ghost time as a bar.
+- Custom seed and a run history (last 50: weapon, depth, tidemarks, time, cause of end).
+- **Keeper's Trial** (four bosses on one rising tide), **Neap Night** (no tidemarks, big pearl reward),
+  **Riptide** (tide at three times speed, counts for the ladder).
+- Ghost of the last run on the same seed (optional, faint).
+**Options**
+- Full key and pad rebinding; assist sliders (tide speed, damage taken, aim assist) with a pearl
+  multiplier so they are a trade rather than a cheat; colourblind water tints, HUD scale, text size,
+  reduced motion; all strings in `data/strings.json` so a translation is a file.
+- Three save slots on the title; replay a run from its seed and input log for bug reports.
+**Tools**
+- `tools/balance.ps1`: every weapon at every tier with the bot, reporting win rate, time and damage
+  taken; fails if the tier-0 win rate drops under 80%.
+- In-game room editor behind a dev flag: edit the ASCII template live, hot-reload, save back.
+- `tools/content.ps1`: lists missing sprites, sounds and dialog against the content tables.
+- Music: four more loops (Harbour, epilogues, title variation), stingers for rescues and boss phases, ambience layers per biome.
+**Story**: Idris frames the modes ("the sea keeps time"); Log entries for each mode.
+**Tests**: rebinding round trip, seed determinism (same seed, same graph and drops), mode gating, slot migration.
+**Done when**: a fresh player can rebind, pick a slot and play a daily, and the balance table is green.
