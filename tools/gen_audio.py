@@ -364,12 +364,36 @@ def build_sfx_m4b():
     save("wave", x, 0.6)
 
 
+def build_sfx_m6():
+    # chain: a short rattle of links
+    n = int(SR * 0.3)
+    x = np.zeros(n)
+    rng = np.random.default_rng(6)
+    for i in range(9):
+        s0 = int(SR * (0.022 * i + rng.uniform(0, 0.008)))
+        ln = int(SR * 0.05)
+        if s0 + ln >= n:
+            break
+        seg = bandpass(noise(ln), 1800 + rng.uniform(-400, 400), 6000, 2) * env(ln, 0.001, 0.03)
+        seg += 0.4 * np.sin(2 * np.pi * (2400 + 200 * i) * t(0.05)) * env(ln, 0.001, 0.02)
+        x[s0:s0 + ln] += seg
+    save("chain", x, 0.5)
+
+    # creak: timber under strain
+    n = int(SR * 0.6)
+    tt = t(0.6)
+    x = np.sin(2 * np.pi * (110 + 40 * np.sin(2 * np.pi * 3 * tt)) * tt + 3 * np.sin(2 * np.pi * 37 * tt)) * env(n, 0.05, 0.4, 0.3, 0.2)
+    x += 0.3 * lowpass(noise(n), 600, 2) * env(n, 0.05, 0.5)
+    save("creak", x, 0.5)
+
+
 def main():
     build_sea()
     build_gull()
     build_sfx()
     build_sfx_m4()
     build_sfx_m4b()
+    build_sfx_m6()
     import gen_music
     gen_music.build_music()
     print("wrote audio to", OUT)

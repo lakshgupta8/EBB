@@ -7,6 +7,7 @@ const WATER_ANIM_PERIOD := 0.55
 const DECOR := preload("res://assets/sprites/decor.png")
 const DECOR_STREETS := preload("res://assets/sprites/decor2.png")
 const DECOR_DEEP := preload("res://assets/sprites/decor3.png")
+const DECOR_HARBOUR := preload("res://assets/sprites/decor4.png")
 const DECOR_COUNT := 8
 const DECOR_PUDDLE := 4
 const TINTS := [Color(1, 1, 1), Color(0.97, 0.99, 1.0), Color(1.0, 0.97, 0.93), Color(0.95, 0.97, 0.95)]
@@ -72,7 +73,11 @@ func _scatter_decor(decor_seed: int) -> void:
 			kind = DECOR_PUDDLE
 		var s := Sprite2D.new()
 		var at := AtlasTexture.new()
-		at.atlas = DECOR_DEEP if theme == Tiles.Look.DEEP else (DECOR_STREETS if theme == Tiles.Look.STREETS else DECOR)
+		at.atlas = DECOR
+		match theme:
+			Tiles.Look.DEEP: at.atlas = DECOR_DEEP
+			Tiles.Look.STREETS: at.atlas = DECOR_STREETS
+			Tiles.Look.HARBOUR: at.atlas = DECOR_HARBOUR
 		at.region = Rect2(kind * 16, 0, 16, 16)
 		s.texture = at
 		s.position = cell_to_world(cell) + Vector2(rng.randi_range(-3, 3), rng.randi_range(-3, 3))

@@ -21,6 +21,8 @@ TRACKS = {
     "music_streets": (82.41, "phrygian", 72, 8, [0, 1, 5, 0], 0.5, False),
     "music_hall": (69.30, "harmonic", 54, 8, [0, 3, 5, 6], 0.3, False),
     "music_boss": (87.31, "phrygian_dom", 112, 16, [0, 1, 0, 6], 0.7, True),
+    # Later tracks go at the end: the seed is the position, so older loops stay byte-identical.
+    "music_harbour": (65.41, "dorian", 62, 8, [0, 3, 4, 5], 0.4, False),
 }
 
 

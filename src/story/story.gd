@@ -45,6 +45,8 @@ const ENDING_ORDER := ["keep", "break", "walk"]
 const WHISPERS := {
 	"first_night": "Keep the tide, Orla said. The lantern is warm in your hand. Lanterns are not warm.",
 	"wreck": "A keeper's boat, upturned, with something living under it. The lantern pulls toward it like a compass needle.",
+	"harbour": "The ships are all still here. Nobody left. Something on the quay made sure of that.",
+	"chainmother": "The crane was asked to hold the ships. Everything in Saltmere does exactly what it was asked, forever.",
 	"death": "The water closed over you and the lantern pulled, hard, upward. You are at the foot of the tower and the tide is out again. That is what the lantern is for.",
 	"taken": "The tide took you and the lantern brought you back, and half your salt came with you. The sea is patient, not cruel.",
 	"cage": "The cage is not iron. It is a promise, kept too well. Open it and the promise fails a little.",

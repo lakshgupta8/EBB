@@ -17,16 +17,34 @@ const SHADE := preload("res://src/enemies/keeper_shade.tscn")
 const ANCHOR := preload("res://src/enemies/anchor.tscn")
 const MAW := preload("res://src/enemies/deep_maw.tscn")
 const EBB := preload("res://src/enemies/ebb.tscn")
+const MOORING := preload("res://src/enemies/mooring.tscn")
+const BARNACLE := preload("res://src/enemies/barnacle.tscn")
+const DECKHAND := preload("res://src/enemies/deckhand.tscn")
+const CHAINMOTHER := preload("res://src/enemies/chainmother.tscn")
 
+## The night, top to bottom. Everything that differs between biomes lives here, so nothing
+## else counts indices: id, rooms directory, length (rooms before the boss), look, boss,
+## echoes to find, music, codex place, the lantern's whispers, the boss's sound, the night's tint.
 const BIOMES := [
-	{"name": "THE FLATS", "dir": "res://data/rooms/biome1/", "length": 8, "theme": Tiles.Look.FLATS,
-		"boss": WRECK, "boss_name": "THE WRECK", "stir": "THE WRECK STIRS", "echoes": ["bram"],
+	{"id": "flats", "name": "THE FLATS", "dir": "res://data/rooms/biome1/", "length": 10, "theme": Tiles.Look.FLATS,
+		"boss": WRECK, "boss_name": "THE WRECK", "stir": "THE WRECK STIRS", "won": "THE WRECK IS BROKEN",
+		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
+		"boss_sfx": "roar", "tint": Color(0.6, 0.68, 0.86),
 		"intro": "The tide has gone out. Saltmere waits."},
-	{"name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 9, "theme": Tiles.Look.STREETS,
-		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "echoes": ["wren", "cartographer"],
+	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
+		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
+		"echoes": [], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
+		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82),
+		"intro": "The harbour. Every ship that tried to leave is still tied up."},
+	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
+		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "won": "THE BELL IS SILENCED",
+		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
+		"boss_sfx": "bell", "tint": Color(0.56, 0.6, 0.8),
 		"intro": "Slack water. The streets of Saltmere, and something still ringing."},
-	{"name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 7, "theme": Tiles.Look.DEEP,
-		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "echoes": [],
+	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
+		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
+		"echoes": [], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
+		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84),
 		"intro": "The Deep Hall. Every keeper before you is standing in it."},
 ]
 ## The people you can bring back, and what they say when the cage opens.
@@ -36,7 +54,6 @@ const ECHOES := {
 	"cartographer": {"name": "The Cartographer", "line": "I mapped every street before the water came. Streets do not move. The water does."},
 	"maren": {"name": "Maren", "line": "Tam. It let go. Take me up to the light."},
 }
-const NIGHT_TINT := [Color(0.6, 0.68, 0.86), Color(0.56, 0.6, 0.8), Color(0.56, 0.62, 0.84)]
 const SLACK_WATER := 0.25  # tide level after a boss falls
 
 var state := RunState.new()
@@ -155,7 +172,7 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 		return
 	_enter_room(RoomGraph.COMBAT)
 	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
-	_whisper(["first_night", "streets", "hall"][mini(index, 2)], 3.6)
+	_whisper(b.whisper, 3.6)
 
 
 ## The parts of a biome that do not depend on where in it you are: graph, templates, light, music.
@@ -164,12 +181,14 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 	_echo_depths = echo_depths
 	graph = RoomGraph.new(state.seed + index * 7919, b.length, echo_depths, int(SaveManager.data.get("charted_room", -1)))
 	_load_templates(b.dir)
+	# Rooms and the boss add up to the same rise whatever the biome's length.
+	state.tide.room_step = 1.44 / float(b.length + 1)
 	var night := get_node_or_null("Night") as CanvasModulate
 	if night:
-		night.color = NIGHT_TINT[mini(index, NIGHT_TINT.size() - 1)]
-	Audio.gulls_enabled = index == 0
-	Audio.music(["music_flats", "music_streets", "music_hall"][mini(index, 2)], -11.0)
-	Codex.discover("place", ["flats", "streets", "hall"][mini(index, 2)])
+		night.color = b.tint
+	Audio.gulls_enabled = b.id in ["flats", "harbour"]
+	Audio.music(b.music, -11.0)
+	Codex.discover("place", b.place)
 
 
 ## Past a boss: the tide slackens, the next biome begins.
@@ -273,8 +292,8 @@ func _enter_room(type: int) -> void:
 			Audio.music("music_boss", -9.0)
 			_show_banner(biome().boss_name, 2.2, Color(0.95, 0.75, 0.6), 20)
 			EventBus.request_shake.emit(0.6)
-			Audio.play("roar" if state.biome == 0 else "bell")
-			_whisper(["wreck", "bell", "ebb"][mini(state.biome, 2)], 2.8)
+			Audio.play(biome().boss_sfx)
+			_whisper(biome().boss_whisper, 2.8)
 
 	_show_room_label(biome().name, "%d / %d   %s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type]])
 	EventBus.room_entered.emit(room)
@@ -322,17 +341,29 @@ func _show_room_label(title: String, sub: String) -> void:
 
 func _enemy_scene() -> PackedScene:
 	var r := _rng.randf()
-	if state.biome == 0:
-		if state.depth < 2:
-			return SHELLBACK if r < 0.6 else GULL
-		return SHELLBACK if r < 0.4 else (GULL if r < 0.7 else CRAB)
-	if state.biome >= 2:
-		# The hall: the old keepers, the dock hands, and the mouths in the floor.
-		if r < 0.45:
-			return SHADE
-		if r < 0.75:
-			return ANCHOR
-		return MAW
+	match biome().id:
+		"flats":
+			if state.depth < 2:
+				return SHELLBACK if r < 0.6 else GULL
+			return SHELLBACK if r < 0.4 else (GULL if r < 0.7 else CRAB)
+		"harbour":
+			# Hands and crews first; the barnacles come off the hulls once you are in deep.
+			if state.depth < 2:
+				return MOORING if r < 0.5 else (GULL if r < 0.75 else DECKHAND)
+			if r < 0.3:
+				return MOORING
+			if r < 0.55:
+				return DECKHAND
+			if r < 0.85:
+				return BARNACLE
+			return GULL
+		"hall":
+			# The hall: the old keepers, the dock hands, and the mouths in the floor.
+			if r < 0.45:
+				return SHADE
+			if r < 0.75:
+				return ANCHOR
+			return MAW
 	# The streets: statues everywhere, a lamplighter or a ringer among them, and the
 	# drowned themselves once there is water to come out of.
 	var wet := state.tide.level > 0.5
@@ -351,13 +382,17 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 	for i in count:
 		var cell: Vector2i = spawns[i % spawns.size()]
 		var scene := _enemy_scene()
-		if with_elite and i == 0 and state.biome >= 2:
+		if with_elite and i == 0 and biome().id == "hall":
 			scene = SHADE
+		elif with_elite and i == 0 and biome().id == "harbour":
+			scene = DECKHAND
 		var e: Enemy = _spawn(scene, room.cell_to_world(cell))
 		if with_elite and i == 0:
 			e.make_elite()
-			if state.biome >= 2:
+			if biome().id == "hall":
 				e.display_name = "Echo of Maren"
+			elif biome().id == "harbour":
+				e.display_name = "The Bosun"
 				e.pearl_drop += 1
 
 
@@ -377,12 +412,12 @@ func _spawn_boss() -> void:
 	boss = _spawn(biome().boss, room.cell_to_world(spawns[0]))
 	boss.phase_changed.connect(func(_p):
 		_show_banner(biome().stir, 1.6, Color(0.95, 0.5, 0.45), 16)
-		Audio.play("roar" if state.biome == 0 else "bell", 0.0, 2.0)
+		Audio.play(biome().boss_sfx, 0.0, 2.0)
 		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + 0.35)
 	)
 	hud.set_boss(boss)
 	# The square's statues: dormant until the bell cracks.
-	if state.biome == 1:
+	if biome().id == "streets":
 		for i in range(1, spawns.size()):
 			var c: Enemy = _spawn(CITIZEN, room.cell_to_world(spawns[i]))
 			c.dormant = true

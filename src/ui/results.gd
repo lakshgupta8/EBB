@@ -28,7 +28,7 @@ func show_result(r: Dictionary) -> void:
 	var title_text: String
 	var title_color: Color
 	if r.victory:
-		title_text = ["THE WRECK IS BROKEN", "THE BELL IS SILENCED", "THE EBB LETS GO"][clampi(int(r.get("biome", 0)), 0, 2)]
+		title_text = str(Run.BIOMES[clampi(int(r.get("biome", 0)), 0, Run.BIOMES.size() - 1)].won)
 		title_color = Color(0.95, 0.85, 0.6)
 	elif r.taken:
 		title_text = "TAKEN BY THE TIDE"
@@ -38,7 +38,7 @@ func show_result(r: Dictionary) -> void:
 		title_color = Color(0.85, 0.5, 0.5)
 	box.add_child(UI.label(title_text, 16, title_color, HORIZONTAL_ALIGNMENT_CENTER))
 	var line := ""
-	if r.victory and int(r.get("biome", 0)) >= 2:
+	if r.victory and int(r.get("biome", 0)) >= Run.BIOMES.size() - 1:
 		line = "Maren is standing on the rock. Go up and talk to her."
 	elif not r.victory:
 		line = Story.whisper("taken" if r.taken else "death")
