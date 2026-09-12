@@ -5,8 +5,13 @@ extends Enemy
 
 const SHEET := preload("res://assets/sprites/tidewisp.png")
 const SHOT := preload("res://assets/sprites/wisp_shot.png")
+## It watches the whole room: a thing that keeps its distance must never be able to sit
+## out of notice in a corner, or a room with one left in it can never be cleared.
+const NOTICE := 800.0
 const KEEP_DISTANCE := 120.0
 const FLEE_DISTANCE := 70.0
+## Backing off is slower than a keeper walks, so it can always be run down.
+const FLEE_SPEED := 1.3
 const CAST_EVERY := 2.2
 const WINDUP := 0.5
 const SHOT_SPEED := 130.0
@@ -50,7 +55,7 @@ func _tick(delta: float) -> void:
 	match state:
 		&"idle":
 			velocity = Vector2.ZERO
-			if d != Vector2.ZERO and d.length() < 260.0:
+			if d != Vector2.ZERO and d.length() < NOTICE:
 				change_state(&"drift")
 		&"drift":
 			if d == Vector2.ZERO:
@@ -75,7 +80,7 @@ func _tick(delta: float) -> void:
 			if d == Vector2.ZERO:
 				change_state(&"idle")
 				return
-			velocity = -d.normalized() * speed * 1.8
+			velocity = -d.normalized() * speed * FLEE_SPEED
 			face(d.x)
 			if state_t >= FLEE_TIME or d.length() > KEEP_DISTANCE:
 				change_state(&"drift")
