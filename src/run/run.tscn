@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://src/world/camera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://src/ui/hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://src/ui/results.gd" id="5_results"]
+[ext_resource type="Script" path="res://src/ui/announcer.gd" id="14_announcer"]
 [ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="6_pause"]
 [ext_resource type="PackedScene" path="res://src/ui/shop.tscn" id="8_shop"]
 [ext_resource type="PackedScene" path="res://src/ui/altar_ui.tscn" id="9_altar"]
@@ -64,23 +65,8 @@ theme_override_fonts/font = ExtResource("7_font")
 theme_override_font_sizes/font_size = 8
 text = "1 / 9   Combat"
 
-[node name="Banner" type="Label" parent="HUD"]
-visible = false
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -200.0
-offset_top = 52.0
-offset_right = 200.0
-offset_bottom = 80.0
-theme_override_colors/font_shadow_color = Color(0.09, 0.08, 0.14, 1)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_fonts/font = ExtResource("7_font")
-theme_override_font_sizes/font_size = 16
-text = "THE WAY OPENS"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="Announcer" type="CanvasLayer" parent="."]
+script = ExtResource("14_announcer")
 
 [node name="Pause" parent="." instance=ExtResource("6_pause")]
 

@@ -85,10 +85,31 @@ Elites now carry an affix: Salt-crusted (takes less), Lit (fast, glows), Anchore
 moved; its hits drag you in) or Hollow (splits in two when it dies).
 Bot check of the same: `.\tools\sim.ps1 -RestAt 3` rests at depth 3, resumes, and compares every field.
 
+## How the night talks to you
+Everything a run says goes through `src/ui/announcer.gd`, in four voices that never overlap:
+- **Cards** (top, upper case on a dark band): the name of a place, a boss, a turn of the night,
+  with one plain line under it saying what it means for you ("Ten rooms down, then the Wreck. The
+  water follows you in."). Bosses get letterbox bars, a breath of slow time and a bigger card; the
+  boss breaking gets a flash and the same.
+- **Toasts** (under the cards, small): what just happened. A mark taken (name and what it does), a
+  journal page, the doors opening, the water crossing a mark on the staff.
+- **Whispers** (bottom strip): the lantern's lines, typed out. Lore only.
+- **Hints** (warm pill, mid-screen): plain words about how a thing works, the first time you meet
+  it, once per profile: moving, the goal, salt, pearls, the tide, altars, the merchant, fountains,
+  forks, cages, challenges, vaults, dives, bosses, elites, low health, the flare, a riptide, keys.
+  Off in Settings if you know it all.
+
+The HUD names its bars (hp, dash, special, lantern, marks, salt, pearls), the tide staff says in a
+word how high the water is (out, pools, flooded, deep) and flashes when it crosses a mark, the edge
+of the screen pulses blue with it and beats red when you are nearly out, and door signboards carry a
+second line saying what the room is for. Tidemark cards say what they do in a sentence.
+
 ## Story (M5)
 - **The lantern whispers.** One-time lines during a run, at the first night, the first cage, each
   boss and each biome, and on the results card the first time you die or are taken. They tell the
   truth in layers. Lines live in `src/story/story.gd`, with everything anyone says at the hub.
+  In a run they are typed out on a strip at the bottom, tagged with who is speaking, and they
+  never carry instructions: those come as hints (below).
 - **Endings.** Talk to Maren after the Ebb falls. *Keep the tide* is always open. *Break the tide*
   needs Bram, Wren and the Cartographer on the rock. *Walk out* appears once everyone is home and
   opens after three nights won. Each plays out over black with the sea rising or falling behind the
@@ -158,7 +179,7 @@ Break the tide needs five echoes home (Bram, Wren and the Cartographer among the
 - **Codex** gains Weapons (with their aspects), Journal and Contracts tabs (1-7), and every enemy
   entry earns a second paragraph after twenty kills.
 - **Wet forks are shortcuts**: the wet door's room counts for two, unless that would skip a cage.
-- Settings: dialogue speed (slow, normal, fast, at once), skip dialogue seen before, journal hints.
+- Settings: dialogue speed (slow, normal, fast, at once), skip dialogue seen before, hints (how things work).
 
 Screenshots of any of it: `.\tools\run.ps1 src/hub/hub.tscn -- --screenshot --sim-save --nessa`
 (`--idris --aldous --pell --choir --log --quests --contracts --gift --cosmetics --codex=5`), with

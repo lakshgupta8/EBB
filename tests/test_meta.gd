@@ -158,7 +158,7 @@ func test_menu_texts_fit_their_rows() -> void:
 	for it in Shop.ITEMS:
 		assert_true(it.desc.length() * 6 <= 150, "shop desc too long: " + it.desc)
 	for m in Tidemarks.ALL:
-		assert_true(m.desc.length() * 6 <= 260, "tidemark desc too long: " + m.desc)
+		assert_true(m.desc.length() * 6 <= 520, "tidemark desc too long (two lines of the card): " + m.desc)
 	for id in Weapon.ALL:
 		assert_true(Weapon.ALL[id].desc.length() * 6 <= 240, "weapon desc too long: " + Weapon.ALL[id].desc)
 

@@ -14,7 +14,7 @@ const ROWS := [
 	{"key": "fullscreen", "name": "Fullscreen", "kind": "bool"},
 	{"key": "dialog_speed", "name": "Dialogue speed", "kind": "speed"},
 	{"key": "skip_seen", "name": "Skip dialogue seen before", "kind": "bool"},
-	{"key": "hints", "name": "Journal hints", "kind": "bool"},
+	{"key": "hints", "name": "Hints (how things work)", "kind": "bool"},
 ]
 
 var is_open: bool = false
