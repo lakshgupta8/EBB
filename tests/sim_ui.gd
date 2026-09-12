@@ -175,5 +175,37 @@ func _ready() -> void:
 	_check("keep" in Story.endings_seen(), "ending recorded")
 	get_tree().paused = false
 
+	# The entrance: number keys open its menus, W S move the cursor, Enter takes the row,
+	# a click takes a row, and 1 starts the night (we drop it before it changes scene).
+	run.queue_free()
+	eu.queue_free()
+	await get_tree().process_frame
+	var title: Node = load("res://src/title/title.tscn").instantiate()
+	add_child(title)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(title._buttons.size() == 5, "five rows on the title")
+	await _key(KEY_2)
+	_check(title.log_ui.is_open, "2 opens the Keeper's Log from the title")
+	await _key(KEY_E)
+	_check(not title.log_ui.is_open and not get_tree().paused, "Log closed by E")
+	# 2 left the cursor on the Log row; two S presses from there reach Settings.
+	await _key(KEY_S)
+	await _key(KEY_S)
+	_check(title._cursor.index == 3, "S S moves the cursor to settings (index=%d)" % title._cursor.index)
+	await _key(KEY_ENTER)
+	_check(title.settings_ui.is_open, "Enter opens the highlighted row")
+	await _key(KEY_E)
+	_check(not title.settings_ui.is_open, "title settings closed by E")
+	var codex_row: Button = title._buttons[2]
+	await _click(codex_row.global_position + Vector2(20, 10))
+	_check(title.codex_ui.is_open, "clicking the codex row opens the codex")
+	await _key(KEY_E)
+	_check(not title.codex_ui.is_open, "title codex closed by E")
+	await _key(KEY_1)
+	_check(title._busy, "1 starts the night: the tide is coming in")
+	title.queue_free()
+	await get_tree().process_frame
+
 	print("sim_ui: %s" % ("OK" if _fails == 0 else "FAILED (%d)" % _fails))
 	get_tree().quit(0 if _fails == 0 else 1)
