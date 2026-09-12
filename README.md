@@ -58,8 +58,8 @@ before they strike: dash on the flash for a riptide.
 | Line & Sinker (45 pearls, M6c) | three cracks of the line out to nearly three tiles; the third hauls what it catches to you | sinker: throw the weight to the cursor; it hits everything under it and weighs them down (slow) |
 
 **Aspects (M6c).** Every weapon has two aspects at Bram's forge, bought once for 4 echo shards each
-and switched freely after. Shards come from freeing an echo (3), the named elites (the Bosun, the
-Echo of Maren) and bosses (1 each). A weapon's aspect changes one thing about it: Maren's Gaff
+and switched freely after. Shards come from freeing an echo (3), each biome's named
+elite (the Netted, the Bosun, the Choir, the Echo of Maren) and every boss (1 each). A weapon's aspect changes one thing about it: Maren's Gaff
 charges faster and cracks bosses, the Cartographer's Net is wider, the Bosun's Gun holds five, and
 so on. The hub shows the aspect in hand.
 
@@ -160,7 +160,8 @@ are the M5 polish pass; every sprite is still drawn by `tools/gen_sprites*.py`.
   salt tax, blind altars, drowned elites, the Ebb remembers. A win at tier n opens n+1. Pearls pay
   +15% per tier and a win pays echo shards. Bot: `tests/sim_run.tscn -- --tier=N`.
 - Ledger: permanent tiers bought from Orla with pearls. Defined in `src/hub/ledger.gd`.
-- Save: `user://save.json` (pearls, ledger, story flags, weapons forged, blessing, chart).
+- Save: `user://save.json` (pearls, echo shards, ledger, story flags, weapons forged, aspects,
+  blessing, chart, spring tide reached, and a night rested at the shore).
 
 Sandbox arena for feel tuning: `.\tools\run.ps1 src/sandbox.tscn`
 
