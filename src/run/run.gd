@@ -632,6 +632,7 @@ func _on_cage_opened(p: Prop) -> void:
 	SaveManager.data["echoes"] = int(SaveManager.data.get("echoes", 0)) + 1
 	SaveManager.save_profile()
 	p.show_echo(id)
+	_give_shards(3, p.global_position + Vector2(0, -20))
 	for i in 3:
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
 	Juice.slowmo(0.3, 0.4)
@@ -660,6 +661,9 @@ func _on_enemy_died(enemy: Node) -> void:
 			Pickup.spawn(content, pos, Pickup.Kind.PEARL)
 		if enemy.is_elite and not enemy.is_boss:
 			Pickup.spawn(content, pos, Pickup.Kind.KEY)
+		# Named elites (no affix) and bosses leave an echo shard behind.
+		if enemy.is_boss or (enemy.is_elite and enemy.affix == ""):
+			_give_shards(1, pos)
 		if enemy == boss:
 			_on_boss_died()
 			return
@@ -685,11 +689,21 @@ func _on_boss_died() -> void:
 	_set_cleared()
 
 
+## Echo shards go straight to the profile: they are the one thing the tide cannot take.
+func _give_shards(n: int, at: Vector2) -> void:
+	SaveManager.data["shards"] = int(SaveManager.data.get("shards", 0)) + n
+	SaveManager.save_profile()
+	state.shards += n
+	FX.text(at, "+%d ECHO SHARD%s" % [n, "S" if n > 1 else ""], Color(0.95, 0.85, 0.55))
+	Audio.play("pearl", 0.0, -2.0)
+
+
 ## The Ebb is gone: Maren steps out of the water where it stood.
 func _free_maren() -> void:
 	if not SaveManager.flag("echo_maren"):
 		SaveManager.set_flag("echo_maren")
 		SaveManager.data["echoes"] = int(SaveManager.data.get("echoes", 0)) + 1
+		_give_shards(3, boss.global_position + Vector2(0, -20))
 	SaveManager.set_flag("ebb_broken")
 	state.echoes.append("maren")
 	var p := room.add_prop(Prop.Kind.ECHO_GHOST, room.world_to_cell(boss.global_position))

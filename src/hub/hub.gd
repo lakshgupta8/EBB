@@ -4,7 +4,7 @@ extends Node2D
 
 const HUB_TEMPLATE := "res://data/rooms/hub.txt"
 ## Bram forges the later weapons for pearls. The knife is his gift.
-const WEAPON_COST := {"gaff": 0, "net": 0, "harpoon": 25, "lantern": 40}
+const WEAPON_COST := {"gaff": 0, "net": 0, "harpoon": 25, "lantern": 40, "bell": 55, "line": 45}
 
 @onready var player: Player = $Player
 @onready var room_holder: Node2D = $RoomHolder
@@ -99,8 +99,14 @@ func open_bram() -> void:
 		var cost: int = WEAPON_COST.get(id, 0)
 		options.append({"name": Weapon.ALL[id].name, "desc": Weapon.ALL[id].desc,
 			"right": "" if id in owned else "%d pearls" % cost, "fail": "not enough pearls"})
+	options.append({"name": "Aspects of the %s" % Weapon.name_of(Game.weapon_id()).to_lower(),
+		"desc": "remember someone; costs shards", "right": "%d shards" % int(SaveManager.data.get("shards", 0))})
 	var current := ids.find(Game.weapon_id())
 	choice_ui.open("BRAM'S FORGE", Story.bram(), options, current, Color(0.95, 0.75, 0.55), func(i):
+		if i >= ids.size():
+			choice_ui.close()
+			open_aspects.call_deferred(Game.weapon_id())
+			return ""
 		var id: String = ids[i]
 		if not id in owned:
 			var cost: int = WEAPON_COST.get(id, 0)
@@ -114,6 +120,43 @@ func open_bram() -> void:
 		SaveManager.save_profile()
 		player._equip(id)
 		return "the %s waits by the door" % Weapon.ALL[id].name.to_lower()
+	)
+
+
+## Bram, second bench: an aspect for the weapon in hand, paid once in echo shards.
+func open_aspects(wid: String) -> void:
+	var list: Array = Weapon.ASPECTS.get(wid, [])
+	var owned: Array = SaveManager.data.get("aspects_owned", [])
+	var current := Weapon.aspect_of(wid)
+	var options: Array = [{"name": "Plain %s" % Weapon.name_of(wid), "desc": "as Bram made it"}]
+	for a in list:
+		options.append({"name": a.name, "desc": a.desc,
+			"right": "" if a.id in owned else "%d shards" % Weapon.ASPECT_COST, "fail": "not enough echo shards"})
+	var selected := 0
+	for k in list.size():
+		if list[k].id == current:
+			selected = k + 1
+	var line := "Bring me what the sea left of them and the blade will remember. %d shards in your pocket." % int(SaveManager.data.get("shards", 0))
+	choice_ui.open("ASPECTS", line, options, selected, Color(0.95, 0.75, 0.55), func(i):
+		var aspects: Dictionary = SaveManager.data.get("aspects", {})
+		if i == 0:
+			aspects[wid] = ""
+		else:
+			var a: Dictionary = list[i - 1]
+			if not a.id in owned:
+				if int(SaveManager.data.get("shards", 0)) < Weapon.ASPECT_COST:
+					return ""
+				SaveManager.data["shards"] = int(SaveManager.data.get("shards", 0)) - Weapon.ASPECT_COST
+				owned.append(a.id)
+				SaveManager.data["aspects_owned"] = owned
+				choice_ui.set_right(i, "")
+				FX.burst(player.global_position, Color(0.95, 0.85, 0.55), 12, 60.0)
+			aspects[wid] = a.id
+		SaveManager.data["aspects"] = aspects
+		SaveManager.save_profile()
+		player._equip(wid)
+		_refresh_info()
+		return "plain again" if i == 0 else "the %s remembers" % Weapon.name_of(wid).to_lower()
 	)
 
 
@@ -178,8 +221,12 @@ func _refresh_info() -> void:
 	var s := SaveManager.data
 	var echoes := int(s.get("echoes", 0))
 	var endings := Story.endings_seen().size()
-	info.text = "MARROW ROCK   %s\npearls %d   runs %d   best %d   wins %d   echoes %d%s" % [
-		Weapon.name_of(Game.weapon_id()).to_lower(), s.pearls, s.runs, s.best_depth, s.wins, echoes,
+	var asp := Weapon.aspect_of(Game.weapon_id())
+	var wname := Weapon.name_of(Game.weapon_id()).to_lower()
+	if asp != "":
+		wname = str(Weapon.aspect_entry(asp).get("name", wname)).to_lower()
+	info.text = "MARROW ROCK   %s\npearls %d   shards %d   runs %d   best %d   wins %d   echoes %d%s" % [
+		wname, s.pearls, int(s.get("shards", 0)), s.runs, s.best_depth, s.wins, echoes,
 		"   endings %d/3" % endings if endings > 0 else ""]
 	if Game.has_suspended():
 		var r: Dictionary = s.suspended
@@ -198,6 +245,8 @@ func _handle_screenshot_arg() -> void:
 		ledger_ui.open()
 	elif "--bram" in args:
 		open_bram()
+	elif "--aspects" in args:
+		open_aspects(Game.weapon_id())
 	elif "--wren" in args:
 		open_wren()
 	elif "--maren" in args:

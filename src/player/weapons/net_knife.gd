@@ -46,6 +46,9 @@ var _net_cd_total: float = NET_COOLDOWN
 var _player: Player
 var _shape_home: Vector2
 var _stab_side: float = 1.0
+var _dmg_bonus: int = 0
+var _net_radius: float = NET_RADIUS
+var _net_hold: float = NET_HOLD
 
 @onready var pivot: Node2D = $Pivot
 @onready var sprite: Sprite2D = $Pivot/Sprite
@@ -61,6 +64,13 @@ func _ready() -> void:
 	hitbox.landed.connect(_on_hit_landed)
 	_shape_home = hit_shape.position
 	net_sprite.visible = false
+	_load_aspect()
+	match aspect:
+		"net_wren":
+			_dmg_bonus = 1
+		"net_cart":
+			_net_radius = NET_RADIUS * 1.5
+			_net_hold = 3.0
 
 
 func move_mult() -> float:
@@ -138,7 +148,7 @@ func _start_stab() -> void:
 	_buffered = false
 	_stab_side = -_stab_side
 	var finisher := combo.is_finisher(_step)
-	hitbox.damage = DAMAGE[i]
+	hitbox.damage = DAMAGE[i] + _dmg_bonus
 	hitbox.knockback = KNOCKBACK[i]
 	hitbox.pull = false
 	hitbox.hitstop = 0.03 if not finisher else 0.08
@@ -237,7 +247,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 	else:
 		Audio.play("hit", 0.2, -4.0 if not finisher else 0.0)
 	if enemy and finisher:
-		enemy.apply_bleed(4 if _player.mods.bleed else 2)
+		enemy.apply_bleed((4 if _player.mods.bleed else 2) * (2 if aspect == "net_wren" else 1))
 		FX.text(target.global_position, "BLEED", Color(0.95, 0.4, 0.4))
 
 
@@ -263,7 +273,7 @@ func _start_throw() -> void:
 	tw.tween_property(net_sprite, "global_position", target, fly)
 	tw.parallel().tween_property(net_sprite, "scale", Vector2(1, 1), fly)
 	tw.tween_callback(_land_net.bind(target))
-	tw.tween_interval(NET_HOLD)
+	tw.tween_interval(_net_hold)
 	tw.tween_property(net_sprite, "modulate:a", 0.0, 0.3)
 	tw.tween_callback(func(): net_sprite.visible = false)
 
@@ -272,14 +282,14 @@ func _land_net(at: Vector2) -> void:
 	state = State.IDLE
 	var caught := 0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if not (e is Enemy) or e.global_position.distance_to(at) > NET_RADIUS:
+		if not (e is Enemy) or e.global_position.distance_to(at) > _net_radius:
 			continue
 		var info := DamageInfo.make(int(round(NET_DAMAGE * float(_player.mods.damage))), _player, e.global_position - at, 0.0)
 		info.tags = PackedStringArray(["net"])
 		info.hitstop = 0.0
 		if e.hurtbox.receive(info):
 			EventBus.damage_dealt.emit(e, info)
-		e.net(NET_HOLD_BOSS if e.is_boss else NET_HOLD)
+		e.net(NET_HOLD_BOSS if e.is_boss else _net_hold)
 		caught += 1
 	_net_cd_total = NET_COOLDOWN if caught > 0 else NET_MISS_COOLDOWN
 	_net_cd = _net_cd_total

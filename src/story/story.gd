@@ -188,6 +188,8 @@ static func bram() -> String:
 	var all_forged: bool = SaveManager.data.get("weapons", []).size() >= Weapon.ALL.size()
 	if all_forged:
 		return "That is everything I know how to make. The rest is in how you hold it."
+	if int(SaveManager.data.get("shards", 0)) >= Weapon.ASPECT_COST and SaveManager.data.get("aspects_owned", []).is_empty():
+		return "Those shards. That is what the sea leaves of a person. Give me enough and a blade can remember them."
 	if runs() > 6:
 		return "You keep coming back with the same weapon. Or a different one. Either way you come back. Good."
 	return "I made every blade in Saltmere. The water took the rest. Take what suits your hands."

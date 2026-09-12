@@ -22,6 +22,8 @@ const TETHER_DAMAGE := 4
 const TETHER_DRAG := 48.0
 
 var ammo: int = MAG
+var mag: int = MAG
+var _reload: float = RELOAD
 var _reload_t: float = 0.0
 var _gap_t: float = 0.0
 var _held: bool = false
@@ -40,6 +42,15 @@ func _ready() -> void:
 	id = "harpoon"
 	_player = get_parent() as Player
 	line.visible = false
+	_load_aspect()
+	match aspect:
+		"harpoon_bosun":
+			mag = 5
+			ammo = mag
+			_reload = 0.8
+		"harpoon_chain":
+			if _player:
+				_player.mods.held_bonus += 0.4
 
 
 func move_mult() -> float:
@@ -57,7 +68,7 @@ func special_cooldown_fraction() -> float:
 func ammo_text() -> String:
 	if _reload_t > 0.0:
 		return "reloading"
-	return "%d/%d" % [ammo, MAG]
+	return "%d/%d" % [ammo, mag]
 
 
 func try_attack() -> void:
@@ -101,7 +112,7 @@ func _process(delta: float) -> void:
 	if _reload_t > 0.0:
 		_reload_t -= delta
 		if _reload_t <= 0.0:
-			ammo = MAG
+			ammo = mag
 			Audio.play("reload", 0.05, -4.0)
 			FX.text(_player.global_position + Vector2(0, -18), "LOADED", Color(0.85, 0.9, 1.0))
 	elif _held and ammo > 0 and _gap_t <= 0.0:
@@ -114,7 +125,7 @@ func _process(delta: float) -> void:
 func _start_reload() -> void:
 	if _reload_t > 0.0:
 		return
-	_reload_t = RELOAD
+	_reload_t = _reload
 	Audio.play("reload", 0.1, -8.0)
 
 

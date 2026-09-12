@@ -45,6 +45,10 @@ var _beacon_tick: float = 0.0
 var _player: Player
 var _shape_home: Vector2
 var _beacon_light: PointLight2D
+var _lit_time: float = LIT_TIME
+var _dmg_bonus: int = 0
+var _beacon_radius: float = BEACON_RADIUS
+var _beacon_time: float = BEACON_TIME
 
 @onready var pivot: Node2D = $Pivot
 @onready var sprite: Sprite2D = $Pivot/Sprite
@@ -62,6 +66,14 @@ func _ready() -> void:
 	beacon.visible = false
 	_beacon_light = Atmosphere.light(beacon, Color(1.0, 0.9, 0.6), 4.0, 1.4)
 	_beacon_light.visible = false
+	_load_aspect()
+	match aspect:
+		"lantern_orla":
+			_lit_time = 5.5
+			_dmg_bonus = 1
+		"lantern_fen":
+			_beacon_radius = BEACON_RADIUS * 1.4
+			_beacon_time = 6.0
 
 
 func move_mult() -> float:
@@ -136,7 +148,7 @@ func _start_swing() -> void:
 	_buffered = false
 	_swing_sign = -_swing_sign
 	var aim_angle := _player.aim.angle()
-	hitbox.damage = DAMAGE
+	hitbox.damage = DAMAGE + _dmg_bonus
 	hitbox.knockback = KNOCKBACK
 	hitbox.pull = false
 	hitbox.hitstop = 0.03
@@ -218,7 +230,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 	EventBus.request_hitstop.emit(info.hitstop * (1.6 if crit else 1.0))
 	var enemy := target.get_parent() as Enemy
 	if enemy:
-		enemy.lit(LIT_TIME)
+		enemy.lit(_lit_time)
 	if crit:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		Audio.play("crit", 0.05)
@@ -244,13 +256,13 @@ func _throw_beacon() -> void:
 	var fly := clampf(origin.distance_to(target) / 480.0, 0.06, 0.2)
 	var tw := create_tween()
 	tw.tween_property(beacon, "global_position", target, fly)
-	tw.parallel().tween_property(beacon, "scale", Vector2(BEACON_RADIUS / 11.0, BEACON_RADIUS / 11.0), fly)
+	tw.parallel().tween_property(beacon, "scale", Vector2(_beacon_radius / 11.0, _beacon_radius / 11.0), fly)
 	tw.tween_callback(func():
-		_beacon_t = BEACON_TIME
+		_beacon_t = _beacon_time
 		FX.ring(target, Color(1.0, 0.9, 0.6), 2.0)
 		Audio.play("beacon", 0.05)
 		for e in get_tree().get_nodes_in_group("enemies"):
-			if e is Enemy and e.global_position.distance_to(target) <= BEACON_RADIUS:
+			if e is Enemy and e.global_position.distance_to(target) <= _beacon_radius:
 				var info := DamageInfo.make(int(round(BEACON_DAMAGE * float(_player.mods.damage) * float(_player.mods.ranged_mult))), _player, e.global_position - target, 30.0)
 				info.tags = PackedStringArray(["light", "beacon"])
 				info.hitstop = 0.0
@@ -269,7 +281,7 @@ func _tick_beacon(delta: float) -> void:
 	if _beacon_tick >= 0.2:
 		_beacon_tick = 0.0
 		for e in get_tree().get_nodes_in_group("enemies"):
-			if e is Enemy and e.global_position.distance_to(beacon.global_position) <= BEACON_RADIUS:
+			if e is Enemy and e.global_position.distance_to(beacon.global_position) <= _beacon_radius:
 				e.lit(0.8)
 				e.slow(0.3)
 	if _beacon_t <= 0.0:

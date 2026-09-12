@@ -53,6 +53,14 @@ before they strike: dash on the flash for a riptide.
 | Net & Knife (Bram's gift) | four fast stabs, the fourth cuts deep and bleeds; you stay mobile | throw a net at the cursor: everything under it is rooted for 2 s and takes +25% |
 | Harpoon Gun (25 pearls) | piercing bolts, three then a reload; hold to keep firing | tether an enemy: every dash you make drags it along; bosses barely move |
 | Storm Lantern (40 pearls) | wide quick arcs of light; everything hit is LIT (+30% damage from anything) and charges the flare fast | beacon: a pool of light at the cursor that lits and slows what stands in it |
+| Keeper's Bell (55 pearls, M6c) | a wide swing, then an overhead slam whose ring stuns what it reaches | toll: ring the bell; for a moment nothing hurts you, everything near staggers, and whatever strikes you while it rings is PARRIED (stunned 2 s, you heal) |
+| Line & Sinker (45 pearls, M6c) | three cracks of the line out to nearly three tiles; the third hauls what it catches to you | sinker: throw the weight to the cursor; it hits everything under it and weighs them down (slow) |
+
+**Aspects (M6c).** Every weapon has two aspects at Bram's forge, bought once for 4 echo shards each
+and switched freely after. Shards come from freeing an echo (3), the named elites (the Bosun, the
+Echo of Maren) and bosses (1 each). A weapon's aspect changes one thing about it: Maren's Gaff
+charges faster and cracks bosses, the Cartographer's Net is wider, the Bosun's Gun holds five, and
+so on. The hub shows the aspect in hand.
 
 Pick and forge weapons at Bram's forge on Marrow Rock. The HUD shows the harpoon's ammo next to the special bar.
 

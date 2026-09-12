@@ -61,6 +61,7 @@ var _throw_cd_total: float = THROW_COOLDOWN
 var _held: bool = false
 var _held_t: float = 0.0
 var _charge_t: float = 0.0
+var _charge_full: float = CHARGE_FULL
 var _player: Player
 var _shape_home: Vector2
 # The sweep happens during the ACTIVE window so the hitbox covers the whole arc.
@@ -82,6 +83,9 @@ func _ready() -> void:
 	hitbox.source = _player
 	hitbox.landed.connect(_on_hit_landed)
 	_shape_home = hit_shape.position
+	_load_aspect()
+	if aspect == "gaff_maren":
+		_charge_full = CHARGE_FULL * 0.6
 
 
 func move_mult() -> float:
@@ -106,7 +110,7 @@ func special_cooldown_fraction() -> float:
 
 
 func charge_fraction() -> float:
-	return clampf(_charge_t / CHARGE_FULL, 0.0, 1.0) if state == State.CHARGING else 0.0
+	return clampf(_charge_t / _charge_full, 0.0, 1.0) if state == State.CHARGING else 0.0
 
 
 func is_charging() -> bool:
@@ -114,7 +118,7 @@ func is_charging() -> bool:
 
 
 func charge_complete() -> bool:
-	return state == State.CHARGING and _charge_t >= CHARGE_FULL
+	return state == State.CHARGING and _charge_t >= _charge_full
 
 
 ## Called by the player on attack press.
@@ -194,7 +198,7 @@ func _start_swing() -> void:
 	_buffered = false
 	_swing_sign = -_swing_sign if _step != 3 else 1.0
 	var aim_angle := _player.aim.angle()
-	hitbox.damage = DAMAGE[i]
+	hitbox.damage = DAMAGE[i] + (2 if aspect == "gaff_drowned" and combo.is_finisher(_step) else 0)
 	hitbox.knockback = KNOCKBACK[i]
 	hitbox.pull = combo.is_finisher(_step)
 	hitbox.hitstop = 0.05 if not hitbox.pull else 0.09
@@ -256,7 +260,7 @@ func _stop_charging() -> void:
 
 func _tick_charging(delta: float) -> void:
 	_charge_t += delta
-	var f := clampf(_charge_t / CHARGE_FULL, 0.0, 1.0)
+	var f := clampf(_charge_t / _charge_full, 0.0, 1.0)
 	# Wound back over the shoulder, opposite to the aim, and glowing as it charges.
 	var aim_angle := _player.aim.angle()
 	var back := aim_angle - 2.4 * (1.0 if _player.aim.x >= 0.0 else -1.0)
@@ -266,7 +270,7 @@ func _tick_charging(delta: float) -> void:
 	sprite.modulate = Color(1.0 + f * 0.8, 1.0 + f * 0.6, 1.0 + f * 0.2)
 	if int(_charge_t * 16.0) != int((_charge_t - delta) * 16.0):
 		FX.burst(global_position + Vector2.from_angle(pivot.rotation) * 12.0, Color(1.0, 0.9, 0.6, 0.8), 1, 18.0)
-	if f >= 1.0 and int((_charge_t - delta) / CHARGE_FULL) == 0 and int(_charge_t / CHARGE_FULL) == 1:
+	if f >= 1.0 and int((_charge_t - delta) / _charge_full) == 0 and int(_charge_t / _charge_full) == 1:
 		# The hook rings: the charge is complete and the heavy is armed.
 		FX.ring(_player.global_position, Color(1.0, 0.9, 0.6), 0.9)
 		FX.text(_player.global_position + Vector2(0, -14), "READY", Color(1.0, 0.9, 0.6))
@@ -368,7 +372,9 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		FX.ring(target.global_position, Color(1.0, 0.95, 0.7), 0.8)
 		Audio.play("crit", 0.05)
-	elif heavy and enemy and not enemy.is_boss:
+	elif heavy and enemy and (not enemy.is_boss or aspect == "gaff_maren"):
+		if enemy.is_boss:
+			enemy.crack(3.0)
 		FX.text(target.global_position, "CRACKED", Color(1.0, 0.7, 0.6))
 		Audio.play("crit", 0.1, -3.0)
 	else:
@@ -433,7 +439,7 @@ func _start_throw() -> void:
 				_player.add_glow(Player.GLOW_PER_HIT * 0.5)
 				EventBus.request_hitstop.emit(0.05)
 			if enemy and is_instance_valid(enemy) and enemy.health.is_alive():
-				var anchor := enemy.is_boss or enemy.knockback_resist >= 0.5
+				var anchor := enemy.is_boss or enemy.knockback_resist >= 0.5 or aspect == "gaff_drowned"
 				if anchor:
 					_player.yank_to(enemy.global_position - dir * 16.0, 0.12)
 					FX.text(_player.global_position, "ANCHORED", Color(0.8, 0.9, 1.0))
