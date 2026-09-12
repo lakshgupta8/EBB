@@ -1,7 +1,7 @@
 class_name CodexUI
 extends CanvasLayer
 ## The codex: everything met so far. Tabs for the drowned, tidemarks, people and places;
-## rows fill in as they are met. 1-4 switch tabs, wheel / W S / arrows scroll, E closes.
+## rows fill in as they are met. 1-7 switch tabs, wheel / W S / arrows scroll, E closes.
 ## C opens it from the world when nothing else is up; the pause menu has a button too.
 
 signal closed
@@ -78,7 +78,7 @@ func _build() -> void:
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
-	box.custom_minimum_size = Vector2(470, 0)
+	box.custom_minimum_size = Vector2(560, 0)
 	panel.add_child(box)
 	box.add_child(UI.label("CODEX", 16, Color(0.85, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(2))
@@ -93,7 +93,7 @@ func _build() -> void:
 		_tab_buttons.append(b)
 	box.add_child(tabs)
 	_scroll = ScrollContainer.new()
-	_scroll.custom_minimum_size = Vector2(470, 214)
+	_scroll.custom_minimum_size = Vector2(560, 214)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	box.add_child(_scroll)
@@ -116,9 +116,8 @@ func _set_tab(i: int) -> void:
 	var kind: String = Codex.TABS[i]
 	for j in _tab_buttons.size():
 		var k: String = Codex.TABS[j]
-		var n := Codex.count(k)
 		var b: Button = _tab_buttons[j]
-		b.text = "[%d] %s  %d/%d" % [j + 1, Codex.TAB_NAMES[k], n.x, n.y]
+		b.text = "[%d] %s" % [j + 1, Codex.TAB_NAMES[k]]
 		b.add_theme_color_override("font_color", Color(1, 1, 1) if j == i else Color(0.7, 0.75, 0.85))
 	for c in _list.get_children():
 		c.queue_free()
@@ -146,7 +145,7 @@ func _row(e: Dictionary) -> Control:
 		v.add_child(h)
 		var lore := UI.label(e.lore, 8, Color(0.62, 0.66, 0.78))
 		lore.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lore.custom_minimum_size = Vector2(430, 0)
+		lore.custom_minimum_size = Vector2(520, 0)
 		v.add_child(lore)
 	else:
 		var a := UI.label("???", 8, Color(0.45, 0.47, 0.55))

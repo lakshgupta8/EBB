@@ -129,15 +129,20 @@ func test_biome_table() -> void:
 	# Every whisper the run asks for by name has to exist, including the built-up ones.
 	for t in range(1, Run.TIERS.size() + 1):
 		assert_true(Story.WHISPERS.has("tide_%d" % t), "a whisper for spring tide %d" % t)
-	for k in ["cage", "death", "taken", "challenge", "dive", "netted", "choir", "harbour_ships", "harbour_hands"]:
+	for k in ["cage", "death", "taken", "challenge", "dive", "netted", "choir", "harbour_ships", "harbour_hands",
+			"page", "glass", "choir_spared", "shortcut", "launch"]:
 		assert_true(Story.WHISPERS.has(k), "the run asks for the whisper " + k)
+	# Every cage echo the biomes name is someone the rock knows.
+	for b in Run.BIOMES:
+		for id in b.echoes:
+			assert_true(id in Story.ECHO_IDS and Run.ECHOES.has(id) and Prop.ECHO_FRAME.has(id), "echo " + str(id))
 
 
 func test_hub_template() -> void:
 	var t := RoomTemplate.load_file("res://data/rooms/hub.txt")
 	assert_eq(t.marker_cells("X").size(), 1, "one descend marker")
 	assert_true(t.marker_cells("h").size() >= 1, "lighthouse marker")
-	for m in ["O", "B", "W", "C", "N", "K"]:
+	for m in ["O", "B", "W", "C", "N", "K", "S", "I", "L", "V", "Y"]:
 		assert_eq(t.marker_cells(m).size(), 1, "one spot for " + m)
 
 

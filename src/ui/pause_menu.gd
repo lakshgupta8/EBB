@@ -30,6 +30,9 @@ func _input(event: InputEvent) -> void:
 	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C:
 		_open_codex()
 		get_viewport().set_input_as_handled()
+	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_L:
+		_open_log()
+		get_viewport().set_input_as_handled()
 	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_S:
 		_open_settings()
 		get_viewport().set_input_as_handled()
@@ -93,6 +96,10 @@ func _build() -> void:
 	codex.pressed.connect(_open_codex)
 	box.add_child(codex)
 	buttons.append(codex)
+	var log_btn := UI.text_button("Keeper's Log   [L]")
+	log_btn.pressed.connect(_open_log)
+	box.add_child(log_btn)
+	buttons.append(log_btn)
 	var settings := UI.text_button("Settings   [S]")
 	settings.pressed.connect(_open_settings)
 	box.add_child(settings)
@@ -121,7 +128,7 @@ func _build() -> void:
 	if _in_run():
 		box.add_child(UI.label("LMB attack (gaff: hold to charge)   RMB special", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Space dash (attack out of it: lunge)", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
-		box.add_child(UI.label("Q lantern flare when the glow is full", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("Q lantern flare when the glow is full   R active tidemark   F eat", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Dash on an enemy's white flash: riptide", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Rest in a cleared room: the shore continues the night", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 	else:
@@ -136,6 +143,14 @@ func _open_codex() -> void:
 		return
 	toggle()
 	c.open()
+
+
+func _open_log() -> void:
+	var l := get_parent().get_node_or_null("LogUI") as LogUI
+	if l == null:
+		return
+	toggle()
+	l.open(0, get_parent() if _in_run() else null)
 
 
 func _open_settings() -> void:

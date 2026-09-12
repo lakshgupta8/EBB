@@ -1360,6 +1360,8 @@ def main():
     gen_sprites_m6.build_all(built)
     import gen_sprites_m6e
     gen_sprites_m6e.build_all(built)
+    import gen_sprites_m7
+    gen_sprites_m7.build_all(built)
     print("wrote", ", ".join(f"{k}.png" for k in built))
     if "--preview" in sys.argv:
         zoom = 4

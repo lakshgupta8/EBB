@@ -86,6 +86,27 @@ func _draw() -> void:
 				var col: Color = Tidemarks.color_of(_run.state.tidemarks[i])
 				draw_rect(Rect2(x - 1 + i * 8, ty - 1, 7, 7), UI.INK)
 				draw_rect(Rect2(x + i * 8, ty, 5, 5), col)
+			# Active marks: a cooldown bar each, R when one is ready
+			var actives: Array = _run.state.actives()
+			var ay := ty + 9
+			var any_ready := false
+			for i in actives.size():
+				var id: String = actives[i]
+				var cd := float(_run.state.active_cd.get(id, 0.0))
+				var total := maxf(1.0, Tidemarks.cooldown_of(id))
+				var ready := cd <= 0.0
+				any_ready = any_ready or ready
+				draw_rect(Rect2(x - 1, ay - 1 + i * 6, 42, 5), UI.INK)
+				draw_rect(Rect2(x, ay + i * 6, 40, 3), Color(0.2, 0.22, 0.3))
+				draw_rect(Rect2(x, ay + i * 6, int(40 * (1.0 - cd / total)), 3), Tidemarks.color_of(id) if ready else Tidemarks.color_of(id).darkened(0.4))
+			if actives.size() > 0:
+				_text(Vector2(x + 44, ay + 4), "R" if any_ready else "", Color(1.0, 0.95, 0.7))
+		# Fish carried: one icon each, F to eat the first
+		if _run and _run.state.fish.size() > 0:
+			var fy := 8 + BAR_H + 4
+			for i in _run.state.fish.size():
+				_draw_icon(Vector2(x + 96 + i * 10, fy - 2), 6)
+			_text(Vector2(x + 96 + _run.state.fish.size() * 10 + 2, fy + 4), "F", Color(0.95, 0.85, 0.6))
 		# Heavy charge
 		var cf := _player.weapon.charge_fraction()
 		if cf > 0.0:

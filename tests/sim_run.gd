@@ -34,6 +34,9 @@ var _shot_name: String = ""
 var _rest_at: int = -1     # --rest-at=N: rest at the first cleared room past this depth, resume, play on
 var _shot_clear: int = -1  # --shot-clear=N: screenshot a moment after the room at this depth is cleared
 var _tier: int = 0         # --tier=N: play at that spring tide
+var _prefer_wet: bool = false  # --take-wet: take the wet door at every fork
+var _actives_used: int = 0
+var _fish_eaten: int = 0
 var _resume_ok: bool = true
 
 
@@ -56,10 +59,16 @@ func _ready() -> void:
 		elif a.begins_with("--rest-at="): _rest_at = int(a.trim_prefix("--rest-at="))
 		elif a.begins_with("--shot-clear="): _shot_clear = int(a.trim_prefix("--shot-clear="))
 		elif a.begins_with("--tier="): _tier = int(a.trim_prefix("--tier="))
+		elif a == "--take-wet": _prefer_wet = true
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
-	SaveManager.use_path("user://sim_save.json")
+	# `--profile=name` keeps a bot off the screenshot profile when both run at once.
+	var profile := "sim_save"
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--profile="):
+			profile = a.trim_prefix("--profile=")
+	SaveManager.use_path("user://%s.json" % profile)
 	SaveManager.data["weapon"] = _weapon
 	for a in OS.get_cmdline_user_args():
 		if a == "--fresh":
@@ -67,6 +76,8 @@ func _ready() -> void:
 			SaveManager.data["weapon"] = _weapon
 	SaveManager.data["tide_tier"] = _tier
 	SaveManager.data["tide_unlocked"] = maxi(int(SaveManager.data.get("tide_unlocked", 0)), _tier)
+	if "--fish" in OS.get_cmdline_user_args():
+		SaveManager.data["fish"] = ["eel", "broth", "cod"]
 	Game.run_seed = seed_val
 	run = RUN.instantiate()
 	EventBus.room_entered.connect(func(r): _rooms_seen.append(RoomGraph.NAMES[run.room_type] + ":" + r.template.name))
@@ -145,8 +156,13 @@ func _drive() -> void:
 		if _altar_shot:
 			_altar_shot = false
 			await _screenshot("sim_altar.png")
-		print("sim_run: took %s" % run.altar_ui.offers[0])
-		run.altar_ui.choose(0)
+		# An active mark when one is offered (so R gets exercised), else the first card.
+		var pick := 0
+		for i in run.altar_ui.offers.size():
+			if Tidemarks.is_active(run.altar_ui.offers[i]):
+				pick = i
+		print("sim_run: took %s" % run.altar_ui.offers[pick])
+		run.altar_ui.choose(pick)
 		return
 	if run.shop.is_open:
 		if _shop_shot:
@@ -178,8 +194,11 @@ func _drive() -> void:
 				Input.action_press("interact")
 				_props_done.append(p)
 			return
-	# Then leave through the first open door.
-	for d in run.room.doors:
+	# Then leave through the first open door (the wet one when asked to).
+	var doors: Array = run.room.doors.duplicate()
+	if _prefer_wet:
+		doors.sort_custom(func(a, b): return a.wet and not b.wet)
+	for d in doors:
 		if d.is_open:
 			_walk_to(d.global_position, 2.0)
 			_stuck_report(d)
@@ -247,6 +266,22 @@ func _fight(target: Enemy) -> void:
 		Input.action_press("attack")
 	if player.glow_full():
 		Input.action_press("use_item")
+	# Nessa's fish when hurt; the Choir let go when its note falters.
+	if run.state.fish.size() > 0 and player.health.hp * 5 < player.health.max_hp * 2:
+		Input.action_press("consume")
+		_fish_eaten += 1
+	if target.state == &"falter":
+		_walk_to(target.global_position, 24.0)
+		if dist < 34.0:
+			Input.action_press("interact")
+		return
+	if target.display_name.contains("Choir") and tick % 60 == 0:
+		print("sim_run: choir hp=%d/%d state=%s dist=%.0f" % [target.health.hp, target.health.max_hp, target.state, dist])
+	for id in run.state.actives():
+		if float(run.state.active_cd.get(id, 0.0)) <= 0.0 and dist < 80.0:
+			Input.action_press("active")
+			_actives_used += 1
+			break
 	if player.weapon.id == "harpoon":
 		# Ranged: hang back, fire when lined up, reload by holding. No line of sight: close in.
 		var ray := PhysicsRayQueryParameters2D.create(player.global_position, target.global_position, 1)
@@ -376,7 +411,7 @@ func _press_dir(dir: Vector2, threshold: float = 0.35) -> void:
 
 
 func _release_all() -> void:
-	for a in ["move_left", "move_right", "move_up", "move_down", "attack", "special", "dash", "interact", "use_item"]:
+	for a in ["move_left", "move_right", "move_up", "move_down", "attack", "special", "dash", "interact", "use_item", "active", "consume"]:
 		Input.action_release(a)
 
 
@@ -395,7 +430,12 @@ func _finish() -> void:
 		float(tick) / 60.0, s.biome, s.depth, s.depth_total, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
 		player.health.hp, s.ended, s.victory, s.taken, player.weapon.id, _rescued])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
-	print("sim_run: hits by tag: %s  (heavy holds started: %d)" % [_tag_hits, _heavies_fired])
+	print("sim_run: hits by tag: %s  (heavy holds started: %d, actives used: %d, fish eaten: %d)" % [_tag_hits, _heavies_fired, _actives_used, _fish_eaten])
+	var done: Array = []
+	for c in Game.last_result.get("contracts", []):
+		done.append(str(c.id))
+	print("sim_run: village: pages=%s glass=%d spared=%d contracts=%s journals=%s" % [
+		str(s.stats.get("pages", 0)), int(SaveManager.data.get("glass", 0)), int(s.stats.get("spared", 0)), done, SaveManager.data.get("journals", [])])
 	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win) and _resume_ok
 	print("sim_run: %s" % ("OK" if ok else "FAILED (did not progress, or did not win with --must-win)"))
 	get_tree().quit(0 if ok else 1)

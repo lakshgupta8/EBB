@@ -387,6 +387,31 @@ def build_sfx_m6():
     save("creak", x, 0.5)
 
 
+def build_sfx_m7():
+    # page: paper turned, a soft crackle with a flick at the end
+    n = int(SR * 0.28)
+    x = bandpass(noise(n), 1200, 5000, 2) * env(n, 0.01, 0.18, 0.15, 0.06)
+    x[int(SR * 0.16):] += 0.5 * bandpass(noise(n - int(SR * 0.16)), 2500, 7000, 2) * env(n - int(SR * 0.16), 0.002, 0.05)
+    save("page", x, 0.4)
+
+    # hymn: a held chord of voices, breathy, for the Choir on the rock
+    n = int(SR * 2.4)
+    tt = t(2.4)
+    x = np.zeros(n)
+    for k, f in enumerate([220.0, 277.2, 329.6, 440.0]):
+        vib = 1.0 + 0.006 * np.sin(2 * np.pi * (4.5 + 0.3 * k) * tt)
+        x += (0.6 - 0.1 * k) * np.sin(2 * np.pi * f * vib * tt + 0.4 * np.sin(2 * np.pi * f * 2 * tt))
+    x += 0.15 * lowpass(noise(n), 1800, 2)
+    x *= env(n, 0.5, 0.8, 0.7, 0.9)
+    save("hymn", lowpass(x, 3000, 2), 0.35)
+
+    # gift: a small bright chime, two notes
+    n = int(SR * 0.5)
+    tt = t(0.5)
+    x = np.sin(2 * np.pi * 1318.5 * tt) * env(n, 0.005, 0.25) + 0.7 * np.sin(2 * np.pi * 1760.0 * tt) * env(n, 0.12, 0.3)
+    save("gift", x, 0.4)
+
+
 def main():
     build_sea()
     build_gull()
@@ -394,6 +419,7 @@ def main():
     build_sfx_m4()
     build_sfx_m4b()
     build_sfx_m6()
+    build_sfx_m7()
     import gen_music
     gen_music.build_music()
     print("wrote audio to", OUT)

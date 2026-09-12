@@ -3,6 +3,8 @@ extends Enemy
 ## when the city asked to be kept. It does not chase and it does not strike. It sings: a
 ## ring that opens out of it, hurting what it passes and waking every other drowned thing
 ## in the room. Kill it first or fight the whole street.
+## Or: bring it low and let it finish. Under a third of its health the note falters; stand close and
+## press E, and the Choir is spared (an echo, home to the rock) instead of killed.
 
 const SHEET := preload("res://assets/sprites/choir.png")
 const KEEP_DISTANCE := 100.0
@@ -13,10 +15,13 @@ const RECOVER := 1.1
 const RING_MAX := 130.0
 const RING_DAMAGE := 8
 const KINDLE_TIME := 5.0
+const SPARE_RANGE := 40.0
 
 var _drift_dir: float = 1.0
 var _sing_t: float = 0.0
 var _hit_this_note: bool = false
+var _prompt: Label
+var spared: bool = false
 
 
 func _setup_animations() -> void:
@@ -31,6 +36,12 @@ func _setup_animations() -> void:
 	_sing_t = randf_range(0.8, 2.0)
 	var glow := Atmosphere.light(self, Color(0.8, 0.7, 0.95), 2.0, 0.6, Vector2(0, -10))
 	Atmosphere.breathe(glow, 0.4, 0.8, 2.2)
+	_prompt = UI.label("", 8, Color(0.95, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_prompt.size = Vector2(120, 10)
+	_prompt.position = Vector2(-60, -30)
+	_prompt.visible = false
+	_prompt.z_index = 5
+	add_child(_prompt)
 
 
 func _enter_state(s: StringName) -> void:
@@ -56,6 +67,13 @@ func _enter_state(s: StringName) -> void:
 		&"recover":
 			play("idle")
 			velocity = Vector2.ZERO
+		&"falter":
+			# The note fails: it stands, the ring fades, and it can be let go.
+			play("hurt")
+			velocity = Vector2.ZERO
+			FX.text(global_position + Vector2(0, -20), "THE NOTE FALTERS", Color(0.85, 0.75, 1.0))
+			if hitbox and hitbox.active:
+				hitbox.deactivate()
 
 
 func _tick(delta: float) -> void:
@@ -97,6 +115,15 @@ func _tick(delta: float) -> void:
 			velocity = Vector2.ZERO
 			if state_t >= RECOVER:
 				change_state(&"drift")
+		&"falter":
+			velocity = Vector2.ZERO
+			if d != Vector2.ZERO:
+				face(d.x)
+			var near := d != Vector2.ZERO and d.length() < SPARE_RANGE
+			_prompt.visible = near
+			_prompt.text = UI.hint("interact") + " let it finish"
+			if near and Input.is_action_just_pressed("interact"):
+				_spare()
 
 
 ## The note is a ring that opens out of it: it catches you once, as it passes.
@@ -125,6 +152,29 @@ func _kindle_the_street() -> void:
 
 
 func _on_hurt_extra(_info: DamageInfo) -> void:
+	if state == &"falter":
+		return
+	if health.hp * 10 <= health.max_hp * 3 and health.hp > 0 and is_elite and affix == "":
+		change_state(&"falter")
+		return
 	if state == &"drift" or state == &"idle":
 		play("hurt")
 		stunned = 0.1
+
+
+## Let go alive: leaves the fight without dying. The run treats it as the room clearing.
+func _spare() -> void:
+	if spared:
+		return
+	spared = true
+	_prompt.visible = false
+	remove_from_group("enemies")
+	hurtbox.set_deferred("monitoring", false)
+	hurtbox.set_deferred("monitorable", false)
+	FX.burst(global_position, Color(0.85, 0.8, 1.0), 18, 80.0)
+	EventBus.enemy_spared.emit(self)
+	var tw := create_tween()
+	tw.tween_property(sprite, "modulate:a", 0.0, 1.2)
+	tw.parallel().tween_property(sprite, "position:y", sprite.position.y - 18.0, 1.2)
+	tw.tween_callback(queue_free)
+	set_physics_process(false)

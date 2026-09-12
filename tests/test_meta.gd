@@ -70,6 +70,43 @@ func test_spring_tide_unlocks_and_pays() -> void:
 	SaveManager.use_path(SaveManager.PATH)
 
 
+func test_active_tidemarks_fill_one_slot() -> void:
+	var actives: Array = []
+	for m in Tidemarks.ALL:
+		if m.has("active"):
+			actives.append(m.id)
+	assert_eq(actives.size(), 4, "one active per family")
+	for id in actives:
+		assert_true(Tidemarks.is_active(id) and Tidemarks.cooldown_of(id) >= 20.0, id + " has a cooldown")
+		assert_true(Tidemarks.get_mark(id).desc.begins_with("R:"), id + " says it is on R")
+	assert_true(not Tidemarks.is_active("salt_edge") and Tidemarks.cooldown_of("salt_edge") == 0.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var seen_active := false
+	for i in 60:
+		for id in Tidemarks.roll(rng, [], 3):
+			seen_active = seen_active or Tidemarks.is_active(id)
+	assert_true(seen_active, "actives are offered when the slot is empty")
+	for i in 60:
+		for id in Tidemarks.roll(rng, ["act_storm"], 3):
+			assert_true(not Tidemarks.is_active(id), "no second active with one slot: " + id)
+	var second := false
+	for i in 60:
+		for id in Tidemarks.roll(rng, ["act_storm"], 3, "", 0, [], 2):
+			second = second or Tidemarks.is_active(id)
+	assert_true(second, "a second slot opens the other actives")
+	assert_eq(Tidemarks.actives_in(["salt_edge", "act_call", "brine_hp", "act_wall"]), ["act_call", "act_wall"], "in the order taken")
+	var s := RunState.new()
+	s.tidemarks = ["act_call"]
+	s.active_cd = {"act_call": 12.5}
+	s.active_slots = 2
+	var back := RunState.new()
+	back.from_dict(JSON.parse_string(JSON.stringify(s.to_dict())))
+	assert_eq(back.actives(), ["act_call"])
+	assert_near(float(back.active_cd["act_call"]), 12.5)
+	assert_eq(back.active_slots, 2, "slots survive a rest")
+
+
 func test_tidemark_roll_excludes_owned() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
@@ -173,14 +210,15 @@ func test_codex_discovery_and_endings_gate() -> void:
 	assert_true(Story.whisper("cage") != "", "first whisper speaks")
 	assert_eq(Story.whisper("cage"), "", "then stays quiet")
 	assert_eq(Story.whisper("nonsense"), "", "unknown keys are silent")
-	# Endings: keep is always there, break needs the three echoes, walk needs everyone and 3 wins.
+	# Endings: keep is always there, break needs the three and five home, walk needs everyone and 3 wins.
 	assert_true(Story.ending_available("keep"))
 	assert_true(not Story.ending_available("break"))
 	assert_true(not Story.ending_visible("walk"), "walk is hidden until everyone is home")
-	for id in ["bram", "wren", "cartographer"]:
+	for id in ["bram", "wren", "cartographer", "pell", "aldous"]:
 		SaveManager.set_flag("echo_" + id)
-	assert_true(Story.ending_available("break"), "break opens with the three")
+	assert_true(Story.ending_available("break"), "break opens with five home")
 	SaveManager.set_flag("echo_maren")
+	SaveManager.set_flag("echo_choir")
 	assert_true(Story.ending_visible("walk") and not Story.ending_available("walk"), "walk shows, still locked")
 	SaveManager.data.wins = 3
 	assert_true(Story.ending_available("walk"), "walk opens at three wins")

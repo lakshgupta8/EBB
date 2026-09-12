@@ -82,13 +82,13 @@ func _atlas(tex: Texture2D, index: int, cell_size: int) -> AtlasTexture:
 	return at
 
 
-## The wet way: same room type, already under water, tinted so.
-func set_wet() -> void:
+## The wet way: same room type, already under water, tinted so. Usually a shortcut too.
+func set_wet(shortcut: bool = true) -> void:
 	wet = true
-	_label.text = (RoomGraph.NAMES[room_type] if room_type >= 0 else "Descend").to_upper() + " (WET)"
-	_label.size = Vector2(120, 10)
+	_label.text = (RoomGraph.NAMES[room_type] if room_type >= 0 else "Descend").to_upper() + (" (WET SHORTCUT)" if shortcut else " (WET)")
+	_label.size = Vector2(140, 10)
 	# Side doors sit on the room's edge: slide the wider label inward so it is not cut off.
-	_label.position = _icon.position + Vector2(-60, 12) + Vector2(_interior.x * 40.0, 0)
+	_label.position = _icon.position + Vector2(-70, 12) + Vector2(_interior.x * 50.0, 0)
 	_icon.modulate = Color(0.4, 0.5, 0.65)
 
 

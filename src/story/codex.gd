@@ -54,15 +54,51 @@ const PEOPLE := [
 		"lore": "Blunt and guilty. She handed you the lantern and knew exactly what it was."},
 	{"id": "fen", "name": "Fen", "desc": "village kid; thinks you are a hero",
 		"lore": "Held the lantern once, when Maren let them. Says it was warm."},
+	{"id": "nessa", "name": "Nessa the Fisher", "desc": "contracts and smoked fish",
+		"lore": "Fished the flats before the tide went strange and fishes them still. Pays in pearls, on time."},
 	{"id": "bram", "name": "Bram the Drowned", "desc": "Saltmere's smith; the forge",
 		"lore": "Three hundred years under and still a smith. Get him to a fire and he makes things that bite."},
+	{"id": "pell", "name": "Pell the Diver", "desc": "echo from the harbour; salt-glass",
+		"lore": "Dived the harbour for the crane's chains, before. Dives now for what the sea has made of them."},
 	{"id": "wren", "name": "Sister Wren", "desc": "Saltmere's priestess; blessings",
 		"lore": "She rang the bell that asked the sea to keep them, and meant it kindly. She is still praying."},
 	{"id": "cartographer", "name": "The Cartographer", "desc": "nameless; charts a room",
 		"lore": "Mapped every street before the water came, and every keeper's name under the hall, in order."},
+	{"id": "choir", "name": "The Choir", "desc": "spared in the streets; hymns",
+		"lore": "Nine singers on one breath for three hundred years. Somebody let the note end. They sing for the rock now."},
+	{"id": "idris", "name": "Idris the Harbourmaster", "desc": "the dock: keels, launches",
+		"lore": "Held the ships to the quay the night the crane took them. Has not forgiven the crane or himself."},
+	{"id": "aldous", "name": "Keeper Aldous", "desc": "echo from the hall; the journal",
+		"lore": "Kept the light before Maren. Wrote nine pages about what the lantern is, and went down anyway."},
 	{"id": "maren", "name": "Maren", "desc": "the old keeper; the endings",
 		"lore": "Went down to take Saltmere's place at the bottom. Came back up because you carried her."},
 ]
+
+## The second paragraph of an enemy's entry, earned after twenty of them.
+const ENEMY_MORE := {
+	"shellback": "Turn it over and the keel is a boat's keel. The claws grew later.",
+	"gull": "They dive at the lantern, not at you. Put the light down and they circle, lost.",
+	"wrack_crab": "It charges in a straight line because it cannot see corners. Nothing under the sea can.",
+	"wreck": "There is a name on the transom, under the barnacles. Maren has never read it.",
+	"tidewisp": "Each one hangs over the spot a keeper drowned. Count them and you have the number Orla will not say.",
+	"netted": "The net was his own. He was proud of it. He mended it the morning he drowned in it.",
+	"mooring": "The rope is not tied to anything any more. He holds it because holding it is what he is.",
+	"barnacle": "They move as one because the hull did. Break the hull's memory and the halves forget each other.",
+	"deckhand": "The drill was: shield up, hold the line, wait for the order. The order never came.",
+	"chainmother": "It was built to lift ships out of the water. It found a way to lift them in.",
+	"choir": "Nine voices. Kill one and the other eight sing on inside it. Let it finish and all nine stop.",
+	"still_citizen": "They were kept exactly as they were, which was: afraid, and looking at the door.",
+	"lamplighter": "The lamps he lights are the ones the city put out on purpose, the night it hid.",
+	"bell_ringer": "Small bells answer the big one. He rings them so the drowned know it is still tolling.",
+	"swimmer": "A citizen who stopped waiting by the door and went out to meet the water. It went well, for a while.",
+	"bell": "The Bell of Saltmere was cast with a name in it. Wren's. She was six.",
+	"keeper_shade": "It does not copy your weapon. It remembers its own, and every keeper had the same one.",
+	"tallow": "The candle is the lantern, as it looks after long enough. Nobody told him to put it down.",
+	"anchor": "Its chain runs to the Ebb. Everything in the hall is on a chain that runs to the Ebb.",
+	"deep_maw": "Not mouths. Ears. It is listening for the lantern, and the lantern is always talking.",
+	"ebb": "It has a name too. Nobody has said it in three hundred years, which is how it likes it.",
+}
+const MORE_KILLS := 20
 
 const PLACES := [
 	{"id": "rock", "name": "Marrow Rock", "desc": "the lighthouse; home",
@@ -85,8 +121,9 @@ const FAMILY_LORE := {
 	"echo": "Echo: what the people you brought back remember, lent to the living.",
 }
 
-const TABS := ["enemy", "mark", "people", "place"]
-const TAB_NAMES := {"enemy": "The Drowned", "mark": "Tidemarks", "people": "People", "place": "Places"}
+const TABS := ["enemy", "mark", "people", "place", "weapon", "journal", "contract"]
+const TAB_NAMES := {"enemy": "Drowned", "mark": "Marks", "people": "People", "place": "Places",
+	"weapon": "Weapons", "journal": "Journal", "contract": "Contracts"}
 
 
 static func _store() -> Dictionary:
@@ -110,11 +147,28 @@ static func discover(kind: String, id: String) -> bool:
 static func found(kind: String, id: String) -> bool:
 	match kind:
 		"people":
-			return id in ["orla", "fen"] or SaveManager.flag("echo_" + id)
+			if id in ["orla", "fen"]:
+				return true
+			if id == "nessa":
+				return int(SaveManager.data.get("runs", 0)) >= 2
+			if id == "idris":
+				return SaveManager.flag("boss_chainmother_broken")
+			return SaveManager.flag("echo_" + id)
 		"place":
 			return id == "rock" or id in _store().get("place", [])
+		"weapon":
+			return id in SaveManager.data.get("weapons", ["gaff", "net"])
+		"journal":
+			return int(id) in SaveManager.data.get("journals", [])
+		"contract":
+			return id in SaveManager.data.get("contracts_done", [])
 		_:
 			return id in _store().get(kind, [])
+
+
+## How many of an enemy you have killed, ever.
+static func kills_of(id: String) -> int:
+	return int(SaveManager.data.get("kills_by", {}).get(id, 0))
 
 
 ## Codex id of an enemy node: its scene's file name (shellback, bell, ebb...).
@@ -128,7 +182,27 @@ static func entries(kind: String) -> Array:
 	match kind:
 		"enemy":
 			for e in ENEMIES:
-				out.append({"name": e.name, "desc": e.desc, "lore": e.lore, "found": found(kind, e.id)})
+				var lore: String = e.lore
+				var n := kills_of(e.id)
+				if n >= MORE_KILLS and ENEMY_MORE.has(e.id):
+					lore += "  " + str(ENEMY_MORE[e.id])
+				elif found(kind, e.id):
+					lore += "  (%d of %d killed for more)" % [n, MORE_KILLS]
+				out.append({"name": e.name, "desc": e.desc, "lore": lore, "found": found(kind, e.id)})
+		"weapon":
+			for id in Weapon.ALL:
+				var w: Dictionary = Weapon.ALL[id]
+				var lore := ""
+				for a in Weapon.ASPECTS.get(id, []):
+					lore += "%s: %s.  " % [a.name, a.desc]
+				out.append({"name": w.name, "desc": w.desc, "lore": lore.strip_edges(), "found": found(kind, id)})
+		"journal":
+			for i in Story.JOURNAL.size():
+				var id := str(i + 1)
+				out.append({"name": "Page %d" % (i + 1), "desc": "Keeper Aldous", "lore": Story.JOURNAL[i], "found": found(kind, id)})
+		"contract":
+			for c in Contracts.ALL:
+				out.append({"name": c.name, "desc": c.desc, "lore": "Nessa paid: " + LogUI._reward_text(c), "found": found(kind, c.id)})
 		"mark":
 			for m in Tidemarks.ALL:
 				out.append({"name": m.name, "desc": m.desc, "lore": FAMILY_LORE[m.family], "found": found(kind, m.id),

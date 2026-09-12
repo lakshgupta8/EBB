@@ -5,7 +5,10 @@ extends Node
 # Combat
 signal damage_dealt(target: Node, info: DamageInfo)
 signal enemy_died(enemy: Node)
+signal enemy_spared(enemy: Node)  # let go alive (the Choir): clears the room, no kill
 signal player_died()
+signal flared()
+signal riptided()
 signal player_health_changed(current: int, max_hp: int)
 
 # Run flow

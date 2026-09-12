@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://src/ui/codex_ui.tscn" id="10_codex"]
 [ext_resource type="PackedScene" path="res://src/ui/settings_ui.tscn" id="11_settings"]
 [ext_resource type="FontFile" path="res://assets/fonts/ebb.fnt" id="7_font"]
+[ext_resource type="PackedScene" path="res://src/ui/log_ui.tscn" id="12_log"]
+[ext_resource type="PackedScene" path="res://src/ui/talk_ui.tscn" id="13_talk"]
 
 [node name="Run" type="Node2D"]
 script = ExtResource("1_run")
@@ -89,6 +91,10 @@ vertical_alignment = 1
 [node name="CodexUI" parent="." instance=ExtResource("10_codex")]
 
 [node name="SettingsUI" parent="." instance=ExtResource("11_settings")]
+
+[node name="LogUI" parent="." instance=ExtResource("12_log")]
+
+[node name="TalkUI" parent="." instance=ExtResource("13_talk")]
 
 [node name="Fade" type="ColorRect" parent="HUD"]
 anchors_preset = 15

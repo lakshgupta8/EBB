@@ -98,6 +98,11 @@ const ALL := [
 	{"id": "leg_coat", "family": "brine", "rarity": "legendary", "name": "Keeper's Coat", "desc": "take 25% less from everything"},
 	{"id": "leg_spindrift", "family": "current", "rarity": "legendary", "name": "Spindrift", "desc": "+2 dash charges; dashes return 50% faster"},
 	{"id": "leg_slack", "family": "deep", "rarity": "legendary", "name": "Slack Water", "desc": "the tide holds while enemies live"},
+	# actives: one per family, used on R. Only as many as you have slots (one; the Ledger adds one).
+	{"id": "act_storm", "family": "salt", "active": 20.0, "name": "Salt Storm", "desc": "R: hurl salt; 12 damage all round, 20 s"},
+	{"id": "act_wall", "family": "brine", "active": 30.0, "name": "Breakwater", "desc": "R: absorb one hit, tide holds 3 s; 30 s"},
+	{"id": "act_step", "family": "current", "active": 25.0, "name": "Keeper's Step", "desc": "R: every dash back, untouchable 1 s; 25 s"},
+	{"id": "act_call", "family": "deep", "active": 45.0, "name": "Slack Call", "desc": "R: the tide holds for 10 s; 45 s"},
 ]
 
 
@@ -136,6 +141,23 @@ static func rarity_of(id: String) -> String:
 	return str(get_mark(id).get("rarity", ""))
 
 
+## Actives are used on R and come back after their cooldown (seconds), else 0.
+static func cooldown_of(id: String) -> float:
+	return float(get_mark(id).get("active", 0.0))
+
+
+static func is_active(id: String) -> bool:
+	return get_mark(id).has("active")
+
+
+static func actives_in(owned: Array) -> Array:
+	var out: Array = []
+	for id in owned:
+		if is_active(id):
+			out.append(id)
+	return out
+
+
 ## The families of the marks in hand (for duos).
 static func families_of(owned: Array) -> Array:
 	var out: Array = []
@@ -149,12 +171,15 @@ static func families_of(owned: Array) -> Array:
 ## `count` distinct marks the player does not own, chosen with the run rng, weighted by
 ## rarity. With a blessed family (Sister Wren), one of the offers is always from it when
 ## any remain. `depth` and `held` gate the rarer marks (see eligible).
-static func roll(rng: RandomNumberGenerator, owned: Array, count: int = 3, blessed: String = "", depth: int = 0, held: Array = []) -> Array:
+static func roll(rng: RandomNumberGenerator, owned: Array, count: int = 3, blessed: String = "", depth: int = 0, held: Array = [], active_slots: int = 1) -> Array:
 	var pool: Array = []
 	var weights: Array = []
 	var blessed_pool: Array = []
+	var slots_full: bool = actives_in(owned).size() >= active_slots
 	for m in ALL:
 		if m.id in owned or not eligible(m, depth, held):
+			continue
+		if m.has("active") and slots_full:
 			continue
 		pool.append(m.id)
 		weights.append(float(RARITY_WEIGHT.get(str(m.get("rarity", "")), 1.0)))

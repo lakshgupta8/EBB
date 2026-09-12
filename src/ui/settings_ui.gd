@@ -12,6 +12,9 @@ const ROWS := [
 	{"key": "shake", "name": "Screen shake", "kind": "shake"},
 	{"key": "flash", "name": "Screen flashes", "kind": "bool"},
 	{"key": "fullscreen", "name": "Fullscreen", "kind": "bool"},
+	{"key": "dialog_speed", "name": "Dialogue speed", "kind": "speed"},
+	{"key": "skip_seen", "name": "Skip dialogue seen before", "kind": "bool"},
+	{"key": "hints", "name": "Journal hints", "kind": "bool"},
 ]
 
 var is_open: bool = false
@@ -85,6 +88,12 @@ func _step(i: int, dir: int) -> void:
 			Settings.set_value(r.key, steps[wrapi(at + dir, 0, steps.size())])
 		"bool":
 			Settings.set_value(r.key, not bool(v))
+		"speed":
+			var steps := [0.5, 1.0, 2.0, 0.0]
+			var at := steps.find(float(v))
+			if at < 0:
+				at = 1
+			Settings.set_value(r.key, steps[wrapi(at + dir, 0, steps.size())])
 	Audio.play("ui", 0.0, -8.0)
 	_refresh()
 
@@ -133,8 +142,8 @@ func _build() -> void:
 		buttons.append(b)
 	box.add_child(UI.spacer(4))
 	box.add_child(UI.label("Move WASD / stick   Aim mouse / right stick   Dash Space / A", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("Attack LMB / X / RT   Special RMB / Y / LT   Flare Q / LB", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("Use E / B   Codex C / Back   Pause Esc / Start", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("Attack LMB / X / RT   Special RMB / Y / LT   Flare Q / LB   Active R / RB", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("Use E / B   Eat F / d-pad up   Codex C / Back   Log L   Pause Esc / Start", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
 	var leave := UI.text_button("Done   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -157,4 +166,7 @@ func _refresh() -> void:
 				text = "off" if float(v) <= 0.0 else ("low" if float(v) < 1.0 else "full")
 			"bool":
 				text = "on" if bool(v) else "off"
+			"speed":
+				var s := float(v)
+				text = "at once" if s <= 0.0 else ("slow" if s < 1.0 else ("fast" if s > 1.0 else "normal"))
 		_rows[i][1].text = text

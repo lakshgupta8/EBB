@@ -48,6 +48,8 @@ var mods: Dictionary = {
 	"shard_bonus": 0, "tithe": false, "drown": 0, "dry_feet": false, "chest_bonus": 0,
 	"low_damage": 0.0, "per_mark": 0.0, "mark_count": 0, "thorns": 0, "water_shield": false,
 	"armour": 1.0, "slack": false,
+	# M7: the Ledger's new branches and the village's perks
+	"deep_tick_mult": 1.0, "fountain_hold": 0.0, "shop_mult": 1.0, "flare_radius": 1.0,
 }
 
 var max_dash: int = DASH_CHARGES
@@ -85,6 +87,7 @@ var _dodge_cd: float = 0.0
 var _second_chance_used: bool = false
 var _wake: Hitbox
 var _lantern: PointLight2D
+var lantern_color: Color = Color(1.0, 0.9, 0.72)
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var health: Health = $Health
@@ -95,7 +98,9 @@ var weapon: Weapon
 func _ready() -> void:
 	add_to_group("player")
 	_equip(Game.weapon_id())
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
+	# The coat is a cosmetic from the Log: a recoloured sheet with the same frames.
+	var sheet: Texture2D = load(KeeperLog.coat_sheet())
+	sprite.sprite_frames = SheetFrames.build(sheet if sheet else SHEET, 24, {
 		"idle": {"frames": [0, 1], "fps": 3},
 		"walk": {"frames": [2, 3, 4, 5], "fps": 9},
 		"hurt": {"frames": [6], "fps": 1},
@@ -113,8 +118,10 @@ func _ready() -> void:
 	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	_build_wake()
-	# The keeper's lantern: the warm pool of light you carry through the night.
-	_lantern = Atmosphere.light(self, Color(1.0, 0.9, 0.72), 5.0, 1.15, Vector2(-4, -6))
+	# The keeper's lantern: the pool of light you carry through the night (its colour is
+	# a cosmetic from the Log).
+	lantern_color = KeeperLog.lantern_color()
+	_lantern = Atmosphere.light(self, lantern_color, 5.0, 1.15, Vector2(-4, -6))
 	Atmosphere.breathe(_lantern, 1.05, 1.25, 2.4)
 
 
@@ -345,6 +352,7 @@ func _on_dodged(_info: DamageInfo) -> void:
 	if _dodge_cd > 0.0 or not (is_dashing() or _since_dash < float(mods.dash_grace)):
 		return
 	_dodge_cd = 0.6
+	EventBus.riptided.emit()
 	if int(mods.riptide_heal) > 0:
 		health.heal(int(mods.riptide_heal))
 	riptide_t = mods.riptide_window
@@ -373,7 +381,7 @@ func add_glow(amount: float) -> void:
 		FX.text(global_position, "LANTERN READY", Color(1.0, 0.9, 0.55))
 		Audio.play("pearl", 0.0, -6.0)
 	if _lantern:
-		_lantern.color = Color(1.0, 0.9, 0.72).lerp(Color(1.0, 0.97, 0.85), glow / GLOW_MAX)
+		_lantern.color = lantern_color.lerp(Color(1.0, 0.97, 0.85), glow / GLOW_MAX)
 
 
 func flare() -> void:
@@ -391,8 +399,9 @@ func flare() -> void:
 		var tw := create_tween()
 		_lantern.energy = 4.0
 		tw.tween_property(_lantern, "energy", 1.15, 0.7)
+	EventBus.flared.emit()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if not (e is Enemy) or e.global_position.distance_to(global_position) > FLARE_RADIUS:
+		if not (e is Enemy) or e.global_position.distance_to(global_position) > FLARE_RADIUS * float(mods.flare_radius):
 			continue
 		var info := DamageInfo.make(int(FLARE_DAMAGE * mods.damage * float(mods.flare_mult)), self, e.global_position - global_position, 120.0)
 		info.tags = PackedStringArray(["flare", "lantern"])

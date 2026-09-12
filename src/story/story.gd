@@ -40,6 +40,23 @@ const ENDINGS := {
 	},
 }
 const ENDING_ORDER := ["keep", "break", "walk"]
+## Everyone the sea can give back, in the order the night finds them.
+const ECHO_IDS := ["bram", "pell", "wren", "cartographer", "choir", "aldous", "maren"]
+const BREAK_NEEDS := 5
+
+## Keeper Aldous's journal: nine pages the sea kept, hidden in vaults and dives. Layer
+## three of the truth, in his hand, in order.
+const JOURNAL := [
+	"Page 1. Night one under the light. Orla's mother handed me the lantern the way you hand someone a baby you do not want. It was warm. I wrote that down because I did not believe it.",
+	"Page 2. The flats at low water are the floor of a room with the roof off. I counted eleven upturned boats. Eleven keepers before me, then. Nobody told me the number. Nobody tells the number.",
+	"Page 3. The Wreck is Maren's mother's boat. I have decided not to tell Maren. I have decided a great many things I will not tell Maren.",
+	"Page 4. Salt-glass. I thought it was made of the drowned. It is not. It is what the sea makes when it has nothing to keep and wants to keep something anyway. Even the sea is lonely. Write that down, Aldous. Nobody will believe you.",
+	"Page 5. The bell was rung on purpose. Wren rang it and Wren meant it kindly and Wren has been praying about it ever since. I do not think she should stop. I think the praying is the only thing holding the shape of her.",
+	"Page 6. The Ebb spoke to me. Not in words. It showed me every keeper standing in the hall, and it showed me the light in my hand, and it asked, very politely, whether I would like to be kept. I said I would think about it.",
+	"Page 7. I have worked it out. The lantern is not a light. It is a hook. The sea put it in Saltmere's hand the night the bell rang and it has been reeling us down, one keeper at a time, ever since. We call it keeping the tide. The tide keeps us.",
+	"Page 8. If the hook is put down, the line goes slack. Nobody goes under. Nobody is kept. The sea forgets, because a sea cannot remember without something to remember with. I have not the nerve. Perhaps the next one.",
+	"Page 9. I am going down tonight and I am not coming up, and I am leaving these pages where the sea will keep them, because the sea keeps everything. To whoever reads this: it can be put down. It only has to be put down by someone who could have carried it.",
+]
 
 ## What Bram says when you are carrying a weapon that remembers someone.
 const ASPECT_LINES := {
@@ -84,6 +101,14 @@ const WHISPERS := {
 	"bell": "That bell called the sea in. Someone rang it on purpose, and meant it kindly.",
 	"hall": "Every keeper before you is standing in the hall. Not dead. Held. The lantern hums like it knows them by name.",
 	"ebb": "It is not cruel. It was asked to keep them safe forever and it is still doing it. Maren is in there with it, mid-bargain.",
+	"page": "A page in a keeper's hand, dry, in a place where nothing is dry. The sea kept it the way it keeps everything.",
+	"glass": "Salt-glass. The sea made this out of nothing, because it wanted to keep something that was not a person.",
+	"pell": "Someone is diving, down here, where there is nothing left to dive for. The lantern knows a diver's lungs when it hears them.",
+	"aldous": "A keeper's cage, in the hall, with a keeper still in it. The lantern goes quiet. It knew him.",
+	"choir_falter": "The note is failing. It could end here, if you let it. Nobody has ever let it.",
+	"choir_spared": "It ended. Three hundred years on one breath, and you stood there and let it finish. The street is quiet for the first time.",
+	"shortcut": "The water is going where you are going. For once, let it carry you.",
+	"launch": "The dock. Idris tied the knot himself. The flats are behind you before the night has begun.",
 }
 
 
@@ -104,11 +129,78 @@ static func echo(id: String) -> bool:
 	return SaveManager.flag("echo_" + id)
 
 
+static func echoes_home() -> int:
+	var n := 0
+	for id in ECHO_IDS:
+		if echo(id):
+			n += 1
+	return n
+
+
 static func all_echoes_home() -> bool:
-	for id in ["bram", "wren", "cartographer", "maren"]:
-		if not echo(id):
-			return false
-	return true
+	return echoes_home() >= ECHO_IDS.size()
+
+
+## Affinity with an NPC: 0..3, one level per gift.
+static func affinity(npc: String) -> int:
+	return int(SaveManager.data.get("affinity", {}).get(npc, 0))
+
+
+static func perk(npc: String) -> bool:
+	return SaveManager.flag("perk_" + npc)
+
+
+static func gifts_in_hand() -> int:
+	return int(SaveManager.data.get("glass", 0)) + int(SaveManager.data.get("shells", 0))
+
+
+## A gift to `npc`: spends a piece of salt-glass (else a shell), raises affinity a level,
+## pays the level's reward. Returns {lines, got, seen_before}, or {} when it cannot be given
+## (nothing in hand, or nothing left to say).
+static func give_gift(npc: String) -> Dictionary:
+	var level := affinity(npc)
+	var chain := Dialog.chain(npc, level + 1)
+	if chain.is_empty() or gifts_in_hand() <= 0:
+		return {}
+	if int(SaveManager.data.get("glass", 0)) > 0:
+		SaveManager.data["glass"] = int(SaveManager.data.glass) - 1
+	else:
+		SaveManager.data["shells"] = int(SaveManager.data.shells) - 1
+	SaveManager.data["affinity"][npc] = level + 1
+	SaveManager.count("gifts")
+	var reward: Dictionary = chain.get("reward", {})
+	var lines: Array = chain.get("lines", []).duplicate()
+	var got: Array = []
+	if int(reward.get("pearls", 0)) > 0:
+		SaveManager.data["pearls"] = int(SaveManager.data.pearls) + int(reward.pearls)
+		got.append("%d pearls" % int(reward.pearls))
+	if int(reward.get("shards", 0)) > 0:
+		SaveManager.data["shards"] = int(SaveManager.data.get("shards", 0)) + int(reward.shards)
+		got.append("%d shards" % int(reward.shards))
+	if reward.has("fish"):
+		SaveManager.data["fish"].append(str(reward.fish))
+		got.append(Fish.name_of(str(reward.fish)).to_lower())
+	if reward.has("perk"):
+		SaveManager.data["flags"]["perk_" + str(reward.perk)] = true
+		got.append(str(reward.get("text", "a keepsake")))
+	if reward.has("cosmetic"):
+		KeeperLog.unlock_cosmetic(str(reward.cosmetic))
+		got.append("a coat")
+	var key := "%s_%d" % [npc, level + 1]
+	var seen: Array = SaveManager.data.get("chains_seen", [])
+	var seen_before := key in seen
+	if not seen_before:
+		seen.append(key)
+	SaveManager.data["chains_seen"] = seen
+	SaveManager.save_profile()
+	if got.size() > 0:
+		lines.append("(" + ", ".join(got) + ")")
+	return {"lines": lines, "got": got, "seen_before": seen_before}
+
+
+## The hub stays the way the last ending left it.
+static func epilogue() -> String:
+	return str(SaveManager.data.get("epilogue", ""))
 
 
 static func endings_seen() -> Array:
@@ -124,6 +216,7 @@ static func record_ending(id: String) -> void:
 	if not id in list:
 		list.append(id)
 	SaveManager.data["endings"] = list
+	SaveManager.data["epilogue"] = id
 	SaveManager.save_profile()
 
 
@@ -133,10 +226,12 @@ static func ending_locked_reason(id: String) -> String:
 		"keep":
 			return ""
 		"break":
-			return "" if (echo("bram") and echo("wren") and echo("cartographer")) else "needs Bram, Wren and the Cartographer on the rock"
+			if not (echo("bram") and echo("wren") and echo("cartographer")):
+				return "needs Bram, Wren and the Cartographer on the rock"
+			return "" if echoes_home() >= BREAK_NEEDS else "needs five echoes home (%d so far)" % echoes_home()
 		"walk":
 			if not all_echoes_home():
-				return "needs every echo home"
+				return "needs every echo home (%d of %d)" % [echoes_home(), ECHO_IDS.size()]
 			return "" if wins() >= 3 else "needs three nights won (%d so far)" % wins()
 	return "unknown"
 
@@ -189,6 +284,9 @@ static func orla() -> String:
 
 
 static func fen() -> String:
+	# The shell chain comes first: a quest waiting to be handed in, or the one in hand.
+	if Quests.fen_ready():
+		return Quests.fen_current().done
 	if seen("walk"):
 		return "The lantern is not warm any more. I checked. Is that good? You look like it is good."
 	if seen("break"):
@@ -205,7 +303,30 @@ static func fen() -> String:
 		return "Everyone says the bell stopped. I never heard it start."
 	if runs() >= 3:
 		return "Do you see the city when you go down? Is it all there? Are the houses still standing up?"
+	if runs() >= 1 and not Quests.fen_done():
+		return Quests.fen_current().ask
 	return "Are you the keeper now? Maren let me hold the lantern once. It was warm. Is it still warm?"
+
+
+# --- the village (M7): lines live in data/dialog/npcs.json ----------------------------
+static func nessa() -> String:
+	return Dialog.line("nessa")
+
+
+static func idris() -> String:
+	return Dialog.line("idris")
+
+
+static func aldous() -> String:
+	return Dialog.line("aldous")
+
+
+static func pell() -> String:
+	return Dialog.line("pell")
+
+
+static func choir() -> String:
+	return Dialog.line("choir")
 
 
 static func bram() -> String:
@@ -254,5 +375,7 @@ static func maren() -> String:
 	if all_echoes_home() and wins() >= 3:
 		return "Everyone is home and you have walked the hall three times. There is a third way, Tam. Nobody goes down. Nobody keeps anything. I do not know if the sea will allow it. Ask me."
 	if all_echoes_home():
-		return "Everyone is home. Bram, Wren, the one with the maps, me. Walk the hall a few more nights and I will tell you the third way. For now there are two."
+		return "Everyone is home. All seven of us. Walk the hall a few more nights and I will tell you the third way. For now there are two."
+	if echoes_home() >= BREAK_NEEDS:
+		return "Five of us on the rock. Enough hands to break the thing, if you want it broken. There are still people down there, though. I would bring them up first."
 	return "Tam. You went all the way down and came back with me. Nobody has done that. The lantern is yours now, properly. It can be hung at the bottom, or broken. I will not choose for you."
