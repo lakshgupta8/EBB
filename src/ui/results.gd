@@ -39,6 +39,17 @@ func show_result(r: Dictionary) -> void:
 		title_text = "TAKEN BY THE DEEP"
 		title_color = Color(0.85, 0.5, 0.5)
 	box.add_child(UI.label(title_text, 16, title_color, HORIZONTAL_ALIGNMENT_CENTER))
+	var why := ""
+	if r.victory:
+		why = "Everything you carried comes home."
+	elif r.taken:
+		why = "The water rose over you. Half your salt still comes home as pearls."
+	else:
+		why = "Your health ran out. The salt is lost; pearls and echoes come home."
+	var wl := UI.label(why, 8, Color(0.9, 0.9, 0.95), HORIZONTAL_ALIGNMENT_CENTER)
+	wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	wl.custom_minimum_size = Vector2(300, 0)
+	box.add_child(wl)
 	var line := ""
 	if r.victory and int(r.get("biome", 0)) >= Run.BIOMES.size() - 1:
 		line = "Maren is standing on the rock. Go up and talk to her."
@@ -55,7 +66,7 @@ func show_result(r: Dictionary) -> void:
 	var secs := int(r.time) % 60
 	var rows := [
 		["Rooms reached", "%d" % (r.depth + 1)],
-		["Reached", Run.BIOMES[int(r.get("biome", 0))].name.capitalize()],
+		["Deepest place", Run.BIOMES[int(r.get("biome", 0))].name.capitalize()],
 		["Kills", "%d" % r.kills],
 		["Salt left", "%d" % r.salt],
 		["Pearls kept", "%d  (+%d from salt)" % [r.pearls, r.pearls_from_salt]],

@@ -35,25 +35,29 @@ const BIOMES := [
 		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
 		"boss_sfx": "roar", "tint": Color(0.6, 0.68, 0.86), "wet": GULL,
 		"elite": NETTED, "elite_name": "The Netted", "boss_music": "music_boss",
-		"intro": "The tide has gone out. Saltmere waits."},
+		"intro": "Ten rooms down, then the Wreck. The water follows you in.",
+		"boss_sub": "Slams, charges, calls the flats. Break it and the way down opens."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
 		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
 		"echoes": ["pell"], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
 		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82), "wet": BARNACLE,
 		"elite": DECKHAND, "elite_name": "The Bosun", "boss_music": "music_boss",
-		"intro": "The harbour. Every ship that tried to leave is still tied up."},
+		"intro": "Nine rooms down, then the Chainmother. Every ship that tried to leave is still tied up.",
+		"boss_sub": "Sweeps, drops anchors, hauls you in. Break it and the way down opens."},
 	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
 		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "won": "THE BELL IS SILENCED",
 		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
 		"boss_sfx": "bell", "tint": Color(0.56, 0.6, 0.8), "wet": SWIMMER,
 		"elite": CHOIR, "elite_name": "The Choir", "boss_music": "music_deep",
-		"intro": "Slack water. The streets of Saltmere, and something still ringing."},
+		"intro": "Eleven rooms down, then the Bell. Something is still ringing.",
+		"boss_sub": "It called the sea in. Silence it and the way down opens."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
 		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
 		"echoes": ["aldous"], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
 		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84), "wet": ANCHOR,
 		"elite": SHADE, "elite_name": "Echo of Maren", "boss_music": "music_deep",
-		"intro": "The Deep Hall. Every keeper before you is standing in it."},
+		"intro": "Nine rooms down, then the Ebb. Every keeper before you is standing in it.",
+		"boss_sub": "Maren is in there with it. Break it, and the night is yours."},
 ]
 ## The people you can bring back, and what they say when the cage opens.
 const ECHOES := {
@@ -125,7 +129,7 @@ var _skip: int = 0           # the wet way is a shortcut: its door goes this man
 @onready var results: CanvasLayer = $Results
 @onready var room_label: Label = $HUD/RoomLabel
 @onready var room_sub: Label = $HUD/RoomSub
-@onready var banner: Label = $HUD/Banner
+@onready var announcer: Announcer = $Announcer
 @onready var shop: Shop = $Shop
 @onready var altar_ui: AltarUI = $AltarUI
 @onready var codex_ui: CodexUI = $CodexUI
@@ -141,8 +145,12 @@ func _ready() -> void:
 	_rng.seed = state.seed
 	hud.bind(self)
 	shop.setup(self)
+	_tide_step = int(floor(state.tide.level))
+	EventBus.pickup_collected.connect(_hint_pickup)
+	EventBus.riptided.connect(func(): announcer.hint("riptide"); announcer.pulse(Announcer.SEA_PALE, 0.45, 0.6))
+	EventBus.player_health_changed.connect(_watch_health)
 	challenge_label = UI.label("", 14, Color(0.8, 0.92, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	challenge_label.position = Vector2(220, 44)
+	challenge_label.position = Vector2(220, 84)
 	challenge_label.size = Vector2(200, 16)
 	challenge_label.visible = false
 	$HUD.add_child(challenge_label)
@@ -218,6 +226,9 @@ func _process(delta: float) -> void:
 	state.tide.advance(delta)
 	room.set_tide(state.tide.level)
 	EventBus.tide_changed.emit(state.tide.level)
+	_watch_tide()
+	if player.glow_full():
+		announcer.hint("flare")
 	_apply_water(delta)
 	_tick_challenge(delta)
 	_tick_marks(delta)
@@ -267,7 +278,10 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	_dev_wet = false
 	if state.slack_start > 0.0:
 		state.tide.pause(state.slack_start)
-	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
+	announcer.card(str(b.name), str(b.intro), 3.0)
+	if index == 0:
+		announcer.hint("move")
+		announcer.hint("goal")
 	_whisper(b.whisper, 3.6)
 	if state.tier > 0 and index == 0:
 		_whisper("tide_%d" % state.tier, 7.5)
@@ -376,7 +390,9 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			_spawn_enemies(2 + state.depth / 2 + state.biome, state.tier >= 7 and state.depth >= 4)
 		RoomGraph.ELITE:
 			_spawn_enemies(1 + state.depth / 3 + state.biome, true)
+			announcer.hint("elite")
 		RoomGraph.FOUNTAIN:
+			announcer.hint("fountain")
 			for cell in room.template.marker_cells("F"):
 				_add_room_prop(Prop.Kind.FOUNTAIN, cell)
 			_set_cleared()
@@ -385,10 +401,12 @@ func _enter_room(type: int, wet: bool = false) -> void:
 				_add_room_prop(Prop.Kind.CHEST, cell)
 			_set_cleared()
 		RoomGraph.ALTAR:
+			announcer.hint("altar")
 			for cell in room.template.marker_cells("A"):
 				_add_room_prop(Prop.Kind.ALTAR, cell)
 			_set_cleared()
 		RoomGraph.SHOP:
+			announcer.hint("shop")
 			shop.restock()
 			for cell in room.template.marker_cells("M"):
 				_add_room_prop(Prop.Kind.MERCHANT, cell)
@@ -396,6 +414,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 		RoomGraph.CHALLENGE:
 			_start_challenge()
 		RoomGraph.VAULT:
+			announcer.hint("vault")
 			for cell in room.template.marker_cells("T"):
 				_add_room_prop(Prop.Kind.VAULT, cell)
 			_set_cleared()
@@ -404,6 +423,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 				_add_room_prop(Prop.Kind.ALTAR, cell)
 			for cell in room.template.marker_cells("T"):
 				_add_room_prop(Prop.Kind.CHEST, cell)
+			announcer.hint("dive")
 			_whisper("dive", 1.2)
 			_set_cleared()
 		RoomGraph.ECHO:
@@ -411,12 +431,12 @@ func _enter_room(type: int, wet: bool = false) -> void:
 		RoomGraph.BOSS:
 			_spawn_boss()
 			Audio.music(str(biome().boss_music), -9.0)
-			_show_banner(biome().boss_name, 2.2, Color(0.95, 0.75, 0.6), 20)
+			_boss_intro()
 			EventBus.request_shake.emit(0.6)
 			Audio.play(biome().boss_sfx)
 			_whisper(biome().boss_whisper, 2.8)
 
-	_show_room_label(biome().name, "%d / %d   %s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
+	_show_room_label(biome().name, "room %d of %d   %s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
 		"  (wet)" if wet else "", "   spring tide %d" % state.tier if state.tier > 0 else ""])
 	EventBus.room_entered.emit(room)
 	var fade_tw := create_tween()
@@ -456,7 +476,8 @@ func _place_doors(type: int, next_depth: int) -> void:
 func _start_challenge() -> void:
 	_challenge_t = 0.0
 	_challenge_wave = 0
-	_show_banner("HOLD UNTIL THE TIDE TURNS", 2.2, Color(0.75, 0.9, 1.0), 12)
+	announcer.card("HOLD UNTIL THE TIDE TURNS", "No way out. Survive three waves and the sea drains, and pays.", 2.6)
+	announcer.hint("challenge")
 	_whisper("challenge", 2.6)
 	_spawn_wave()
 
@@ -495,7 +516,7 @@ func _end_challenge() -> void:
 	tw.tween_property(room, "tide_bonus", 0.0, 3.0)
 	for cell in room.template.marker_cells("T"):
 		_add_room_prop(Prop.Kind.CHEST, cell)
-	_show_banner("THE TIDE TURNS", 2.0, Color(0.75, 0.9, 1.0), 14)
+	announcer.card("THE TIDE TURNS", "The water drains. The chests are yours.", 2.0)
 	Audio.play("clear", 0.0, -2.0)
 	state.count("challenges")
 	SaveManager.count("challenges")
@@ -666,7 +687,7 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 			e.make_elite("" if named else Enemy.AFFIXES[_rng.randi() % Enemy.AFFIXES.size()])
 			if named:
 				e.display_name = str(biome().elite_name)
-				_show_banner(str(biome().elite_name).to_upper(), 1.8, Color(0.95, 0.8, 0.5), 14)
+				announcer.card(str(biome().elite_name).to_upper(), "A named one. Break it for an echo shard.", 2.0, Color(0.95, 0.8, 0.5))
 				if biome().id == "flats":
 					_whisper("netted", 2.4)
 				elif biome().id == "streets":
@@ -681,7 +702,8 @@ func _spawn_echo_room() -> void:
 		cage = room.add_prop(Prop.Kind.CAGE, cell)
 		cage.used.connect(_on_cage_opened)
 	if cage_echo != "":
-		_show_banner("SOMEONE IS STILL HERE", 2.0, Color(0.75, 0.9, 1.0), 12)
+		announcer.card("SOMEONE IS STILL HERE", "Clear the room, then open the cage.", 2.2)
+		announcer.hint("echo")
 		_whisper("cage", 2.6)
 		if Story.WHISPERS.has(cage_echo):
 			_whisper(cage_echo, 8.5)
@@ -697,7 +719,8 @@ func _spawn_boss() -> void:
 		boss.call_deferred("_apply_stat_mult", 1.6 if (state.tier >= 8 and last) else 1.3, 1.0)
 		boss.health.changed.connect(_boss_second_wind)
 	boss.phase_changed.connect(func(_p):
-		_show_banner(biome().stir, 1.6, Color(0.95, 0.5, 0.45), 16)
+		announcer.card(str(biome().stir), "It is hurt, and angrier. The tide jumps.", 1.8, Announcer.STIR_COLOR)
+		announcer.pulse(Announcer.STIR_COLOR, 0.5, 0.9)
 		Audio.play(biome().boss_sfx, 0.0, 2.0)
 		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + (0.7 if state.tier >= 8 else 0.35))
 	)
@@ -716,7 +739,7 @@ func _boss_second_wind(current: int, max_hp: int) -> void:
 		return
 	_second_wind_used = true
 	boss.health.heal(int(max_hp * 0.2))
-	_show_banner("SECOND WIND", 1.4, Color(0.95, 0.6, 0.5), 14)
+	announcer.card("SECOND WIND", "It healed a fifth of itself. Finish it.", 1.6, Color(0.95, 0.6, 0.5))
 	FX.ring(boss.global_position, Color(1.0, 0.5, 0.4), 2.0)
 	Audio.play(biome().boss_sfx, 0.0, -2.0)
 
@@ -830,21 +853,49 @@ func _whisper(key: String, delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
 	if state.ended:
 		return
-	_show_banner("\"" + text + "\"", 5.5, Color(0.85, 0.85, 0.95), 8)
+	announcer.whisper(text)
 
 
-func _show_banner(text: String, duration: float, color: Color, size: int = 14) -> void:
-	banner.text = text
-	banner.add_theme_font_size_override("font_size", size)
-	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if size <= 8 else TextServer.AUTOWRAP_OFF
-	banner.vertical_alignment = VERTICAL_ALIGNMENT_TOP if size <= 8 else VERTICAL_ALIGNMENT_CENTER
-	banner.modulate = Color(color.r, color.g, color.b, 0.0)
-	banner.visible = true
-	var tw := create_tween()
-	tw.tween_property(banner, "modulate:a", 1.0, 0.15)
-	tw.tween_interval(duration)
-	tw.tween_property(banner, "modulate:a", 0.0, 0.4)
-	tw.tween_callback(func(): banner.visible = false)
+## The boss walks on: bars, a breath of slow time, its name and what it does.
+func _boss_intro() -> void:
+	announcer.letterbox(true)
+	announcer.hint("boss")
+	Juice.slowmo(0.5, 0.8)
+	announcer.card(str(biome().boss_name), str(biome().boss_sub), 2.4, Announcer.BOSS_COLOR, true)
+	await get_tree().create_timer(3.4, false).timeout
+	if not state.ended and is_instance_valid(announcer):
+		announcer.letterbox(false)
+
+
+## What the water just covered: a flash on the staff, a pulse at the edge, a word.
+var _tide_step: int = 0
+
+
+func _watch_tide() -> void:
+	var step := int(floor(state.tide.level))
+	if step <= _tide_step:
+		return
+	_tide_step = step
+	hud.flash_tide()
+	announcer.pulse(Announcer.SEA_PALE, 0.55, 1.0)
+	Audio.play("wave", 0.0, -10.0)
+	var words := ["", "the tide is over the low ground", "the tide is over the floor", "the tide is over everything"]
+	announcer.toast(words[mini(step, 3)], Announcer.SEA_PALE, 2.8)
+	announcer.hint("tide" if step == 1 else "tide2")
+
+
+func _hint_pickup(kind: int, _value: int) -> void:
+	match kind:
+		Pickup.Kind.SALT: announcer.hint("salt")
+		Pickup.Kind.PEARL: announcer.hint("pearl")
+		Pickup.Kind.KEY: announcer.hint("key")
+
+
+func _watch_health(current: int, max_hp: int) -> void:
+	var low := current > 0 and current * 10 < max_hp * 3
+	announcer.low_health(low)
+	if low:
+		announcer.hint("low")
 
 
 func _spawn(scene: PackedScene, at: Vector2) -> Enemy:
@@ -869,13 +920,16 @@ func _set_cleared() -> void:
 	if room_type == RoomGraph.ECHO and cage and cage_echo != "":
 		# Doors wait: the cage opens first.
 		cage.unlock()
-		_show_banner("THE CAGE CAN BE OPENED", 1.4, Color(0.75, 0.9, 1.0), 12)
+		announcer.toast("the cage can be opened   [E]", Announcer.SEA_PALE)
 		Audio.play("clear", 0.0, -4.0)
 		EventBus.room_cleared.emit(room)
 		return
 	room.open_doors()
 	if room_type in [RoomGraph.COMBAT, RoomGraph.ELITE, RoomGraph.ECHO]:
-		_show_banner("THE WATER CARRIES YOU: A ROOM SKIPPED" if _skip > 0 else "THE WAY OPENS", 1.4, Color(0.7, 0.9, 1.0), 12)
+		announcer.toast("the water carries you: two rooms down" if _skip > 0 else "the doors are open", Announcer.SEA_PALE)
+		for d in room.doors:
+			if d.wet:
+				announcer.hint("fork")
 		Audio.play("clear", 0.0, -4.0)
 		if _wet_room and not player.dead:
 			Pickup.spawn(content, player.global_position + Vector2(0, -12), Pickup.Kind.PEARL)
@@ -886,7 +940,10 @@ func _set_cleared() -> void:
 				SaveManager.count("shortcuts")
 				_whisper("shortcut", 1.6)
 	elif room_type == RoomGraph.BOSS:
-		_show_banner("THE WAY DOWN OPENS", 2.0, Color(0.7, 0.9, 1.0), 14)
+		FX.flash_screen(Color(1.0, 0.95, 0.85, 0.7), 0.5)
+		Juice.slowmo(0.3, 0.9)
+		announcer.letterbox(false)
+		announcer.card(str(biome().won), "The way down opens.", 2.8, Announcer.WON_COLOR, true)
 		Audio.play("door", 0.0, 0.0)
 	EventBus.room_cleared.emit(room)
 
@@ -909,11 +966,11 @@ func _on_cage_opened(p: Prop) -> void:
 	FX.ring(p.global_position, Color(0.75, 0.9, 1.0), 2.4)
 	FX.burst(p.global_position, Color(0.8, 0.92, 1.0), 20, 90.0)
 	Audio.play("rescue")
-	_show_banner(info.name.to_upper() + " IS FREE", 2.0, Color(0.8, 0.92, 1.0), 16)
+	announcer.card(info.name.to_upper() + " IS FREE", "They go home to the lighthouse tonight.", 2.2)
 	await get_tree().create_timer(2.4).timeout
 	if state.ended:
 		return
-	_show_banner("\"" + info.line + "\"", 4.0, Color(0.85, 0.85, 0.95), 8)
+	announcer.whisper(str(info.line), str(info.name))
 	room.open_doors()
 	Audio.play("door", 0.05, -4.0)
 
@@ -978,10 +1035,10 @@ func _on_enemy_spared(enemy: Node) -> void:
 		FX.flash_screen(Color(0.85, 0.8, 1.0, 0.45), 0.5)
 		FX.ring(pos, Color(0.85, 0.75, 1.0), 2.4)
 		Audio.play("rescue")
-		_show_banner("THE CHOIR IS FREE", 2.0, Color(0.85, 0.8, 1.0), 16)
+		announcer.card("THE CHOIR IS FREE", "You let the note end. It goes home.", 2.2, Color(0.85, 0.8, 1.0))
 		_whisper("choir_spared", 2.4)
 	else:
-		_show_banner("THE NOTE ENDS", 1.6, Color(0.85, 0.8, 1.0), 14)
+		announcer.card("THE NOTE ENDS", "", 1.6, Color(0.85, 0.8, 1.0))
 		Pickup.spawn(content, pos, Pickup.Kind.PEARL)
 	await get_tree().process_frame
 	if state.ended or _challenge_t >= 0.0:
@@ -1026,7 +1083,7 @@ func _free_maren() -> void:
 	p.show_echo("maren")
 	FX.flash_screen(Color(0.8, 0.9, 1.0, 0.6), 0.8)
 	Audio.play("rescue")
-	_show_banner("\"" + ECHOES.maren.line + "\"", 3.0, Color(0.85, 0.85, 0.95), 8)
+	announcer.whisper(str(ECHOES.maren.line), "Maren")
 
 
 func _on_door_entered(door: Door) -> void:
@@ -1052,7 +1109,7 @@ func _on_tidemark_chosen(id: String) -> void:
 	var m := Tidemarks.get_mark(id)
 	FX.ring(player.global_position, Tidemarks.color_of(id), 1.6)
 	FX.burst(player.global_position, Tidemarks.color_of(id), 16, 70.0)
-	_show_banner(m.name.to_upper(), 1.4, Tidemarks.color_of(id), 14)
+	announcer.toast("%s: %s" % [m.name.to_upper(), m.desc], Tidemarks.color_of(id), 3.2)
 	Audio.play("altar")
 
 
@@ -1105,7 +1162,7 @@ func _on_pickup(kind: int, value: int) -> void:
 				SaveManager.count("pages")
 				state.count("pages")
 				SaveManager.save_profile()
-				_show_banner("JOURNAL PAGE %d OF %d" % [value, Story.JOURNAL.size()], 2.0, Color(0.95, 0.92, 0.8), 12)
+				announcer.toast("journal page %d of %d: read it in the codex" % [value, Story.JOURNAL.size()], Color(0.95, 0.92, 0.8), 3.0)
 				_whisper("page", 2.4)
 		Pickup.Kind.GLASS:
 			SaveManager.data["glass"] = int(SaveManager.data.get("glass", 0)) + value
@@ -1182,6 +1239,14 @@ func rest() -> bool:
 	SaveManager.save_profile()
 	state.ended = true
 	Audio.stop_music()
+	announcer.low_health(false)
+	if not state.victory:
+		announcer.card("TAKEN BY THE TIDE" if state.taken else "TAKEN BY THE DEEP",
+			"The water rose over you. Half your salt still comes home as pearls." if state.taken
+			else "Your health ran out. The salt is lost; pearls and echoes come home.",
+			1.6, Color(0.6, 0.8, 0.95) if state.taken else Color(0.85, 0.5, 0.5), true)
+		announcer.pulse(Color(0.6, 0.8, 0.95) if state.taken else Announcer.RED, 0.6, 1.2)
+		Juice.slowmo(0.35, 0.7)
 	return true
 
 
@@ -1249,7 +1314,7 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 	room.open_doors()
 	_show_room_label(biome().name, "%d / %d   %s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
 		"   spring tide %d" % state.tier if state.tier > 0 else ""])
-	_show_banner("THE NIGHT GOES ON", 2.4, Color(0.8, 0.9, 1.0), 12)
+	announcer.card("THE NIGHT GOES ON", "Your rest is over. The tide waits for no one.", 2.4)
 	EventBus.room_entered.emit(room)
 	var fade_tw := create_tween()
 	fade_tw.tween_property(fade, "color:a", 0.0, 0.6)

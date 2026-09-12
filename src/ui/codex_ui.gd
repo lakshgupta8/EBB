@@ -141,7 +141,11 @@ func _row(e: Dictionary) -> Control:
 		var a := UI.label(e.name, 8, accent)
 		a.custom_minimum_size = Vector2(150, 0)
 		h.add_child(a)
-		h.add_child(UI.flex_label(e.desc))
+		var d := UI.flex_label(e.desc)
+		d.clip_text = false
+		d.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		h.add_child(d)
 		v.add_child(h)
 		var lore := UI.label(e.lore, 8, Color(0.62, 0.66, 0.78))
 		lore.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
