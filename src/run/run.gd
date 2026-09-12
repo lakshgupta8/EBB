@@ -349,6 +349,10 @@ var _last_template: String = ""
 
 func _pick_template(type: int) -> RoomTemplate:
 	var list: Array = _templates[type]
+	if list.is_empty():
+		# Never a black room: a fighting room stands in, and the log says which biome is short.
+		push_warning("no %s template in %s; a fighting room stands in" % [RoomGraph.NAMES[type], biome().dir])
+		list = _templates[RoomGraph.COMBAT]
 	var t: RoomTemplate = list[_rng.randi() % list.size()]
 	if list.size() > 1 and t.name == _last_template:
 		t = list[(list.find(t) + 1 + _rng.randi() % (list.size() - 1)) % list.size()]

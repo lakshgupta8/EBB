@@ -79,6 +79,14 @@ func test_templates_parse() -> void:
 func _check_templates(dir: String) -> void:
 	var files := DirAccess.get_files_at(dir)
 	assert_true(files.size() >= 18, "at least 18 templates in " + dir)
+	# Every room type the graph can offer has a template here (the harbour and the hall once
+	# had no echo room: Pell's and Aldous's cages came up as a black screen).
+	for prefix in ["fountain", "shop", "altar", "treasure", "boss", "echo", "challenge", "vault", "dive"]:
+		var found := false
+		for f in files:
+			if f.begins_with(prefix):
+				found = true
+		assert_true(found, "%s has a %s template" % [dir, prefix])
 	for f in files:
 		var t := RoomTemplate.load_file(dir + f)
 		assert_eq(t.width, 40, f + " width")

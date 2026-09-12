@@ -6,10 +6,6 @@ extends RefCounted
 enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS, SHOP, ALTAR, ECHO, CHALLENGE, VAULT, DIVE }
 const NAMES := {COMBAT: "Combat", ELITE: "Elite", FOUNTAIN: "Fountain", TREASURE: "Treasure",
 	BOSS: "Boss", SHOP: "Merchant", ALTAR: "Altar", ECHO: "Echo", CHALLENGE: "Challenge", VAULT: "Vault", DIVE: "Dive"}
-## One plain line under the signboard: what the room is for.
-const BLURB := {COMBAT: "a fight", ELITE: "a hard fight: pearls, a key", FOUNTAIN: "heal here", TREASURE: "a chest",
-	BOSS: "the boss", SHOP: "spend salt", ALTAR: "choose a tidemark", ECHO: "someone caged", CHALLENGE: "hold until it turns",
-	VAULT: "needs a key", DIVE: "deep water, riches"}
 const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4, SHOP: 5, ALTAR: 6, ECHO: 7,
 	CHALLENGE: 8, VAULT: 9, DIVE: 10}
 ## Types that never repeat back to back.
