@@ -114,6 +114,8 @@ func _refresh() -> void:
 		var endings := Story.endings_seen().size()
 		info.text = "night %d   wins %d   echoes %d   pearls %d%s" % [int(s.runs) + 1, s.wins, int(s.get("echoes", 0)), s.pearls,
 			"   endings %d/3" % endings if endings > 0 else ""]
+		if Game.has_suspended():
+			info.text += "\na night waits at the shore"
 
 
 func _input(event: InputEvent) -> void:

@@ -81,6 +81,13 @@ func _atlas(tex: Texture2D, index: int, cell_size: int) -> AtlasTexture:
 	return at
 
 
+## Replace the signboard text (the hub's shore says what the night holds).
+func set_label(text: String) -> void:
+	_label.text = text
+	_label.size = Vector2(140, 10)
+	_label.position = _icon.position + Vector2(-70, 12)
+
+
 func open() -> void:
 	if is_open:
 		return

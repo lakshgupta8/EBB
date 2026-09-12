@@ -73,6 +73,25 @@ func test_menu_texts_fit_their_rows() -> void:
 		assert_true(Weapon.ALL[id].desc.length() * 6 <= 240, "weapon desc too long: " + Weapon.ALL[id].desc)
 
 
+func test_rested_night_is_lifted_once() -> void:
+	SaveManager.use_path("user://test_rest.json")
+	SaveManager.wipe()
+	assert_true(not Game.has_suspended(), "fresh profile: nothing at the shore")
+	SaveManager.data["suspended"] = {"seed": 77, "biome": 1, "depth": 3}
+	assert_true(Game.has_suspended())
+	assert_true(Game.load_suspended())
+	assert_eq(Game.run_seed, 77, "the run scene gets the rested seed")
+	assert_true(not Game.has_suspended(), "lifted out of the profile: it can be continued once")
+	assert_eq(int(Game.take_resume().get("seed", 0)), 77)
+	assert_true(Game.take_resume().is_empty(), "taken once")
+	assert_true(not Game.load_suspended(), "nothing left to load")
+	SaveManager.data["suspended"] = {"seed": 5}
+	SaveManager.record_run({"pearls": 0, "kills": 0, "depth": 0})
+	assert_true(not Game.has_suspended(), "a finished night clears the shore")
+	SaveManager.wipe()
+	SaveManager.use_path(SaveManager.PATH)
+
+
 func test_codex_covers_every_enemy_and_mark() -> void:
 	var ids: Array = []
 	for e in Codex.ENEMIES:

@@ -50,6 +50,9 @@ var cage_echo: String = ""
 
 var _rng := RandomNumberGenerator.new()
 var _templates: Dictionary = {}  # type -> Array[RoomTemplate]
+var _room_seed: int = 0          # decor seed of the current room (kept when the night rests)
+var _echo_depths: Array = []     # where this biome's cages sit (kept so a rested graph matches)
+var resumed: bool = false        # this run was picked up from the shore
 var _deep_tick: float = 0.0
 var _transitioning: bool = false
 var _echo_queue: Array = []  # echo ids still to be found in this biome, in depth order
@@ -90,15 +93,21 @@ func _ready() -> void:
 	Audio.gulls_enabled = true
 	# Dev / playtest aids: `-- --biome=1` starts in the streets, `--boss` at its boss,
 	# `--sim-save` keeps the real profile out of it.
-	var start_biome := 0
 	if "--sim-save" in OS.get_cmdline_user_args():
 		SaveManager.use_path("user://sim_save.json")
-	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--biome="):
-			start_biome = clampi(int(a.trim_prefix("--biome=")), 0, BIOMES.size() - 1)
-	if start_biome > 0:
-		state.tide.level = SLACK_WATER
-	_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
+	if "--continue" in OS.get_cmdline_user_args():
+		Game.load_suspended()
+	var rested := Game.take_resume()
+	if not rested.is_empty():
+		_resume(rested)
+	else:
+		var start_biome := 0
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--biome="):
+				start_biome = clampi(int(a.trim_prefix("--biome=")), 0, BIOMES.size() - 1)
+		if start_biome > 0:
+			state.tide.level = SLACK_WATER
+		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
 	_handle_screenshot_arg()
 
 
@@ -139,6 +148,20 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 		if not SaveManager.flag("echo_" + id):
 			_echo_queue.append(id)
 	var echo_depths: Array = RoomGraph.ECHO_DEPTHS[mini(_echo_queue.size(), 2) - 1] if _echo_queue.size() > 0 else []
+	_setup_biome(index, echo_depths)
+	if at_boss:
+		state.depth = b.length
+		_enter_room(RoomGraph.BOSS)
+		return
+	_enter_room(RoomGraph.COMBAT)
+	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
+	_whisper(["first_night", "streets", "hall"][mini(index, 2)], 3.6)
+
+
+## The parts of a biome that do not depend on where in it you are: graph, templates, light, music.
+func _setup_biome(index: int, echo_depths: Array) -> void:
+	var b := biome()
+	_echo_depths = echo_depths
 	graph = RoomGraph.new(state.seed + index * 7919, b.length, echo_depths, int(SaveManager.data.get("charted_room", -1)))
 	_load_templates(b.dir)
 	var night := get_node_or_null("Night") as CanvasModulate
@@ -147,13 +170,6 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	Audio.gulls_enabled = index == 0
 	Audio.music(["music_flats", "music_streets", "music_hall"][mini(index, 2)], -11.0)
 	Codex.discover("place", ["flats", "streets", "hall"][mini(index, 2)])
-	if at_boss:
-		state.depth = b.length
-		_enter_room(RoomGraph.BOSS)
-		return
-	_enter_room(RoomGraph.COMBAT)
-	_show_banner(b.intro, 3.0, Color(0.8, 0.9, 1.0), 12)
-	_whisper(["first_night", "streets", "hall"][mini(index, 2)], 3.6)
 
 
 ## Past a boss: the tide slackens, the next biome begins.
@@ -210,7 +226,9 @@ func _enter_room(type: int) -> void:
 		room.queue_free()
 	room = Room.new()
 	room_holder.add_child(room)
-	room.build(_pick_template(type), _rng.randi(), biome().theme)
+	var template := _pick_template(type)
+	_room_seed = _rng.randi()
+	room.build(template, _room_seed, biome().theme)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	player.velocity = Vector2.ZERO
 	player.rally = 0.0
@@ -233,24 +251,20 @@ func _enter_room(type: int) -> void:
 			_spawn_enemies(1 + state.depth / 3 + state.biome, true)
 		RoomGraph.FOUNTAIN:
 			for cell in room.template.marker_cells("F"):
-				room.add_prop(Prop.Kind.FOUNTAIN, cell).used.connect(_on_fountain)
+				_add_room_prop(Prop.Kind.FOUNTAIN, cell)
 			_set_cleared()
 		RoomGraph.TREASURE:
 			for cell in room.template.marker_cells("T"):
-				room.add_prop(Prop.Kind.CHEST, cell).used.connect(_on_chest)
+				_add_room_prop(Prop.Kind.CHEST, cell)
 			_set_cleared()
 		RoomGraph.ALTAR:
 			for cell in room.template.marker_cells("A"):
-				room.add_prop(Prop.Kind.ALTAR, cell).used.connect(func(_p):
-					var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))
-					for id in offers:
-						Codex.discover("mark", id)
-					altar_ui.open(offers))
+				_add_room_prop(Prop.Kind.ALTAR, cell)
 			_set_cleared()
 		RoomGraph.SHOP:
 			shop.restock()
 			for cell in room.template.marker_cells("M"):
-				room.add_prop(Prop.Kind.MERCHANT, cell).used.connect(func(_p): shop.open())
+				_add_room_prop(Prop.Kind.MERCHANT, cell)
 			_set_cleared()
 		RoomGraph.ECHO:
 			_spawn_echo_room()
@@ -267,6 +281,25 @@ func _enter_room(type: int) -> void:
 	var fade_tw := create_tween()
 	fade_tw.tween_property(fade, "color:a", 0.0, 0.25)
 	fade_tw.tween_callback(func(): _transitioning = false)
+
+
+## A usable prop with its handler: fountains heal, chests spill, altars offer, merchants trade.
+func _add_room_prop(kind: Prop.Kind, cell: Vector2i) -> Prop:
+	var p := room.add_prop(kind, cell)
+	match kind:
+		Prop.Kind.FOUNTAIN:
+			p.used.connect(_on_fountain)
+		Prop.Kind.CHEST:
+			p.used.connect(_on_chest)
+		Prop.Kind.ALTAR:
+			p.used.connect(func(_p):
+				var offers := Tidemarks.roll(_rng, state.tidemarks, 3, str(SaveManager.data.get("blessed_family", "")))
+				for id in offers:
+					Codex.discover("mark", id)
+				altar_ui.open(offers))
+		Prop.Kind.MERCHANT:
+			p.used.connect(func(_p): shop.open())
+	return p
 
 
 ## Area name slides in from the left with a punch, holds 4 s, fades.
@@ -532,6 +565,122 @@ func _on_pickup(kind: int, value: int) -> void:
 	else:
 		state.pearls += value
 		EventBus.pearls_changed.emit(state.pearls)
+
+
+# --- resting -----------------------------------------------------------------------
+## A cleared room with every door open can be left for another day.
+func can_rest() -> bool:
+	if state.ended or _transitioning or not room_cleared or room == null:
+		return false
+	for d in room.doors:
+		if not d.is_open:
+			return false
+	return true
+
+
+## Everything the shore needs to hand the night back: run state, the keeper, the room.
+func snapshot() -> Dictionary:
+	var d := state.to_dict()
+	d["weapon"] = player.weapon.id
+	d["hp"] = player.health.hp
+	d["max_hp"] = player.health.max_hp
+	d["max_dash"] = player.max_dash
+	d["glow"] = player.glow
+	d["room_type"] = room_type
+	d["template"] = room.template.name
+	d["room_seed"] = _room_seed
+	d["rng_state"] = str(_rng.state)  # int64: a JSON float would round it
+	d["echo_depths"] = _echo_depths.duplicate()
+	d["echo_queue"] = _echo_queue.duplicate()
+	d["last_template"] = _last_template
+	# Props still waiting to be used come back with the room; used ones stay used.
+	var props: Array = []
+	for p in room.props:
+		if is_instance_valid(p) and not p.used_up and p.kind in [Prop.Kind.FOUNTAIN, Prop.Kind.CHEST, Prop.Kind.ALTAR, Prop.Kind.MERCHANT]:
+			props.append({"kind": int(p.kind), "cell": [room.world_to_cell(p.global_position).x, room.world_to_cell(p.global_position).y]})
+	d["props"] = props
+	return d
+
+
+## Save the night where it stands and stop the clock. The caller leaves the scene; the
+## shore continues it, once: Game.load_suspended lifts it out of the profile.
+func rest() -> bool:
+	if not can_rest():
+		return false
+	SaveManager.data["suspended"] = snapshot()
+	SaveManager.save_profile()
+	state.ended = true
+	Audio.stop_music()
+	return true
+
+
+## Pick a rested night up: same seed, graph, tidemarks, health, salt and room, doors open.
+func _resume(d: Dictionary) -> void:
+	resumed = true
+	state.from_dict(d)
+	_rng.state = str(d.get("rng_state", "0")).to_int()
+	var wid := str(d.get("weapon", player.weapon.id))
+	if wid != player.weapon.id and Weapon.ALL.has(wid):
+		player._equip(wid)
+	for id in state.tidemarks:
+		Tidemarks.apply(id, player, self)
+	# Tidemarks and the Ledger have just re-applied their bonuses; the saved totals win.
+	state.tide.rate_mult = float(d.get("tide_rate", state.tide.rate_mult))
+	player.max_dash = int(d.get("max_dash", player.max_dash))
+	player.dash_charges = player.max_dash
+	player.health.max_hp = int(d.get("max_hp", player.health.max_hp))
+	player.health.hp = clampi(int(d.get("hp", player.health.max_hp)), 1, player.health.max_hp)
+	player.health.changed.emit(player.health.hp, player.health.max_hp)
+	player.glow = float(d.get("glow", 0.0))
+	EventBus.salt_changed.emit(state.salt)
+	EventBus.pearls_changed.emit(state.pearls)
+	_echo_queue = []
+	for id in d.get("echo_queue", []):
+		_echo_queue.append(str(id))
+	_setup_biome(state.biome, Array(d.get("echo_depths", [])))
+	_last_template = str(d.get("last_template", ""))
+	_enter_rested_room(int(d.get("room_type", RoomGraph.COMBAT)), str(d.get("template", "")), int(d.get("room_seed", 0)),
+		Array(d.get("props", [])))
+
+
+## Rebuild the room the night was left in: cleared, doors open, nothing left to fight,
+## and whatever was still unused (an altar, a fountain, the merchant) waiting where it was.
+func _enter_rested_room(type: int, template_name: String, room_seed: int, props: Array) -> void:
+	room_type = type
+	boss = null
+	cage = null
+	var t: RoomTemplate = null
+	for cand in _templates.get(type, []):
+		if cand.name == template_name:
+			t = cand
+	if t == null:
+		t = _pick_template(type)
+	room = Room.new()
+	room_holder.add_child(room)
+	_room_seed = room_seed
+	room.build(t, room_seed, biome().theme)
+	player.global_position = room.cell_to_world(room.template.player_spawn)
+	player.velocity = Vector2.ZERO
+	room.set_tide(state.tide.level)
+	if type == RoomGraph.BOSS:
+		room.place_doors([Door.DESCEND] if state.biome + 1 < BIOMES.size() else [])
+	else:
+		room.place_doors(graph.options_for(state.depth + 1))
+	for d in room.doors:
+		d.entered.connect(_on_door_entered)
+	if type == RoomGraph.SHOP:
+		shop.restock()
+	for pd in props:
+		var cell: Array = pd.get("cell", [0, 0])
+		_add_room_prop(int(pd.get("kind", 0)) as Prop.Kind, Vector2i(int(cell[0]), int(cell[1])))
+	room_cleared = true
+	room.open_doors()
+	_show_room_label(biome().name, "%d / %d   %s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type]])
+	_show_banner("THE NIGHT GOES ON", 2.4, Color(0.8, 0.9, 1.0), 12)
+	EventBus.room_entered.emit(room)
+	var fade_tw := create_tween()
+	fade_tw.tween_property(fade, "color:a", 0.0, 0.6)
+	fade_tw.tween_callback(func(): _transitioning = false)
 
 
 # --- ending ------------------------------------------------------------------------

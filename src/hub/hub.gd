@@ -35,8 +35,14 @@ func _ready() -> void:
 		var d := Door.new()
 		room.add_child(d)
 		d.setup(room, cell, Door.DESCEND)
+		if Game.has_suspended():
+			d.set_label("CONTINUE THE NIGHT")
 		d.open()
-		d.entered.connect(func(_d): Game.go_to_run())
+		d.entered.connect(func(_d):
+			if Game.has_suspended():
+				Game.continue_run()
+			else:
+				Game.go_to_run())
 	# The tower stands on the centre of its 2x2 footprint so the sprite matches the solid cells.
 	var h_cells: Array = room.template.marker_cells("h")
 	if h_cells.size() > 0:
@@ -175,6 +181,11 @@ func _refresh_info() -> void:
 	info.text = "MARROW ROCK   %s\npearls %d   runs %d   best %d   wins %d   echoes %d%s" % [
 		Weapon.name_of(Game.weapon_id()).to_lower(), s.pearls, s.runs, s.best_depth, s.wins, echoes,
 		"   endings %d/3" % endings if endings > 0 else ""]
+	if Game.has_suspended():
+		var r: Dictionary = s.suspended
+		var b: Dictionary = Run.BIOMES[clampi(int(r.get("biome", 0)), 0, Run.BIOMES.size() - 1)]
+		info.text += "\nthe night waits at the shore:  %s %d / %d,  %s" % [
+			str(b.name).to_lower(), int(r.get("depth", 0)) + 1, int(b.length) + 1, Weapon.name_of(str(r.get("weapon", "gaff"))).to_lower()]
 
 
 func _handle_screenshot_arg() -> void:

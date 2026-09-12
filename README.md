@@ -28,7 +28,8 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | RMB | weapon special: hook throw (gaff) or net throw (knife) |
 | Q | lantern flare when the glow meter is full (hits charge it): stuns and damages everything nearby |
 | E | interact (fountains, chests, cages, people, results screen) |
-| Esc / F11 | pause / fullscreen toggle. The pause menu has Codex [C], Settings [S], Give up [Q] / Back to the title [T], Quit game [X] |
+| Esc / F11 | pause / fullscreen toggle. The pause menu has Codex [C], Settings [S], Rest here [R], Give up [Q] / Back to the title [T], Quit game [X] |
+| R (paused) | rest: once a room is cleared and its doors are open, the night is saved and you go back up. The shore continues it next time, once; the tide, your health, salt and tidemarks are exactly as you left them |
 | C | the codex: the drowned, tidemarks, people and places you have met |
 | 1-9 or click | pick in any menu; arrows / WASD move a highlight, Enter picks it; E / Esc / right-click leaves |
 
@@ -59,6 +60,8 @@ Pick and forge weapons at Bram's forge on Marrow Rock. The HUD shows the harpoon
 Hub (lighthouse) -> The Flats (8 rooms + The Wreck) -> slack water -> The Drowned Streets
 (9 rooms + The Bell of Saltmere) -> slack water -> The Deep Hall (7 rooms + The Ebb).
 Beating the Ebb wins the night and brings Maren home to the lighthouse, where she holds the endings.
+A night can be rested at any cleared room (pause, Rest here) and continued from the shore later.
+Bot check of the same: `.\tools\sim.ps1 -RestAt 3` rests at depth 3, resumes, and compares every field.
 
 ## Story (M5)
 - **The lantern whispers.** One-time lines during a run, at the first night, the first cage, each
