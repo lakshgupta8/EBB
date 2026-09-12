@@ -19,6 +19,7 @@ signal pickup_collected(kind: int, value: int)
 # Meta / hub
 signal pearls_changed(amount: int)
 signal salt_changed(amount: int)
+signal keys_changed(amount: int)
 
 # Feedback requests (listened to by camera / juice systems)
 signal request_hitstop(duration: float)

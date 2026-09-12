@@ -20,6 +20,7 @@ var props: Array[Prop] = []
 var _ground: TileMapLayer
 var _water: TileMapLayer
 var _tide_level: float = -1.0
+var tide_bonus: float = 0.0  # added to the run's tide here: wet ways, dives, the challenge
 var _water_phase: int = 0
 var _anim_t: float = 0.0
 var _flooded: Array[Vector2i] = []
@@ -195,6 +196,7 @@ func add_prop(kind: Prop.Kind, cell: Vector2i) -> Prop:
 
 ## Rebuild the water overlay when the tide crosses a new quarter-level.
 func set_tide(level: float) -> void:
+	level += tide_bonus
 	if int(level * 8.0) == int(_tide_level * 8.0) and _tide_level >= 0.0:
 		_tide_level = level
 		return

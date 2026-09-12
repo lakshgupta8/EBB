@@ -13,6 +13,7 @@ const DESCEND := -1  # hub door, and the way down out of a boss arena
 var room_type: int = 0
 var cell: Vector2i
 var is_open: bool = false
+var wet: bool = false  # the flooded way at the fork
 
 var _icon: Sprite2D
 var _label: Label
@@ -81,6 +82,16 @@ func _atlas(tex: Texture2D, index: int, cell_size: int) -> AtlasTexture:
 	return at
 
 
+## The wet way: same room type, already under water, tinted so.
+func set_wet() -> void:
+	wet = true
+	_label.text = (RoomGraph.NAMES[room_type] if room_type >= 0 else "Descend").to_upper() + " (WET)"
+	_label.size = Vector2(120, 10)
+	# Side doors sit on the room's edge: slide the wider label inward so it is not cut off.
+	_label.position = _icon.position + Vector2(-60, 12) + Vector2(_interior.x * 40.0, 0)
+	_icon.modulate = Color(0.4, 0.5, 0.65)
+
+
 ## Replace the signboard text (the hub's shore says what the night holds).
 func set_label(text: String) -> void:
 	_label.text = text
@@ -94,7 +105,7 @@ func open() -> void:
 	is_open = true
 	_room.set_ground_tile(cell, Tiles.DOOR_OPEN)
 	_frame.texture = _atlas(FRAME, 1, 32)
-	_icon.modulate = Color.WHITE
+	_icon.modulate = Color(0.65, 0.85, 1.0) if wet else Color.WHITE
 	_label.modulate = Color(1, 1, 1, 1)
 	# Pop, then bob forever; glow breathes.
 	_icon.scale = Vector2(1.6, 1.6)

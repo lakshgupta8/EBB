@@ -392,6 +392,9 @@ def main():
     import gen_rooms_m6
     gen_rooms_m6.fix_widths()
     ROOMS.update(gen_rooms_m6.ROOMS)
+    import gen_rooms_m6b
+    gen_rooms_m6b.fix_widths()
+    ROOMS.update(gen_rooms_m6b.ROOMS)
     for name, txt in ROOMS.items():
         rows = txt.strip("\n").split("\n")
         assert len(rows) == H, (name, len(rows))

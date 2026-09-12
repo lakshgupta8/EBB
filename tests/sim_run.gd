@@ -32,6 +32,7 @@ var _shot_boss: bool = false
 var _shot_pending: int = -1
 var _shot_name: String = ""
 var _rest_at: int = -1     # --rest-at=N: rest at the first cleared room past this depth, resume, play on
+var _shot_clear: int = -1  # --shot-clear=N: screenshot a moment after the room at this depth is cleared
 var _resume_ok: bool = true
 
 
@@ -52,6 +53,7 @@ func _ready() -> void:
 				_shot_depths.append(int(d))
 		elif a == "--shot-boss": _shot_boss = true
 		elif a.begins_with("--rest-at="): _rest_at = int(a.trim_prefix("--rest-at="))
+		elif a.begins_with("--shot-clear="): _shot_clear = int(a.trim_prefix("--shot-clear="))
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
@@ -67,6 +69,10 @@ func _ready() -> void:
 	EventBus.room_cleared.connect(func(_r):
 		if run.room_type == RoomGraph.ECHO and run.cage_echo != "":
 			_rescued.append(run.cage_echo)
+		if run.state.depth_total == _shot_clear:
+			_shot_clear = -1
+			_shot_pending = tick + 70
+			_shot_name = "sim_clear.png"
 	)
 	EventBus.damage_dealt.connect(func(target, info):
 		if target is Enemy:

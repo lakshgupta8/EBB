@@ -3,12 +3,13 @@ extends RefCounted
 ## Decides which room types are offered at each depth. Deterministic per seed.
 ## Depth 0 is the first room; depth == biome_length is the boss.
 
-enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS, SHOP, ALTAR, ECHO }
+enum { COMBAT, ELITE, FOUNTAIN, TREASURE, BOSS, SHOP, ALTAR, ECHO, CHALLENGE, VAULT, DIVE }
 const NAMES := {COMBAT: "Combat", ELITE: "Elite", FOUNTAIN: "Fountain", TREASURE: "Treasure",
-	BOSS: "Boss", SHOP: "Merchant", ALTAR: "Altar", ECHO: "Echo"}
-const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4, SHOP: 5, ALTAR: 6, ECHO: 7}
+	BOSS: "Boss", SHOP: "Merchant", ALTAR: "Altar", ECHO: "Echo", CHALLENGE: "Challenge", VAULT: "Vault", DIVE: "Dive"}
+const ICON := {COMBAT: 0, ELITE: 1, FOUNTAIN: 2, TREASURE: 3, BOSS: 4, SHOP: 5, ALTAR: 6, ECHO: 7,
+	CHALLENGE: 8, VAULT: 9, DIVE: 10}
 ## Types that never repeat back to back.
-const NO_REPEAT := [SHOP, ALTAR, FOUNTAIN, TREASURE, ECHO]
+const NO_REPEAT := [SHOP, ALTAR, FOUNTAIN, TREASURE, ECHO, CHALLENGE, VAULT, DIVE]
 ## Where echo cages are placed when one, or two, echoes are still lost in a biome.
 const ECHO_DEPTHS := [[3], [3, 6]]
 ## The Cartographer can promise one of these at depth 2.
@@ -38,6 +39,19 @@ func is_boss_depth(depth: int) -> bool:
 	return depth >= biome_length
 
 
+## Halfway down every biome the second door is the wet way: already flooded, the
+## drowned in it, more salt, a pearl for clearing it.
+func fork_depth() -> int:
+	return biome_length / 2
+
+
+func is_wet(depth: int, index: int) -> bool:
+	if depth != fork_depth() or index != 1:
+		return false
+	var opts: Array = options_for(depth)
+	return opts.size() == 2 and opts[1] in [COMBAT, ELITE]
+
+
 func _generate(depth: int) -> Array:
 	if depth == 0:
 		return [COMBAT]
@@ -61,16 +75,25 @@ func _generate(depth: int) -> Array:
 		picked[picked.size() - 1] = ECHO
 		if picked.size() > 1 and picked[0] == ECHO:
 			picked[0] = COMBAT
+	elif depth == fork_depth():
+		if picked.size() < 2:
+			picked.append(COMBAT)
+		if not picked[1] in [COMBAT, ELITE]:
+			picked[1] = ELITE if (depth >= 3 and _rng.randf() < 0.4) else COMBAT
 	return picked
 
 
 func _weighted(depth: int, exclude: Array) -> int:
-	var weights := {COMBAT: 5.0, ELITE: 0.0, FOUNTAIN: 0.0, TREASURE: 1.5, SHOP: 0.0, ALTAR: 2.5}
+	var weights := {COMBAT: 5.0, ELITE: 0.0, FOUNTAIN: 0.0, TREASURE: 1.5, SHOP: 0.0, ALTAR: 2.5,
+		CHALLENGE: 0.0, VAULT: 0.0, DIVE: 0.0}
 	if depth >= 3:
 		weights[ELITE] = 2.0
+		weights[CHALLENGE] = 1.0
+		weights[VAULT] = 1.2
 	if depth >= 2:
 		weights[FOUNTAIN] = 1.5
 		weights[SHOP] = 1.5
+		weights[DIVE] = 1.0
 	var prev: Array = _cache.get(depth - 1, [])
 	for t in NO_REPEAT:
 		if t in prev:

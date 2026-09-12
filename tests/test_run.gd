@@ -24,6 +24,15 @@ func test_room_graph_shape() -> void:
 		if d < 2:
 			assert_true(not RoomGraph.SHOP in opts, "no merchant before depth 2")
 	assert_true(RoomGraph.SHOP in g.options_for(4), "a merchant is guaranteed at depth 4")
+	# The fork: halfway down, two doors, the second a fight and the wet one.
+	var fork := g.fork_depth()
+	assert_eq(fork, 4)
+	assert_eq(g.options_for(fork).size(), 2, "two doors at the fork")
+	assert_true(g.options_for(fork)[1] in [RoomGraph.COMBAT, RoomGraph.ELITE], "the wet way is a fight")
+	assert_true(g.is_wet(fork, 1) and not g.is_wet(fork, 0), "only the second door is wet")
+	assert_true(not g.is_wet(fork + 1, 1), "no wet mark elsewhere")
+	for t in [RoomGraph.CHALLENGE, RoomGraph.VAULT, RoomGraph.DIVE]:
+		assert_true(RoomGraph.NAMES.has(t) and RoomGraph.ICON.has(t), "new room types are named and signed")
 
 
 func test_shop_template() -> void:
@@ -80,6 +89,12 @@ func _check_templates(dir: String) -> void:
 			assert_true(t.enemy_spawns.size() >= 1, f + " has enemy spawns")
 		if f.begins_with("echo"):
 			assert_eq(t.marker_cells("E").size(), 1, f + " has one cage")
+		if f.begins_with("challenge"):
+			assert_true(t.enemy_spawns.size() >= 4 and t.marker_cells("T").size() >= 1, f + " has spawns and chests")
+		if f.begins_with("vault"):
+			assert_eq(t.marker_cells("T").size(), 1, f + " has one vault")
+		if f.begins_with("dive"):
+			assert_true(t.marker_cells("A").size() == 1 and t.marker_cells("T").size() == 1, f + " has an altar and a chest")
 		if f.begins_with("boss"):
 			assert_eq(t.doors.size(), 1, f + " has exactly one way down")
 		assert_eq(t.height_at(0, 0), RoomTemplate.WALL_HEIGHT)
@@ -157,6 +172,7 @@ func test_run_state_survives_json() -> void:
 	s.tide.rate_mult = 0.75
 	s.tidemarks = ["salt_edge", "brine_hp", "deep_slow"]
 	s.echoes = ["wren"]
+	s.keys = 2
 	s.ended = true
 	var text := JSON.stringify(s.to_dict())
 	var back := RunState.new()

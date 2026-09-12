@@ -536,6 +536,136 @@ def build_anchor_drop():
     return c.im
 
 
+# ----------------------------------------------------------------------------- M6b: door signs, the vault, the key
+SIGN_M6 = {
+    # hourglass with a wave through it: hold until the tide turns
+    "challenge": """
+................
+...kkkkkkkkkk...
+...kGGGGGGGGk...
+....kBBBBBBk....
+.....kBBBBk.....
+......kBBk......
+.......kk.......
+......kuuk......
+.....kuBBuk.....
+....kuBBBBuk....
+...kBBBBBBBBk...
+...kGGGGGGGGk...
+...kkkkkkkkkk...
+................
+................
+................
+""",
+    # padlock
+    "vault": """
+................
+.....kkkkkk.....
+....kGGGGGGk....
+...kGk....kGk...
+...kGk....kGk...
+...kGk....kGk...
+..kkkkkkkkkkkk..
+..kIIIIIIIIIIk..
+..kIIIIkkIIIIk..
+..kIIIIkkIIIIk..
+..kIIIIIkIIIIk..
+..kIIIIIIIIIIk..
+..kIIIIIIIIIIk..
+..kkkkkkkkkkkk..
+................
+................
+""",
+    # bubbles rising from a lantern under the water line
+    "dive": """
+................
+......kk........
+.....kUuk.......
+......kk...kk...
+..........kUuk..
+....kk.....kk...
+...kUuk.........
+....kk..........
+.BBBBBBBBBBBBBB.
+.BkkkkkkkkkkkkB.
+.BkyyyyYyyyyykB.
+.BkyyyYYYyyyykB.
+.BkyyyyYyyyyykB.
+.BkkkkkkkkkkkkB.
+.BBBBBBBBBBBBBB.
+................
+""",
+}
+SIGN_M6_ORDER = ["challenge", "vault", "dive"]
+
+
+def build_icons_m6(base):
+    n0 = base.width // 24
+    im = Image.new("RGBA", (24 * (n0 + len(SIGN_M6_ORDER)), 24), (0, 0, 0, 0))
+    im.alpha_composite(base, (0, 0))
+    for i, name in enumerate(SIGN_M6_ORDER):
+        c = Canvas(24, 24)
+        c.blit(G.SIGN_BOARD, 0, 0)
+        c.blit(SIGN_M6[name], 4, 4)
+        im.alpha_composite(c.im, (24 * (n0 + i), 0))
+    im.save(os.path.join(OUT, "icons.png"))
+    return im
+
+
+VAULT = """
+................
+................
+....kkkkkkkk....
+...k99999999k...
+..k9&&&&&&&&9k..
+..k9&kkkkkk&9k..
+..k9&k9II9k&9k..
+..k9&k9IIk&&9k..
+..k9&k9II9k&9k..
+..k9&kkkkkk&9k..
+..k9&&&&&&&&9k..
+..k9999999999k..
+..kkkkkkkkkkkk..
+................
+................
+................
+"""
+
+
+def build_props_m6(base):
+    n0 = base.width // 16
+    im = Image.new("RGBA", (16 * (n0 + 1), 16), (0, 0, 0, 0))
+    im.alpha_composite(base, (0, 0))
+    c = Canvas(16, 16)
+    c.blit(VAULT, 0, 0)
+    im.alpha_composite(c.im, (16 * n0, 0))
+    im.save(os.path.join(OUT, "props.png"))
+    return im
+
+
+KEY = """
+.kkk....
+kIIIk...
+kIkIkkkk
+kIIIkIIk
+.kkk.kIk
+.....kkk
+........
+........
+"""
+
+
+def build_pickups_m6(base):
+    n0 = base.width // 8
+    im = Image.new("RGBA", (8 * (n0 + 1), 8), (0, 0, 0, 0))
+    im.alpha_composite(base, (0, 0))
+    c = Canvas(8, 8)
+    c.blit(KEY, 0, 0)
+    im.alpha_composite(c.im, (8 * n0, 0))
+    im.save(os.path.join(OUT, "pickups.png"))
+    return im
+
+
 def build_all(built):
     built["tiles"] = build_tiles_m6(built["tiles"])
     built["decor4"] = build_decor4()
@@ -544,4 +674,7 @@ def build_all(built):
     built["deckhand"] = build_deckhand()
     built["chainmother"] = build_chainmother()
     built["anchor_drop"] = build_anchor_drop()
+    built["icons"] = build_icons_m6(built["icons"])
+    built["props"] = build_props_m6(built["props"])
+    built["pickups"] = build_pickups_m6(built["pickups"])
     return built

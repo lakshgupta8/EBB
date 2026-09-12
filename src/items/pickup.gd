@@ -4,7 +4,7 @@ extends Area2D
 ## then magnets to the player. Never leaves the room.
 
 const SHEET := preload("res://assets/sprites/pickups.png")
-enum Kind { SALT, PEARL }
+enum Kind { SALT, PEARL, KEY }
 const MAGNET_RANGE := 48.0
 const MAGNET_SPEED := 220.0
 const POP_DECEL := 320.0
@@ -72,4 +72,6 @@ func _on_body_entered(body: Node) -> void:
 		EventBus.pickup_collected.emit(kind, value)
 		FX.burst(global_position, Color(0.98, 0.85, 0.45) if kind == Kind.SALT else Color(0.9, 0.9, 0.95), 5, 30.0)
 		Audio.play("pickup" if kind == Kind.SALT else "pearl", 0.12, -6.0, 60)
+		if kind == Kind.KEY:
+			FX.text(global_position, "A KEY", Color(0.95, 0.85, 0.5))
 		queue_free()
