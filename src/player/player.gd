@@ -63,6 +63,7 @@ var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
 var parry_t: float = 0.0    # the bell's toll: nothing lands while > 0
 var first_ready: bool = true  # First Blood: the room's first swing is still to come
+var rooted_t: float = 0.0     # under a net: you cannot walk until it tears, or you dash
 var _dash_wet: bool = false   # the dash began in water (Otter)
 var attack_held: bool = false
 var aim_dist: float = 64.0  # distance to the cursor (bots: a fixed reach)
@@ -173,6 +174,11 @@ func yank_to(target: Vector2, duration: float) -> void:
 	_yank_timer = duration
 
 
+## Held where you stand (the Netted's net). A dash tears it.
+func root(duration: float) -> void:
+	rooted_t = maxf(rooted_t, duration)
+
+
 ## Short forward push used by the lunge attack.
 func lunge(dir: Vector2, speed: float = 260.0) -> void:
 	_lunge_vel = dir.normalized() * speed
@@ -229,9 +235,18 @@ func _physics_process(delta: float) -> void:
 		if health.hp * 2 < health.max_hp:
 			speed *= float(mods.panic_speed)
 		speed *= 1.0 + float(mods.haste_per) * float(max_dash - dash_charges)
-		velocity = input * speed + _knockback + _lunge_vel
-		if input != Vector2.ZERO:
-			facing = input.normalized()
+		if rooted_t > 0.0:
+			# Netted: you can still turn, swing and dash, but you do not walk.
+			rooted_t -= delta
+			velocity = _knockback + _lunge_vel
+			if input != Vector2.ZERO:
+				facing = input.normalized()
+			if int(rooted_t * 6.0) != int((rooted_t + delta) * 6.0):
+				FX.burst(global_position, Color(0.85, 0.75, 0.55, 0.7), 2, 20.0)
+		else:
+			velocity = input * speed + _knockback + _lunge_vel
+			if input != Vector2.ZERO:
+				facing = input.normalized()
 		if Input.is_action_just_pressed("dash") and dash_charges > 0:
 			_start_dash(input.normalized() if input != Vector2.ZERO else facing)
 
@@ -258,6 +273,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _start_dash(dir: Vector2) -> void:
+	if rooted_t > 0.0:
+		rooted_t = 0.0
+		FX.text(global_position, "TORE FREE", Color(0.85, 0.95, 1.0))
 	if not (mods.free_water_dash and in_water):
 		dash_charges -= 1
 	weapon.on_dash(dir)

@@ -21,6 +21,10 @@ const MOORING := preload("res://src/enemies/mooring.tscn")
 const BARNACLE := preload("res://src/enemies/barnacle.tscn")
 const DECKHAND := preload("res://src/enemies/deckhand.tscn")
 const CHAINMOTHER := preload("res://src/enemies/chainmother.tscn")
+const TIDEWISP := preload("res://src/enemies/tidewisp.tscn")
+const NETTED := preload("res://src/enemies/netted.tscn")
+const CHOIR := preload("res://src/enemies/choir.tscn")
+const TALLOW := preload("res://src/enemies/tallow.tscn")
 
 ## The night, top to bottom. Everything that differs between biomes lives here, so nothing
 ## else counts indices: id, rooms directory, length (rooms before the boss), look, boss,
@@ -30,21 +34,25 @@ const BIOMES := [
 		"boss": WRECK, "boss_name": "THE WRECK", "stir": "THE WRECK STIRS", "won": "THE WRECK IS BROKEN",
 		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
 		"boss_sfx": "roar", "tint": Color(0.6, 0.68, 0.86), "wet": GULL,
+		"elite": NETTED, "elite_name": "The Netted", "boss_music": "music_boss",
 		"intro": "The tide has gone out. Saltmere waits."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
 		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
 		"echoes": [], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
 		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82), "wet": BARNACLE,
+		"elite": DECKHAND, "elite_name": "The Bosun", "boss_music": "music_boss",
 		"intro": "The harbour. Every ship that tried to leave is still tied up."},
 	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
 		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "won": "THE BELL IS SILENCED",
 		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
 		"boss_sfx": "bell", "tint": Color(0.56, 0.6, 0.8), "wet": SWIMMER,
+		"elite": CHOIR, "elite_name": "The Choir", "boss_music": "music_deep",
 		"intro": "Slack water. The streets of Saltmere, and something still ringing."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
 		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
 		"echoes": [], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
 		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84), "wet": ANCHOR,
+		"elite": SHADE, "elite_name": "Echo of Maren", "boss_music": "music_deep",
 		"intro": "The Deep Hall. Every keeper before you is standing in it."},
 ]
 ## The people you can bring back, and what they say when the cage opens.
@@ -94,6 +102,7 @@ var challenge_label: Label
 ## Dev aids: `--first=challenge|vault|dive|elite|combat` and `--wet` shape the first room.
 var _dev_first: int = -1
 var _dev_wet: bool = false
+var _dev_named: bool = false     # --named: elites are the biome's named one wherever they spawn
 var _mend_salt: int = 0          # Salt Mend: salt counted toward the next point of health
 var _drown_t: float = 0.0        # Drowning: tick timer
 var _water_shield_t: float = 0.0  # Drowned Skin: seconds spent in water toward a shield
@@ -166,6 +175,8 @@ func _ready() -> void:
 						_dev_first = k
 			elif a == "--wet":
 				_dev_wet = true
+			elif a == "--named":
+				_dev_named = true
 		if start_biome > 0:
 			state.tide.level = SLACK_WATER
 		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
@@ -227,6 +238,9 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	_whisper(b.whisper, 3.6)
 	if state.tier > 0 and index == 0:
 		_whisper("tide_%d" % state.tier, 7.5)
+	if b.id == "harbour":
+		_whisper("harbour_ships", 9.0)
+		_whisper("harbour_hands", 14.0)
 
 
 ## The parts of a biome that do not depend on where in it you are: graph, templates, light, music.
@@ -362,7 +376,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			_spawn_echo_room()
 		RoomGraph.BOSS:
 			_spawn_boss()
-			Audio.music("music_boss", -9.0)
+			Audio.music(str(biome().boss_music), -9.0)
 			_show_banner(biome().boss_name, 2.2, Color(0.95, 0.75, 0.6), 20)
 			EventBus.request_shake.emit(0.6)
 			Audio.play(biome().boss_sfx)
@@ -515,7 +529,13 @@ func _enemy_scene() -> PackedScene:
 		"flats":
 			if state.depth < 2:
 				return SHELLBACK if r < 0.6 else GULL
-			return SHELLBACK if r < 0.4 else (GULL if r < 0.7 else CRAB)
+			if r < 0.34:
+				return SHELLBACK
+			if r < 0.58:
+				return GULL
+			if r < 0.82:
+				return CRAB
+			return TIDEWISP
 		"harbour":
 			# Hands and crews first; the barnacles come off the hulls once you are in deep.
 			if state.depth < 2:
@@ -528,12 +548,15 @@ func _enemy_scene() -> PackedScene:
 				return BARNACLE
 			return GULL
 		"hall":
-			# The hall: the old keepers, the dock hands, and the mouths in the floor.
-			if r < 0.45:
+			# The hall: the old keepers, the dock hands, the mouths in the floor, and the
+			# ones who stood so long the candles ran down over them.
+			if r < 0.36:
 				return SHADE
-			if r < 0.75:
+			if r < 0.62:
 				return ANCHOR
-			return MAW
+			if r < 0.82:
+				return MAW
+			return TALLOW
 	# The streets: statues everywhere, a lamplighter or a ringer among them, and the
 	# drowned themselves once there is water to come out of.
 	var wet := state.tide.level > 0.5
@@ -554,18 +577,21 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 		var scene := _enemy_scene()
 		if _wet_room and _rng.randf() < 0.4:
 			scene = biome().wet
-		var named: bool = with_elite and i == 0 and biome().id in ["hall", "harbour"]
-		if named and biome().id == "hall":
-			scene = SHADE
-		elif named:
-			scene = DECKHAND
+		# The biome's named elite holds the deeper half; nearer the top it is an ordinary
+		# thing with an affix. Only the named ones leave an echo shard.
+		var named: bool = with_elite and i == 0 and (_dev_named or state.depth * 2 >= biome().length)
+		if named:
+			scene = biome().elite
 		var e: Enemy = _spawn(scene, room.cell_to_world(cell))
 		if with_elite and i == 0:
 			e.make_elite("" if named else Enemy.AFFIXES[_rng.randi() % Enemy.AFFIXES.size()])
-			if biome().id == "hall":
-				e.display_name = "Echo of Maren"
-			elif biome().id == "harbour":
-				e.display_name = "The Bosun"
+			if named:
+				e.display_name = str(biome().elite_name)
+				_show_banner(str(biome().elite_name).to_upper(), 1.8, Color(0.95, 0.8, 0.5), 14)
+				if biome().id == "flats":
+					_whisper("netted", 2.4)
+				elif biome().id == "streets":
+					_whisper("choir", 2.4)
 				e.pearl_drop += 1
 
 

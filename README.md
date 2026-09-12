@@ -11,6 +11,7 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 |---|---|
 | Run the game | `.\tools\run.ps1` (title screen; `.\tools\run.ps1 src/hub/hub.tscn` skips it) |
 | Build the Windows .exe | `.\tools\export.ps1` (fetches the 4.7.2 export templates once, ~1 GB) -> `dist\EBB.exe` |
+| Balance table | `.\tools\balance.ps1 [-Ticks 9000] [-Tiers 0,4,8]`: the bot plays every weapon at each spring tide, writes `tools/balance.csv` |
 | Jump to a biome / its boss | `.\tools\run.ps1 -- --biome=1` (streets), `--biome=2` (hall), add `--boss` |
 | Run tests (headless) | `.\tools\test.ps1` |
 | Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern) |
@@ -113,6 +114,14 @@ un.ps1 src/hub/hub.tscn -- --screenshot --sim-save --ending=break`
 | Sister Wren | The Drowned Streets | bless a tidemark family: every altar offers one from it |
 | The Cartographer | The Drowned Streets (after Wren) | chart a room: fountain, chest or merchant guaranteed two rooms into every biome |
 | Maren | under the Ebb | the endings: keep, break, or walk out |
+
+### Flats and Hall additions (M6e)
+| Enemy | Tell | Answer |
+|---|---|---|
+| Tidewisp | hangs at a distance, swells, flash | a slow bead of cold light: walk out of it. Close on it and it runs |
+| The Netted (flats elite) | net held over the head, flash | the net roots you where it lands: move, or dash to tear free |
+| The Choir (streets elite) | arms up, mouth open, flash | a ring opens out of it and wakes every other drowned thing: be near it or far, not in the ring |
+| Tallow (hall) | swells, flash | a pool of burning wax where you were standing; it burns for six seconds |
 
 ### Harbour enemies (M6a)
 | Enemy | Tell | Answer |
