@@ -5,6 +5,7 @@ extends CanvasLayer
 var _open: bool = false
 var _root: Control
 var _quit_btn: Button
+var _rest_btn: Button
 var _quit_armed: bool = false
 var _cursor: UI.Cursor
 
@@ -35,6 +36,9 @@ func _input(event: InputEvent) -> void:
 	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_T and not _in_run():
 		_to_title()
 		get_viewport().set_input_as_handled()
+	elif _open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R and _in_run():
+		_rest()
+		get_viewport().set_input_as_handled()
 	elif _open and event.is_action_pressed("interact") and not (event is InputEventKey):
 		# The pad's B backs out like Esc does.
 		toggle()
@@ -53,6 +57,7 @@ func toggle() -> void:
 		_build()
 	if _open:
 		_disarm_quit()
+		_refresh_rest()
 		_cursor.index = -1
 		_cursor.apply()
 
@@ -93,6 +98,10 @@ func _build() -> void:
 	box.add_child(settings)
 	buttons.append(settings)
 	if _in_run():
+		_rest_btn = UI.text_button("Rest here   [R]")
+		_rest_btn.pressed.connect(_rest)
+		box.add_child(_rest_btn)
+		buttons.append(_rest_btn)
 		var give_up := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
 		give_up.pressed.connect(_quit_to_hub)
 		box.add_child(give_up)
@@ -114,6 +123,7 @@ func _build() -> void:
 		box.add_child(UI.label("Space dash (attack out of it: lunge)", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Q lantern flare when the glow is full", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Dash on an enemy's white flash: riptide", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("Rest in a cleared room: the shore continues the night", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 	else:
 		box.add_child(UI.label("E talks to people; the shore leads down", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Pearls and rescues are already saved", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
@@ -134,6 +144,29 @@ func _open_settings() -> void:
 		return
 	toggle()
 	s.open()
+
+
+## Rest is only offered once the room is cleared and its doors are open.
+func _refresh_rest() -> void:
+	if _rest_btn == null:
+		return
+	var run := get_parent() as Run
+	var ok := run != null and run.can_rest()
+	_rest_btn.text = "Rest here   [R]" if ok else "Rest here   [R]   (clear the room first)"
+	_rest_btn.disabled = not ok
+
+
+## Save the night at this room and go back up; the shore picks it up next time.
+func _rest() -> void:
+	var run := get_parent() as Run
+	if run == null or not run.can_rest():
+		_refresh_rest()
+		return
+	get_tree().paused = false
+	_open = false
+	visible = false
+	if run.rest():
+		Game.go_to_hub()
 
 
 func _to_title() -> void:

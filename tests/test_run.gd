@@ -115,6 +115,37 @@ func test_room_graph_places_echo_cages_and_charted_rooms() -> void:
 		assert_true(not RoomGraph.ECHO in g3.options_for(d), "no cages when everyone is home")
 
 
+func test_run_state_survives_json() -> void:
+	var s := RunState.new()
+	s.seed = 987654321
+	s.biome = 1
+	s.depth = 4
+	s.depth_total = 13
+	s.rooms_cleared = 12
+	s.kills = 40
+	s.salt = 55
+	s.pearls = 7
+	s.time = 512.5
+	s.bargain = true
+	s.still_water = true
+	s.tide.level = 1.37
+	s.tide.rate_mult = 0.75
+	s.tidemarks = ["salt_edge", "brine_hp", "deep_slow"]
+	s.echoes = ["wren"]
+	s.ended = true
+	var text := JSON.stringify(s.to_dict())
+	var back := RunState.new()
+	back.from_dict(JSON.parse_string(text))
+	for k in RunState.SAVED:
+		assert_eq(back.get(k), s.get(k), k)
+	assert_true(typeof(back.depth) == TYPE_INT, "ints come back as ints")
+	assert_near(back.tide.level, 1.37)
+	assert_near(back.tide.rate_mult, 0.75)
+	assert_eq(back.tidemarks, ["salt_edge", "brine_hp", "deep_slow"], "tidemarks keep their order")
+	assert_eq(back.echoes, ["wren"])
+	assert_true(not back.ended, "a rested night is not over")
+
+
 func test_run_result_conversion() -> void:
 	var s := RunState.new()
 	s.salt = 10

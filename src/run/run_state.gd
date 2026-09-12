@@ -21,6 +21,41 @@ var tide := TideSystem.new()
 var tidemarks: Array = []  # ids, in the order they were taken
 var echoes: Array = []     # echo ids rescued this run
 
+## Plain fields that a rested night keeps (ended / victory / taken are never saved).
+const SAVED := ["seed", "biome", "depth", "depth_total", "rooms_cleared", "kills", "salt", "pearls",
+	"time", "bargain", "full_fountain", "still_water"]
+
+
+## Everything needed to pick the night up again, as JSON-safe values.
+func to_dict() -> Dictionary:
+	var d := {}
+	for k in SAVED:
+		d[k] = get(k)
+	d["tide_level"] = tide.level
+	d["tide_rate"] = tide.rate_mult
+	d["tidemarks"] = tidemarks.duplicate()
+	d["echoes"] = echoes.duplicate()
+	return d
+
+
+## Inverse of to_dict; JSON turns every number into a float, so types are restored here.
+func from_dict(d: Dictionary) -> void:
+	for k in SAVED:
+		if not d.has(k):
+			continue
+		match typeof(get(k)):
+			TYPE_INT: set(k, int(d[k]))
+			TYPE_FLOAT: set(k, float(d[k]))
+			TYPE_BOOL: set(k, bool(d[k]))
+	tide.level = float(d.get("tide_level", 0.0))
+	tide.rate_mult = float(d.get("tide_rate", 1.0))
+	tidemarks = []
+	for id in d.get("tidemarks", []):
+		tidemarks.append(str(id))
+	echoes = []
+	for id in d.get("echoes", []):
+		echoes.append(str(id))
+
 
 func result() -> Dictionary:
 	# Salt converts to pearls at the end: half if taken by the tide, none if killed.

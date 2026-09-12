@@ -31,6 +31,7 @@ static func _defaults() -> Dictionary:
 		"echoes": 0,
 		"codex": {},              # kind -> [ids met]
 		"endings": [],            # endings seen, in order
+		"suspended": {},          # a night rested at a cleared room (Run.snapshot)
 	}
 
 
@@ -80,6 +81,7 @@ func record_run(result: Dictionary) -> void:
 	data["best_depth"] = maxi(int(data["best_depth"]), int(result.get("depth", 0)))
 	if result.get("victory", false):
 		data["wins"] += 1
+	data["suspended"] = {}  # a finished night cannot also be waiting at the shore
 	save_profile()
 
 

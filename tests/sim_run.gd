@@ -31,6 +31,8 @@ var _shot_depths: Array = []
 var _shot_boss: bool = false
 var _shot_pending: int = -1
 var _shot_name: String = ""
+var _rest_at: int = -1     # --rest-at=N: rest at the first cleared room past this depth, resume, play on
+var _resume_ok: bool = true
 
 
 func _ready() -> void:
@@ -49,6 +51,7 @@ func _ready() -> void:
 			for d in a.trim_prefix("--shot-depth=").split(","):
 				_shot_depths.append(int(d))
 		elif a == "--shot-boss": _shot_boss = true
+		elif a.begins_with("--rest-at="): _rest_at = int(a.trim_prefix("--rest-at="))
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible
@@ -148,6 +151,10 @@ func _drive() -> void:
 		run.shop.close()
 		return
 	if run._transitioning or player.dead:
+		return
+	if _rest_at >= 0 and run.state.depth_total >= _rest_at and run.can_rest():
+		_rest_at = -1
+		_rest_and_resume()
 		return
 	var target := _nearest_enemy()
 	if target:
@@ -274,6 +281,47 @@ func _fight(target: Enemy) -> void:
 	_special_cd -= 1
 
 
+## Rest the night, drop the run scene, lift the night back from the profile into a fresh
+## run scene, and check that nothing was lost on the way.
+func _rest_and_resume() -> void:
+	var before := run.snapshot()
+	if not run.rest():
+		print("sim_run: rest refused")
+		_resume_ok = false
+		return
+	var old := run
+	remove_child(old)
+	old.queue_free()
+	if not Game.load_suspended():
+		print("sim_run: nothing suspended after rest")
+		_resume_ok = false
+		return
+	run = RUN.instantiate()
+	add_child(run)
+	player = run.player
+	_props_done = []
+	var after := run.snapshot()
+	var bad: Array = []
+	for k in ["seed", "biome", "depth", "depth_total", "rooms_cleared", "kills", "salt", "pearls", "hp", "max_hp",
+			"max_dash", "weapon", "tidemarks", "echoes", "room_type", "template", "rng_state", "echo_queue", "props"]:
+		if str(before[k]) != str(after[k]):
+			bad.append("%s %s != %s" % [k, before[k], after[k]])
+	if absf(float(before.tide_level) - float(after.tide_level)) > 0.001:
+		bad.append("tide %s != %s" % [before.tide_level, after.tide_level])
+	if not run.resumed or not run.room_cleared:
+		bad.append("not marked resumed/cleared")
+	for d in run.room.doors:
+		if not d.is_open:
+			bad.append("door closed")
+	if not get_tree().get_nodes_in_group("enemies").is_empty():
+		bad.append("enemies in a rested room")
+	if Game.has_suspended():
+		bad.append("the night is still in the profile")
+	_resume_ok = bad.is_empty()
+	print("sim_run: rested at depth %d (%s, hp %d, %d tidemarks) and resumed: %s" % [
+		int(before.depth_total), before.template, int(before.hp), before.tidemarks.size(), "OK" if _resume_ok else str(bad)])
+
+
 func _walk_to(pos: Vector2, tolerance: float) -> void:
 	var to := pos - player.global_position
 	player.aim_override = to
@@ -329,6 +377,6 @@ func _finish() -> void:
 		player.health.hp, s.ended, s.victory, s.taken, player.weapon.id, _rescued])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
 	print("sim_run: hits by tag: %s  (heavy holds started: %d)" % [_tag_hits, _heavies_fired])
-	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win)
+	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win) and _resume_ok
 	print("sim_run: %s" % ("OK" if ok else "FAILED (did not progress, or did not win with --must-win)"))
 	get_tree().quit(0 if ok else 1)
