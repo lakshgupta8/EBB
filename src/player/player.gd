@@ -54,6 +54,7 @@ var aim_override: Vector2 = Vector2.ZERO
 var last_hit_tags: PackedStringArray = []
 var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
+var parry_t: float = 0.0    # the bell's toll: nothing lands while > 0
 var attack_held: bool = false
 var aim_dist: float = 64.0  # distance to the cursor (bots: a fixed reach)
 var rally: float = 0.0      # Rally tidemark: damage bonus built up in this room
@@ -231,7 +232,8 @@ func _physics_process(delta: float) -> void:
 	riptide_t = maxf(0.0, riptide_t - delta)
 	# A short grace after the dash keeps late dodges honest.
 	var ghosting := is_dashing() or is_yanked() or _since_dash < float(mods.dash_grace)
-	health.invulnerable = ghosting
+	health.invulnerable = ghosting or parry_t > 0.0
+	parry_t = maxf(0.0, parry_t - delta)
 	var taken := 0.7 if (mods.dash_guard and _since_dash < 1.0) else 1.0
 	if mods.low_guard and health.hp * 10 < health.max_hp * 3:
 		taken *= 0.75

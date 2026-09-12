@@ -11,6 +11,7 @@ var kills: int = 0
 var salt: int = 0
 var pearls: int = 0
 var keys: int = 0        # vault keys, dropped by elites
+var shards: int = 0      # echo shards found this night (already banked in the profile)
 var time: float = 0.0
 var ended: bool = false
 var victory: bool = false

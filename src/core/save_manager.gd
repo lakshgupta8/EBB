@@ -32,6 +32,9 @@ static func _defaults() -> Dictionary:
 		"codex": {},              # kind -> [ids met]
 		"endings": [],            # endings seen, in order
 		"suspended": {},          # a night rested at a cleared room (Run.snapshot)
+		"shards": 0,              # echo shards: from rescues, named elites and bosses; buy aspects
+		"aspects": {},            # weapon id -> aspect id in use ("" or missing = plain)
+		"aspects_owned": [],      # aspect ids bought from Bram
 	}
 
 

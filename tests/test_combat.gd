@@ -98,7 +98,7 @@ func test_enemy_scenes_load() -> void:
 
 
 func test_weapon_scenes_share_the_api() -> void:
-	assert_eq(Weapon.ALL.size(), 4, "four weapons")
+	assert_eq(Weapon.ALL.size(), 6, "six weapons")
 	for id in Weapon.ALL:
 		var scene := Weapon.scene_for(id)
 		assert_true(scene != null, id + " scene loads")
@@ -131,6 +131,48 @@ func test_hurtbox_shield_absorbs_one_hit() -> void:
 
 ## The gaff's heavy sweep only exists once the charge completes. Let go early and the
 ## hook just drops back: no state change into HEAVY, no hitbox, no swing.
+func test_aspects_table() -> void:
+	var seen := {}
+	for w in Weapon.ALL:
+		var list: Array = Weapon.ASPECTS.get(w, [])
+		assert_eq(list.size(), 2, "two aspects for " + w)
+		for a in list:
+			assert_true(not seen.has(a.id), "unique aspect id " + str(a.id))
+			seen[a.id] = true
+			assert_true(a.id.begins_with(w + "_"), "aspect id names its weapon: " + str(a.id))
+			assert_true(str(a.desc).length() * 6 <= 300, "aspect desc fits: " + str(a.id))
+			assert_eq(Weapon.aspect_entry(a.id).name, a.name)
+	assert_true(Weapon.aspect_entry("nonsense").is_empty())
+	assert_eq(Weapon.ALL.size(), 6, "six weapons")
+
+
+func test_bell_and_line_load_with_an_aspect() -> void:
+	SaveManager.use_path("user://test_aspects.json")
+	SaveManager.wipe()
+	SaveManager.data["aspects"] = {"bell": "bell_keeper", "line": "line_long"}
+	assert_eq(Weapon.aspect_of("bell"), "bell_keeper")
+	assert_eq(Weapon.aspect_of("gaff"), "", "plain when unset")
+	var player: Player = load("res://src/player/player.tscn").instantiate()
+	var bell: KeepersBell = Weapon.scene_for("bell").instantiate()
+	player.add_child(bell)
+	bell._ready()
+	assert_eq(bell.aspect, "bell_keeper")
+	assert_near(bell._parry_window, 0.55)
+	assert_true(bell.special_ready(), "toll ready at the start")
+	var line: LineSinker = Weapon.scene_for("line").instantiate()
+	player.add_child(line)
+	line._ready()
+	assert_eq(line.aspect, "line_long")
+	assert_near(line._reach, LineSinker.REACH + 12.0)
+	var rect := line.hit_shape.shape as RectangleShape2D
+	assert_near(rect.size.x, LineSinker.REACH + 8.0, 0.01)
+	line.try_attack()
+	assert_eq(line.state, LineSinker.State.CRACK, "a crack starts from idle")
+	player.free()
+	SaveManager.wipe()
+	SaveManager.use_path(SaveManager.PATH)
+
+
 func test_gaff_heavy_needs_a_full_charge() -> void:
 	# Built outside the tree (the runner is mid-ready); calling _ready() by hand still
 	# runs the @onready wiring.

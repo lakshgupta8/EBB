@@ -261,19 +261,25 @@ func _fight(target: Enemy) -> void:
 		_dash_cd -= 1
 		_special_cd -= 1
 		return
-	if dist > 22.0:
+	var reach := 30.0
+	if player.weapon.id == "line":
+		reach = 42.0
+	elif player.weapon.id == "bell":
+		reach = 26.0
+	if dist > reach - 8.0:
 		if target.flying:
 			# Flyers come to you: hold position, keep facing, strike when it dives in.
 			pass
 		else:
-			_walk_to(target.global_position, 22.0)
-	if dist < 30.0 and _attack_cd <= 0:
+			_walk_to(target.global_position, reach - 8.0)
+	if dist < reach and _attack_cd <= 0:
 		Input.action_press("attack")
-		_attack_cd = 6
-		if randf() < 0.2:
+		_attack_cd = 6 if player.weapon.id != "bell" else 20
+		if randf() < 0.2 and player.weapon.id == "gaff":
 			_hold_ticks = 75
 			_heavies_fired += 1
-	if dist > 30.0 and dist < 90.0 and _special_cd <= 0 and player.weapon.special_ready():
+	var special_near := player.weapon.id == "bell"  # the toll only matters up close
+	if ((dist > 30.0 and dist < 90.0) if not special_near else dist < 40.0) and _special_cd <= 0 and player.weapon.special_ready():
 		player.aim_dist = dist
 		Input.action_press("special")
 		_special_cd = 180

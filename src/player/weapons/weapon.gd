@@ -12,10 +12,63 @@ const ALL := {
 		"desc": "piercing bolts, a tether that drags"},
 	"lantern": {"name": "Storm Lantern", "scene": "res://src/player/weapons/storm_lantern.tscn",
 		"desc": "arcs of light that mark, a beacon"},
+	"bell": {"name": "Keeper's Bell", "scene": "res://src/player/weapons/keepers_bell.tscn",
+		"desc": "slow swing, stunning slam, parry toll"},
+	"line": {"name": "Line & Sinker", "scene": "res://src/player/weapons/line_sinker.tscn",
+		"desc": "long cracks, the third hauls; a weight"},
 }
 const DEFAULT := "gaff"
 
+## Aspects: every weapon can remember someone. Bram sets one for echo shards; the weapon
+## reads its own from the profile (`aspects[id]`) and adjusts itself in _ready.
+const ASPECT_COST := 4
+const ASPECTS := {
+	"gaff": [
+		{"id": "gaff_maren", "name": "Maren's Gaff", "desc": "fast charge; heavies crack bosses"},
+		{"id": "gaff_drowned", "name": "Drowned Gaff", "desc": "throws carry you; third hit +2"},
+	],
+	"net": [
+		{"id": "net_wren", "name": "Wren's Knife", "desc": "stabs +1; finisher bleeds longer"},
+		{"id": "net_cart", "name": "Cartographer's Net", "desc": "wider net that holds 3 s"},
+	],
+	"harpoon": [
+		{"id": "harpoon_bosun", "name": "Bosun's Gun", "desc": "five bolts, faster reload"},
+		{"id": "harpoon_chain", "name": "Chainmother's Line", "desc": "tethered things take +40%"},
+	],
+	"lantern": [
+		{"id": "lantern_orla", "name": "Orla's Lantern", "desc": "arcs +1; lit lasts 5.5 s"},
+		{"id": "lantern_fen", "name": "Fen's Lantern", "desc": "wider beacon, burns longer"},
+	],
+	"bell": [
+		{"id": "bell_keeper", "name": "Keeper's Toll", "desc": "longer toll; parries stun 3 s"},
+		{"id": "bell_sunken", "name": "Sunken Bell", "desc": "wider slam ring, +3 damage"},
+	],
+	"line": [
+		{"id": "line_long", "name": "Long Line", "desc": "longer reach; third hit +2"},
+		{"id": "line_lead", "name": "Lead Sinker", "desc": "sinker 12 dmg, wider, slows longer"},
+	],
+}
+
 var id: String = "weapon"
+var aspect: String = ""
+
+
+## The aspect set for a weapon in the profile, or "" when it is plain.
+static func aspect_of(p_id: String) -> String:
+	var a = SaveManager.data.get("aspects", {})
+	return str(a.get(p_id, "")) if a is Dictionary else ""
+
+
+static func aspect_entry(aspect_id: String) -> Dictionary:
+	for w in ASPECTS:
+		for a in ASPECTS[w]:
+			if a.id == aspect_id:
+				return a
+	return {}
+
+
+func _load_aspect() -> void:
+	aspect = aspect_of(id)
 
 
 static func scene_for(p_id: String) -> PackedScene:

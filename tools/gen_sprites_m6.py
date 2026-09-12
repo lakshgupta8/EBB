@@ -666,7 +666,46 @@ def build_pickups_m6(base):
     return im
 
 
+# ----------------------------------------------------------------------------- M6c weapons (drawn pointing right, pivot at the left)
+KEEPERS_BELL = """
+......kkkkkkkk..
+.....kGGGGGGGGk.
+kkkkkkGggggggggk
+kwwwwkGggggggggk
+kkkkkkGggggggggk
+.....kGGggggggGk
+......kkkkkkkkk.
+........kggk....
+........kkkk....
+"""
+LINE_HANDLE = """
+kkkkkkkkkk
+kwwwwwwWWk
+kwwwwwwWWk
+kkkkkkkkkk
+"""
+SINKER = """
+...kk...
+..kGGk..
+.kGggGk.
+.kgggGk.
+.kggggk.
+..kggk..
+...kk...
+........
+"""
+
+
+def build_weapons_m6():
+    out = {}
+    c = Canvas(16, 9); c.blit(KEEPERS_BELL, 0, 0); c.im.save(os.path.join(OUT, "keepers_bell.png")); out["keepers_bell"] = c.im
+    c = Canvas(10, 4); c.blit(LINE_HANDLE, 0, 0); c.im.save(os.path.join(OUT, "line_handle.png")); out["line_handle"] = c.im
+    c = Canvas(8, 8); c.blit(SINKER, 0, 0); c.im.save(os.path.join(OUT, "sinker.png")); out["sinker"] = c.im
+    return out
+
+
 def build_all(built):
+    built.update(build_weapons_m6())
     built["tiles"] = build_tiles_m6(built["tiles"])
     built["decor4"] = build_decor4()
     built["mooring"] = build_mooring()
