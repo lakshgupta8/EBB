@@ -126,6 +126,11 @@ func test_biome_table() -> void:
 			tide.room_entered()
 		assert_near(tide.level, 1.44, 0.01)
 	assert_eq(Run.BIOMES[1].id, "harbour", "the harbour sits between the flats and the streets")
+	# Every whisper the run asks for by name has to exist, including the built-up ones.
+	for t in range(1, Run.TIERS.size() + 1):
+		assert_true(Story.WHISPERS.has("tide_%d" % t), "a whisper for spring tide %d" % t)
+	for k in ["cage", "death", "taken", "challenge", "dive", "netted", "choir", "harbour_ships", "harbour_hands"]:
+		assert_true(Story.WHISPERS.has(k), "the run asks for the whisper " + k)
 
 
 func test_hub_template() -> void:
