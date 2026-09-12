@@ -271,11 +271,10 @@ func _fight(target: Enemy) -> void:
 	elif player.weapon.id == "bell":
 		reach = 26.0
 	if dist > reach - 8.0:
-		if target.flying:
-			# Flyers come to you: hold position, keep facing, strike when it dives in.
-			pass
-		else:
-			_walk_to(target.global_position, reach - 8.0)
+		# Always close. Waiting for a flyer to come to you deadlocks against anything that
+		# keeps its distance on purpose, and the gull dives just as happily at a moving
+		# target, so there is nothing to gain by standing still.
+		_walk_to(target.global_position, reach - 8.0)
 	if dist < reach and _attack_cd <= 0:
 		Input.action_press("attack")
 		_attack_cd = 6 if player.weapon.id != "bell" else 20
