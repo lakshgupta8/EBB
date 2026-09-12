@@ -223,6 +223,10 @@ func _stuck_report(door: Door) -> void:
 			tick, run.room.template.name, player.global_position.round(), run.room.world_to_cell(player.global_position),
 			door.global_position.round(), door.cell, door.is_open, path.size(),
 			run.room.template.is_solid(run.room.world_to_cell(player.global_position).x, run.room.world_to_cell(player.global_position).y)])
+		print("sim_run:   player vel=%s rooted=%.2f yanked=%s dashing=%s dead=%s dash=%d weapon=%s busy=%s move_mult=%.2f in_water=%s deep=%s" % [
+			player.velocity.round(), player.rooted_t, player.is_yanked(), player.is_dashing(), player.dead,
+			player.dash_charges, player.weapon.id, player.weapon.is_busy(), player.weapon.move_mult(),
+			player.in_water, run.room.is_deep_at(player.global_position)])
 
 
 var _hold_ticks: int = 0
