@@ -125,18 +125,31 @@ func play_tick(player: Player) -> void:
 	player.aim_override = aim if aim.length() > 0.1 else Vector2(1, 0)
 
 
-## Where the keeper stood in room `depth_total` at `tick` into it (the nearest sample),
-## or Vector2.INF when the log never reached that room.
+## Where the keeper stood in room `depth_total` at `tick` into it: the last sample at or
+## before that tick, so the ghost is never ahead of where it was. Vector2.INF when the log
+## never reached that room. The ghost asks this every physics
+## tick, so the samples are indexed by room the first time and walked with a cursor.
+var _by_room: Dictionary = {}   # depth -> Array of [tick, x, y]
+var _cursor_room: int = -1
+var _cursor: int = 0
+
+
 func position_at(depth_total: int, tick: int) -> Vector2:
-	var best := Vector2.INF
-	var best_d := 1 << 30
-	for p in positions:
-		if p[0] != depth_total:
-			continue
-		var d: int = absi(int(p[1]) - tick)
-		if d < best_d:
-			best_d = d
-			best = Vector2(p[2], p[3])
-		if int(p[1]) > tick:
-			break
-	return best
+	if _by_room.is_empty() and positions.size() > 0:
+		for p in positions:
+			var list: Array = _by_room.get(int(p[0]), [])
+			list.append([int(p[1]), int(p[2]), int(p[3])])
+			_by_room[int(p[0])] = list
+	var room: Array = _by_room.get(depth_total, [])
+	if room.is_empty():
+		return Vector2.INF
+	if depth_total != _cursor_room:
+		_cursor_room = depth_total
+		_cursor = 0
+	# Walk forward to the last sample at or before this tick; the ghost only moves forward.
+	while _cursor + 1 < room.size() and int(room[_cursor + 1][0]) <= tick:
+		_cursor += 1
+	while _cursor > 0 and int(room[_cursor][0]) > tick:
+		_cursor -= 1
+	var at: Array = room[_cursor]
+	return Vector2(at[1], at[2])
