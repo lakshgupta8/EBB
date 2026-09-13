@@ -224,10 +224,15 @@ func _drive() -> void:
 				Input.action_press("interact")
 				_props_done.append(p)
 			return
-	# Then leave through the first open door (the wet one when asked to).
+	# Then leave, through the door a player would take: hurt, look for water to drink and
+	# stay out of rooms with no way out; whole, take what pays. Taking whichever door came
+	# first walked the bot into two challenge rooms in one biome and ended the night there
+	# every time (seed 1335, rooms 6 and 8).
 	var doors: Array = run.room.doors.duplicate()
 	if _prefer_wet:
 		doors.sort_custom(func(a, b): return a.wet and not b.wet)
+	else:
+		doors.sort_custom(func(a, b): return _door_score(a) < _door_score(b))
 	for d in doors:
 		if d.is_open:
 			_walk_to(d.global_position, 2.0)
@@ -491,6 +496,33 @@ func _dry_spot() -> Vector2:
 			_dry_at = best
 			return _dry_at
 	return _dry_at
+
+
+## What a door is worth from here: lower is better. Health decides most of it.
+func _door_score(d: Door) -> int:
+	var hurt: bool = player.health.hp * 2 < player.health.max_hp
+	match d.room_type:
+		RoomGraph.FOUNTAIN:
+			return 0 if hurt else 3
+		RoomGraph.ECHO:
+			return 1
+		RoomGraph.ALTAR:
+			return 2
+		RoomGraph.TREASURE:
+			return 3
+		RoomGraph.SHOP:
+			return 3 if run.state.salt >= 12 else 5
+		RoomGraph.VAULT:
+			return 3 if run.state.keys > 0 else 6
+		RoomGraph.COMBAT:
+			return 4
+		RoomGraph.ELITE:
+			return 7 if hurt else 5
+		RoomGraph.DIVE:
+			return 9 if hurt else 6
+		RoomGraph.CHALLENGE:
+			return 10 if hurt else 7
+	return 5
 
 
 func _walk_to(pos: Vector2, tolerance: float) -> void:
