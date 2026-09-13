@@ -206,7 +206,13 @@ static func roll(rng: RandomNumberGenerator, owned: Array, count: int = 3, bless
 		out.append(pool[pick])
 		pool.remove_at(pick)
 		weights.remove_at(pick)
-	out.shuffle()
+	# Shuffle on the run's own stream, not the global one: the same seed must deal the
+	# same cards in the same order, on anybody's machine (the daily depends on it).
+	for i in range(out.size() - 1, 0, -1):
+		var j := rng.randi() % (i + 1)
+		var tmp = out[i]
+		out[i] = out[j]
+		out[j] = tmp
 	return out
 
 

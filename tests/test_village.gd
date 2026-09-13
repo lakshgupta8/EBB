@@ -206,7 +206,7 @@ func test_log_claims_once_and_opens_cosmetics() -> void:
 		assert_true(not ids.has(m.id), "unique milestone " + m.id)
 		ids[m.id] = true
 		assert_true(int(m.get("pearls", 0)) + int(m.get("shards", 0)) > 0, m.id + " pays")
-	assert_eq(KeeperLog.ALL.size(), 40, "forty milestones")
+	assert_eq(KeeperLog.ALL.size(), 44, "forty-four milestones")
 	_scratch("log")
 	assert_true(KeeperLog.claim_all().is_empty(), "a fresh keeper has done nothing")
 	SaveManager.data.runs = 1

@@ -62,6 +62,7 @@ var _logo: TextureRect
 @onready var log_ui: LogUI = $LogUI
 @onready var layer: CanvasLayer = $Layer
 var slots_ui: SlotsUI
+var modes_ui: ModesUI
 
 
 func _ready() -> void:
@@ -77,6 +78,11 @@ func _ready() -> void:
 	slots_ui = SlotsUI.new()
 	slots_ui.name = "SlotsUI"
 	add_child(slots_ui)
+	modes_ui = ModesUI.new()
+	modes_ui.name = "ModesUI"
+	add_child(modes_ui)
+	modes_ui.closed.connect(_refresh)
+	modes_ui.start.connect(_start_mode)
 	codex_ui.closed.connect(_refresh)
 	settings_ui.closed.connect(_refresh)
 	log_ui.closed.connect(_refresh)
@@ -213,6 +219,7 @@ func _build_menu() -> void:
 	_buttons = []
 	var items := [
 		[_primary_text(), func(): _start()],
+		["The sea keeps time", func(): modes_ui.open()],
 		["Keeper's Log", func(): log_ui.open()],
 		["Codex", func(): codex_ui.open()],
 		["Settings", func(): settings_ui.open()],
@@ -330,7 +337,7 @@ func _refresh() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _busy or codex_ui.is_open or settings_ui.is_open or log_ui.is_open or slots_ui.is_open:
+	if _busy or codex_ui.is_open or settings_ui.is_open or log_ui.is_open or slots_ui.is_open or modes_ui.is_open:
 		return
 	var i := UI.menu_index(event)
 	var nav := UI.nav(event)
@@ -371,8 +378,13 @@ func _intro() -> void:
 	tw3.parallel().tween_property(layer.get_node("Hints"), "modulate:a", 1.0, 0.5)
 
 
+## A mode picked in the menu: the same tide, but it goes straight down.
+func _start_mode(mode: String, seed_value: int) -> void:
+	_start(func(): Game.go_to_run(seed_value, mode))
+
+
 ## The tide comes in over the screen, then the dark, then the rock.
-func _start() -> void:
+func _start(then: Callable = Game.go_to_hub) -> void:
 	if _busy:
 		return
 	_busy = true
@@ -393,7 +405,7 @@ func _start() -> void:
 	var tw := create_tween()
 	tw.tween_property(water, "offset_top", 0.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tw.tween_property(fade, "color:a", 1.0, 0.35)
-	tw.tween_callback(Game.go_to_hub)
+	tw.tween_callback(then)
 
 
 func _full_rect(color: Color) -> ColorRect:
@@ -430,6 +442,12 @@ func _handle_screenshot_arg() -> void:
 	elif "--slots" in args:
 		slots_ui.open()
 		name = "title_slots"
+	elif "--modes" in args:
+		modes_ui.open()
+		name = "title_modes"
+	elif "--history" in args:
+		modes_ui.open(1)
+		name = "title_history"
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")

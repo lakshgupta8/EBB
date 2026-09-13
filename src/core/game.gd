@@ -10,6 +10,8 @@ enum State { BOOT, HUB, RUN, RESULTS }
 
 var state: State = State.BOOT
 var run_seed: int = 0
+## M8: the way down: "night" (from the shore), or daily / seeded / trial / neap / riptide.
+var mode: String = "night"
 var last_result: Dictionary = {}
 ## True while the last input came from a pad: prompts and aiming follow it.
 var gamepad: bool = false
@@ -52,8 +54,9 @@ func go_to_hub() -> void:
 	get_tree().call_deferred("change_scene_to_file", HUB_SCENE)
 
 
-func go_to_run(seed_override: int = 0) -> void:
+func go_to_run(seed_override: int = 0, p_mode: String = "night") -> void:
 	run_seed = seed_override if seed_override != 0 else randi()
+	mode = p_mode
 	state = State.RUN
 	get_tree().call_deferred("change_scene_to_file", RUN_SCENE)
 
@@ -73,6 +76,7 @@ func load_suspended() -> bool:
 	SaveManager.data["suspended"] = {}
 	SaveManager.save_profile()
 	run_seed = int(resume.get("seed", 0))
+	mode = str(resume.get("mode", "night"))
 	return true
 
 
@@ -95,4 +99,5 @@ func run_finished(result: Dictionary) -> void:
 	state = State.RESULTS
 	last_result = result
 	SaveManager.record_run(result)
+	mode = "night"
 	EventBus.run_ended.emit(result)

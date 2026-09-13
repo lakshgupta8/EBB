@@ -1,6 +1,6 @@
 class_name KeeperLog
 extends RefCounted
-## The Keeper's Log: forty milestones, claimed on the rock the moment they hold. Each pays
+## The Keeper's Log: forty-four milestones, claimed on the rock the moment they hold. Each pays
 ## pearls or shards; a few open a lantern colour. Conditions use the dialog grammar so the
 ## same test lints them.
 
@@ -45,6 +45,11 @@ const ALL := [
 	{"id": "rests_3", "name": "Sleep on it", "desc": "rest three nights", "cond": "stat:rests>=3", "pearls": 10},
 	{"id": "fish_10", "name": "Fed", "desc": "eat ten fish", "cond": "stat:fish_eaten>=10", "pearls": 10},
 	{"id": "weapons_all", "name": "Every blade", "desc": "win with all six weapons", "cond": "stat:weapons_won>=6", "pearls": 50},
+	# M8: the sea keeps time
+	{"id": "daily_1", "name": "The sea keeps time", "desc": "play a daily night", "cond": "stat:dailies>=1", "pearls": 10},
+	{"id": "trial_win", "name": "Four in one tide", "desc": "win the Keeper's Trial", "cond": "stat:wins_trial>=1", "pearls": 60},
+	{"id": "neap_win", "name": "Bare stone", "desc": "win a neap night", "cond": "stat:wins_neap>=1", "pearls": 40},
+	{"id": "riptide_win", "name": "Against the current", "desc": "win a riptide", "cond": "stat:wins_riptide>=1", "pearls": 40},
 ]
 
 ## Lantern colours the Log can open. "warm" is the keeper's own.

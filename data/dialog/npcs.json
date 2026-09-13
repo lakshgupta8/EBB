@@ -16,6 +16,8 @@
 		{"when": ["epilogue:keep"], "text": "You hold the bottom, she says. Then the top is mine. Nothing leaves this harbour without my say, and I say: go on, then."},
 		{"when": ["affinity:idris>=3"], "text": "I have written you into the harbour book. Keeper, one, expected back. Every night I cross it out and write it again."},
 		{"when": ["keel"], "text": "That keel will hold. I laid it myself. Whatever else goes wrong down there, it will not be the boat."},
+		{"when": ["stat:wins_trial>=1"], "text": "Four of them on one tide and you came up. I have kept this harbour's time three hundred years and I have never had a night like that to write down."},
+		{"when": ["stat:dailies>=1"], "text": "The sea keeps time, keeper. Same tide for every one of you, once a day, and no second try. That is how a harbour tells who is who."},
 		{"when": ["wins>=1"], "text": "The crane let go. I felt it from here, a slack in the whole harbour. So. The dock is yours to launch from, if you can pay the mooring."},
 		{"when": [], "text": "Idris. Harbourmaster. I held the ships to the quay the night the crane took them and I have not forgiven either of us. You broke the crane. Come to the dock."}
 	],

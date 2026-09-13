@@ -60,6 +60,7 @@ func _ready() -> void:
 		elif a.begins_with("--shot-clear="): _shot_clear = int(a.trim_prefix("--shot-clear="))
 		elif a.begins_with("--tier="): _tier = int(a.trim_prefix("--tier="))
 		elif a == "--take-wet": _prefer_wet = true
+		elif a.begins_with("--mode="): Game.mode = a.trim_prefix("--mode=")
 		elif a.begins_with("--fast="):
 			# Run the night N times faster: more physics ticks per real second, the same
 			# delta each, so nothing in the fight changes but the wall clock.
@@ -450,6 +451,7 @@ func _finish() -> void:
 		float(tick) / 60.0, s.biome, s.depth, s.depth_total, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
 		player.health.hp, s.ended, s.victory, s.taken, player.weapon.id, _rescued])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
+	print("sim_run: mode=%s history=%d daily_scores=%d" % [s.mode, SaveManager.data.get("history", []).size(), SaveManager.data.get("daily_scores", []).size()])
 	print("sim_run: hits by tag: %s  (heavy holds started: %d, actives used: %d, fish eaten: %d)" % [_tag_hits, _heavies_fired, _actives_used, _fish_eaten])
 	var done: Array = []
 	for c in Game.last_result.get("contracts", []):
