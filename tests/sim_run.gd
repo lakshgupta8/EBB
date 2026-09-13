@@ -195,15 +195,18 @@ func _drive() -> void:
 	# doors are open the way out beats dry feet, and after three seconds of wading, so does
 	# the fight.
 	var fighting := not get_tree().get_nodes_in_group("enemies").is_empty()
-	if fighting and not player.mods.dry_feet and run.room.is_deep_at(player.global_position):
-		_deep_t += 1
-		if _deep_t < 180:
-			var dry := _dry_spot()
-			if dry != Vector2.INF:
-				_walk_to(dry, 4.0)
-				return
-	else:
-		_deep_t = 0
+	if run.state.depth_total != _avoid_room:
+		_avoid_room = run.state.depth_total
+		_avoid_ticks = 0
+	if fighting and not player.mods.dry_feet and _avoid_ticks < AVOID_BUDGET 			and run.room.is_deep_at(player.global_position):
+		# The budget is per room, not per spell in the water. Resetting it the moment the
+		# keeper steps out means a pool between here and the last enemy is never crossed:
+		# in, out, in, out, and the room never clears (seed 1234, flats_01).
+		_avoid_ticks += 1
+		var dry := _dry_spot()
+		if dry != Vector2.INF:
+			_walk_to(dry, 4.0)
+			return
 	if _rest_at >= 0 and run.state.depth_total >= _rest_at and run.can_rest():
 		_rest_at = -1
 		_rest_and_resume()
@@ -236,6 +239,10 @@ var _no_progress: int = 0
 var _progress_depth: int = -1
 var _stall_depth: int = -1
 var _stall_ticks: int = 0
+var _wedged: bool = false
+## Ninety seconds of game time in one room without getting deeper: the night is going
+## nowhere, and waiting out the tick budget only hides it.
+const WEDGE_TICKS := 5400
 
 
 ## Dumps run state whenever depth has not advanced for 20 s, so a stall is diagnosable.
@@ -245,6 +252,15 @@ func _stall_watch() -> void:
 		_stall_ticks = 0
 		return
 	_stall_ticks += 1
+	if _stall_ticks == WEDGE_TICKS and not run.state.ended:
+		_wedged = true
+		var names := []
+		for e in get_tree().get_nodes_in_group("enemies"):
+			names.append("%s:%s" % [e.display_name, e.state])
+		print("sim_run: WEDGED at depth %d in %s after %d s, holding %s" % [
+			run.state.depth, run.room.template.name, WEDGE_TICKS / 60, names])
+		run.give_up()
+		return
 	if _stall_ticks % 1200 == 0:
 		var enemies := get_tree().get_nodes_in_group("enemies")
 		var names := []
@@ -278,7 +294,11 @@ func _stuck_report(door: Door) -> void:
 var _hold_ticks: int = 0
 var _lunge_next: bool = false
 var _retreat_t: int = 0
-var _deep_t: int = 0
+## Wading out of deep water is worth this much of a room and no more; after that the
+## fight matters more than dry feet.
+const AVOID_BUDGET := 420
+var _avoid_room: int = -1
+var _avoid_ticks: int = 0
 var _dry_at: Vector2 = Vector2.INF
 var _dry_until: int = -1
 
@@ -359,6 +379,12 @@ func _fight(target: Enemy) -> void:
 		# keeps its distance on purpose, and the gull dives just as happily at a moving
 		# target, so there is nothing to gain by standing still.
 		_walk_to(target.global_position, reach - 8.0)
+		# Something that runs away cannot be walked down: a tidewisp kept a gaff bot in one
+		# room for the whole tick budget (seed 1234, room 8). Dash after it.
+		if target.state == &"flee" and dist > reach and _dash_cd <= 0:
+			_press_dir(to)
+			Input.action_press("dash")
+			_dash_cd = 25
 	if dist < reach and _attack_cd <= 0:
 		Input.action_press("attack")
 		_attack_cd = 6 if player.weapon.id != "bell" else 20
@@ -537,6 +563,6 @@ func _finish() -> void:
 		done.append(str(c.id))
 	print("sim_run: village: pages=%s glass=%d spared=%d contracts=%s journals=%s" % [
 		str(s.stats.get("pages", 0)), int(SaveManager.data.get("glass", 0)), int(s.stats.get("spared", 0)), done, SaveManager.data.get("journals", [])])
-	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win) and _resume_ok
-	print("sim_run: %s" % ("OK" if ok else "FAILED (did not progress, or did not win with --must-win)"))
+	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win) and _resume_ok and not _wedged
+	print("sim_run: %s" % ("OK" if ok else ("WEDGED in a room" if _wedged else "FAILED (did not progress, or did not win with --must-win)")))
 	get_tree().quit(0 if ok else 1)

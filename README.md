@@ -61,7 +61,8 @@ fullscreen, HUD size and text size (normal, large, largest), and reduced motion,
 shake, flashes, slow time and the coloured pulses at the edge of the screen.
 
 **Play**: dialogue speed, skip dialogue seen before, hints, the colour of water (sea, amber for
-colourblind eyes, or high contrast), three assists, and the controls page.
+colourblind eyes, or high contrast), three assists, the ghost of your last night on this seed, and
+the controls page.
 
 **Assists** are a trade, not a cheat. The tide can rise at three quarters or half speed, damage taken
 can be cut the same way, and aim help leans your aim toward what is nearest. Each one takes a bite out
