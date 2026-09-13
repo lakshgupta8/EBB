@@ -11,7 +11,7 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 |---|---|
 | Run the game | `.\tools\run.ps1` (title screen; `.\tools\run.ps1 src/hub/hub.tscn` skips it) |
 | Build the Windows .exe | `.\tools\export.ps1` (fetches the 4.7.2 export templates once, ~1 GB) -> `dist\EBB.exe` |
-| Balance table | `.\tools\balance.ps1 [-Seeds 3] [-Tiers 0,4,8] [-MinRooms 8] [-Fast 4]`: the bot plays every weapon at each spring tide on several seeds, writes `tools/balance.csv` and the pace the daily board uses (`data/par.json`). Red when a tier-0 run stops before room 8 or anything throws a script error |
+| Balance table | `.\tools\balance.ps1 [-Seeds 3] [-Tiers 0,4,8] [-Fast 4]`: the bot plays every weapon at each spring tide on several seeds, writes `tools/balance.csv` and the pace the daily board uses (`data/par.json`). It plays a fresh keeper with nothing bought, so it measures the hardest case. Red when the tier-0 average drops under eight rooms, a run ends before room four, a room wedges, or anything throws a script error |
 | Content check | `.\tools\content.ps1`: every sound, loop, sprite, line and room type the game asks for against what is on disk |
 | Room editor | `.\tools\edit_room.ps1 [-Room data/rooms/biome1/flats_01.txt]`: paint a template, watch the room rebuild, save it back |
 | Jump to a biome / its boss | `.\tools\run.ps1 -- --biome=1` (streets), `--biome=2` (hall), add `--boss` |

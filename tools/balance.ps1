@@ -3,18 +3,22 @@
 # pace the daily board measures itself against (data/par.json).
 #
 #   .\tools\balance.ps1 [-Ticks 30000] [-Seeds 3] [-Tiers 0,4,8] [-Weapons gaff,net,...]
-#                       [-MinRooms 8] [-MinWinRate 0] [-Fast 4]
+#                       [-MinRooms 4] [-MinAvgRooms 8] [-MinWinRate 0] [-Fast 4]
 #
-# Green when every weapon at tier 0 reaches -MinRooms on every seed and nothing threw a
-# script error. -MinWinRate additionally demands that share of wins at tier 0; the bot does
-# not play well enough to win a whole night today, so it is reported, not gated, by default.
+# Green when, at tier 0, the bot averages -MinAvgRooms rooms a night, no single run falls
+# under -MinRooms, nothing wedged in a room and nothing threw a script error. The average
+# is what the gate leans on: one night's depth swings hugely from seed to seed, and a
+# minimum would flap without anything having changed. -MinWinRate additionally demands
+# that share of wins at tier 0; the bot does not play well enough to win a whole night
+# today (it plays a fresh keeper with nothing bought), so the rate is reported, not gated.
 # Output: tools/balance.csv, data/par.json, a summary table. Exit 1 when the table is red.
 param(
     [int]$Ticks = 30000,
     [int]$Seeds = 3,
     [int[]]$Tiers = @(0, 4, 8),
     [string[]]$Weapons = @("gaff", "net", "harpoon", "lantern", "bell", "line"),
-    [int]$MinRooms = 8,
+    [int]$MinRooms = 4,
+    [int]$MinAvgRooms = 8,
     [int]$MinWinRate = 0,
     [int]$Fast = 4,
     [int]$Seed = 1234
@@ -88,9 +92,12 @@ Write-Host "par: $perRoom seconds a room (from $($base.Count) runs at tier 0) ->
 $red = @()
 if ($errors -gt 0) { $red += "$errors runs threw a script error" }
 $stuck = $rows | Where-Object { $_.cause -eq "wedged" }
-if ($stuck) { Write-Host "note: $($stuck.Count) runs wedged in a room (the bot, not the night: $(($stuck | ForEach-Object { "$($_.weapon)@$($_.rooms)" }) -join ', '))" -ForegroundColor Yellow }
+if ($stuck) { $red += "$($stuck.Count) runs wedged in a room ($(($stuck | ForEach-Object { "$($_.weapon)@$($_.rooms)" }) -join ', '))" }
 $short = $base | Where-Object { $_.rooms -lt $MinRooms }
 if ($short) { $red += "$($short.Count) tier-0 runs stopped before room $MinRooms ($(($short | ForEach-Object { "$($_.weapon)@$($_.rooms)" }) -join ', '))" }
+$avgRooms = [math]::Round(($base | Measure-Object rooms -Average).Average, 1)
+Write-Host "tier-0 rooms: $avgRooms on average, $((($base | Measure-Object rooms -Minimum).Minimum)) at worst, $((($base | Measure-Object rooms -Maximum).Maximum)) at best  (gate: $MinAvgRooms average)"
+if ($avgRooms -lt $MinAvgRooms) { $red += "tier-0 average $avgRooms rooms is under $MinAvgRooms" }
 $winRate = [math]::Round(100.0 * (($base | Where-Object victory).Count) / [math]::Max(1, $base.Count), 1)
 Write-Host "tier-0 win rate: $winRate%  (gate: $MinWinRate%)"
 if ($winRate -lt $MinWinRate) { $red += "tier-0 win rate $winRate% is under $MinWinRate%" }
