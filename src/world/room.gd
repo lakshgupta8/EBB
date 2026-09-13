@@ -39,7 +39,8 @@ func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS
 	_water = TileMapLayer.new()
 	_water.name = "Water"
 	_water.tile_set = Tiles.tileset()
-	_water.modulate = Color(1, 1, 1, 0.62)  # ground shows through shallow water; deep tile is darker
+	_water.modulate = Settings.water_tint()  # ground shows through shallow water; deep tile is darker
+	Settings.changed.connect(func(k): if k == "water_tint" and is_instance_valid(_water): _water.modulate = Settings.water_tint())
 	_water.z_index = 1
 	add_child(_water)
 	for y in t.height:

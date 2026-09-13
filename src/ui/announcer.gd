@@ -332,7 +332,7 @@ func _run_whispers() -> void:
 func _build_hint() -> void:
 	_hint_box = _pill(Color(INK, 0.74), WARM)
 	_hint_box.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_hint_box.position = Vector2(8, 80)
+	_hint_box.position = Vector2(8, 8 + 72 * Settings.hud_scale())  # under the HUD rows at any HUD size
 	_hint_box.size = Vector2(236, 0)
 	_hint_box.visible = false
 	_root.add_child(_hint_box)
@@ -399,6 +399,8 @@ func letterbox(on: bool, height: float = 26.0) -> void:
 
 ## A coloured pulse at the edge of the screen: the tide rising, a riptide, a hit.
 func pulse(color: Color, strength: float = 0.5, duration: float = 0.8) -> void:
+	if Settings.reduced_motion():
+		return
 	_vignette.flash = Color(color, strength)
 	var tw := create_tween()
 	tw.tween_property(_vignette, "flash:a", 0.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

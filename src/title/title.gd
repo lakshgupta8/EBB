@@ -61,6 +61,7 @@ var _logo: TextureRect
 @onready var settings_ui: SettingsUI = $SettingsUI
 @onready var log_ui: LogUI = $LogUI
 @onready var layer: CanvasLayer = $Layer
+var slots_ui: SlotsUI
 
 
 func _ready() -> void:
@@ -73,9 +74,13 @@ func _ready() -> void:
 	Audio.ambient("ambient_sea", -12.0)
 	Audio.music("music_still", -8.0)
 	Audio.gulls_enabled = true
+	slots_ui = SlotsUI.new()
+	slots_ui.name = "SlotsUI"
+	add_child(slots_ui)
 	codex_ui.closed.connect(_refresh)
 	settings_ui.closed.connect(_refresh)
 	log_ui.closed.connect(_refresh)
+	slots_ui.closed.connect(_refresh)
 	_intro()
 	_handle_screenshot_arg()
 
@@ -211,6 +216,7 @@ func _build_menu() -> void:
 		["Keeper's Log", func(): log_ui.open()],
 		["Codex", func(): codex_ui.open()],
 		["Settings", func(): settings_ui.open()],
+		["Keeper", func(): slots_ui.open()],
 		["Quit", func(): _quit()],
 	]
 	for i in items.size():
@@ -240,7 +246,8 @@ func _build_menu() -> void:
 	info.position = Vector2(120, 326)
 	info.size = Vector2(400, 10)
 	layer.add_child(info)
-	var ver := UI.label("EBB %s" % Game.VERSION, 8, WET, HORIZONTAL_ALIGNMENT_RIGHT)
+	var ver := UI.label("EBB %s   slot %d" % [Game.VERSION, SaveManager.slot_in_use()], 8, WET, HORIZONTAL_ALIGNMENT_RIGHT)
+	ver.name = "Version"
 	ver.position = Vector2(520, 346)
 	ver.size = Vector2(114, 10)
 	layer.add_child(ver)
@@ -315,14 +322,15 @@ func _refresh() -> void:
 		info.text = "night %d    wins %d    echoes %d    pearls %d%s" % [int(s.runs) + 1, s.wins,
 			int(s.get("echoes", 0)), s.pearls, "    endings %d/3" % endings if endings > 0 else ""]
 	waits.visible = Game.has_suspended()
+	(layer.get_node("Version") as Label).text = "EBB %s   slot %d" % [Game.VERSION, SaveManager.slot_in_use()]
 	var hints: Label = layer.get_node("Hints")
-	hints.text = "%s choose    %s move    1-5 jump    F11 fullscreen" % [UI.hint("accept"),
-		"[d-pad]" if Game.gamepad else "[W / S]"]
+	hints.text = "%s choose    %s move    1-%d jump    F11 fullscreen" % [UI.hint("accept"),
+		"[d-pad]" if Game.gamepad else "[%s / %s]" % [Settings.key_name("move_up"), Settings.key_name("move_down")], _buttons.size()]
 	_apply_cursor()
 
 
 func _input(event: InputEvent) -> void:
-	if _busy or codex_ui.is_open or settings_ui.is_open or log_ui.is_open:
+	if _busy or codex_ui.is_open or settings_ui.is_open or log_ui.is_open or slots_ui.is_open:
 		return
 	var i := UI.menu_index(event)
 	var nav := UI.nav(event)
@@ -406,10 +414,28 @@ func _handle_screenshot_arg() -> void:
 	if not "--screenshot" in OS.get_cmdline_user_args():
 		return
 	await get_tree().create_timer(2.4).timeout  # the intro is over by then
+	var args := OS.get_cmdline_user_args()
+	var name := "title"
+	if "--settings" in args or "--settings2" in args:
+		settings_ui.open()
+		name = "title_settings"
+		if "--settings2" in args:
+			settings_ui.set_page(1)
+			name = "title_settings2"
+	elif "--controls" in args:
+		settings_ui._controls.open()
+		if "--listen" in args:
+			settings_ui._controls._start_listen("dash")
+		name = "title_controls"
+	elif "--slots" in args:
+		slots_ui.open()
+		name = "title_slots"
+	await get_tree().process_frame
+	await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var img := get_viewport().get_texture().get_image()
-	print("screenshot -> %s/title.png (%s)" % [dir, error_string(img.save_png(dir + "/title.png"))])
+	print("screenshot -> %s/%s.png (%s)" % [dir, name, error_string(img.save_png(dir + "/%s.png" % name))])
 	get_tree().quit()
 
 

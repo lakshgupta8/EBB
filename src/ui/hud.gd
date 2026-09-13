@@ -42,6 +42,19 @@ func _ready() -> void:
 
 func bind(run: Node) -> void:
 	_run = run
+	_rescale()
+	Settings.changed.connect(func(k): if k == "hud_scale": _rescale())
+
+
+## The HUD size setting: the whole layer scales, and the right edge moves in to match.
+func _rescale() -> void:
+	var s := Settings.hud_scale()
+	scale = Vector2(s, s)
+
+
+## The screen's width in HUD pixels (less than 640 when the HUD is scaled up).
+func _w() -> float:
+	return 640.0 / maxf(scale.x, 0.01)
 
 
 func set_boss(b: Enemy) -> void:
@@ -124,13 +137,13 @@ func _draw() -> void:
 		if gf >= 1.0 and int(Time.get_ticks_msec() / 250) % 2 == 0:
 			gcol = Color(1.0, 1.0, 0.85)
 		draw_rect(Rect2(x, gy, int(56 * gf), 3), gcol)
-		_text(Vector2(x + 60, gy + 4), "Q  flare ready" if gf >= 1.0 else "lantern", WARM if gf >= 1.0 else DIM)
+		_text(Vector2(x + 60, gy + 4), "%s  flare ready" % UI.key("use_item") if gf >= 1.0 else "lantern", WARM if gf >= 1.0 else DIM)
 		# Fish carried: one icon each, F to eat the first.
 		if _run and _run.state.fish.size() > 0:
 			var fx := x + 60 + 15 * 6 + 8
 			for i in _run.state.fish.size():
 				_draw_icon(Vector2(fx + i * 10, gy - 3), 6)
-			_text(Vector2(fx + _run.state.fish.size() * 10 + 2, gy + 4), "F  eat", WARM)
+			_text(Vector2(fx + _run.state.fish.size() * 10 + 2, gy + 4), "%s  eat" % UI.key("consume"), WARM)
 		# Tidemarks owned: family-coloured pips, and how many.
 		if _run and _run.state.tidemarks.size() > 0:
 			var ty := gy + 8
@@ -153,7 +166,7 @@ func _draw() -> void:
 				draw_rect(Rect2(x, ay + i * 6, 40, 3), Color(0.2, 0.22, 0.3))
 				draw_rect(Rect2(x, ay + i * 6, int(40 * (1.0 - cd / total)), 3), Tidemarks.color_of(id) if ready else Tidemarks.color_of(id).darkened(0.4))
 			if actives.size() > 0:
-				_text(Vector2(x + 44, ay + 4), "R  active ready" if any_ready else "active", WARM if any_ready else DIM)
+				_text(Vector2(x + 44, ay + 4), "%s  active ready" % UI.key("active") if any_ready else "active", WARM if any_ready else DIM)
 		# Heavy charge, under the keeper.
 		var cf := _player.weapon.charge_fraction()
 		if cf > 0.0:
@@ -164,7 +177,7 @@ func _draw() -> void:
 	if _run == null:
 		return
 	# Currency (top right), each with its name under the number.
-	var rx := 640 - 8
+	var rx := int(_w()) - 8
 	if _keys > 0:
 		_draw_icon(Vector2(rx - 98, y - 1), 2)
 		_text(Vector2(rx - 88, y + 7), "%d" % _keys, Color(0.95, 0.85, 0.5))
@@ -178,7 +191,7 @@ func _draw() -> void:
 
 	# The tide staff (right edge): fills upward as the water rises; the three marks are the
 	# three steps of ground it covers, and the word under it says where it stands now.
-	var mx := 640 - 12
+	var mx := int(_w()) - 12
 	var my := 44
 	var mh := 120
 	_text(Vector2(mx + 6, my - 6), "TIDE", MUTED, 8, HORIZONTAL_ALIGNMENT_RIGHT)
@@ -203,7 +216,7 @@ func _draw() -> void:
 	# Boss bar
 	if _boss and is_instance_valid(_boss) and _boss.health.is_alive():
 		var bw := 320
-		var bx := 320 - bw / 2
+		var bx := int(_w()) / 2 - bw / 2
 		var by := 300
 		draw_rect(Rect2(bx - 2, by - 2, bw + 4, 12), UI.INK)
 		draw_rect(Rect2(bx, by, bw, 8), Color(0.3, 0.12, 0.14))

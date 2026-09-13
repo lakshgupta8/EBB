@@ -60,6 +60,14 @@ func _ready() -> void:
 		elif a.begins_with("--shot-clear="): _shot_clear = int(a.trim_prefix("--shot-clear="))
 		elif a.begins_with("--tier="): _tier = int(a.trim_prefix("--tier="))
 		elif a == "--take-wet": _prefer_wet = true
+		elif a.begins_with("--fast="):
+			# Run the night N times faster: more physics ticks per real second, the same
+			# delta each, so nothing in the fight changes but the wall clock.
+			var n := clampi(int(a.trim_prefix("--fast=")), 1, 8)
+			Juice.base = float(n)
+			Engine.time_scale = float(n)
+			Engine.physics_ticks_per_second = 60 * n
+			Engine.max_physics_steps_per_frame = 8 * n
 	Engine.max_fps = 0
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keep driving while the shop pauses the tree
 	seed(seed_val)  # enemies use the global RNG; seeding it makes a bot run reproducible

@@ -120,6 +120,14 @@ var _deep_tick: float = 0.0
 var _transitioning: bool = false
 var _echo_queue: Array = []  # echo ids still to be found in this biome, in depth order
 var _skip: int = 0           # the wet way is a shortcut: its door goes this many rooms further
+## M8: the night's inputs (written to user://replays/ at the end), a replay being played
+## back (`--replay=<file>`), and the faint ghost of the last night on this seed.
+var input_log := InputLog.new()
+var _replay: InputLog
+var _ghost_log: InputLog
+var _ghost: AnimatedSprite2D
+var _tick: int = 0
+var _room_tick: int = 0
 
 @onready var player: Player = $Player
 @onready var room_holder: Node2D = $RoomHolder
@@ -143,6 +151,7 @@ func biome() -> Dictionary:
 func _ready() -> void:
 	state.seed = Game.run_seed if Game.run_seed != 0 else randi()
 	_rng.seed = state.seed
+	seed(state.seed)  # enemies roll on the global RNG: the same seed is the same night
 	hud.bind(self)
 	shop.setup(self)
 	_tide_step = int(floor(state.tide.level))
@@ -180,10 +189,14 @@ func _ready() -> void:
 		SaveManager.use_path("user://sim_save.json")
 	if "--continue" in OS.get_cmdline_user_args():
 		Game.load_suspended()
+	_load_replay_arg()
 	var rested := Game.take_resume()
 	if not rested.is_empty():
 		_resume(rested)
 	else:
+		# Assists are a trade: a slower tide now, fewer pearls at the end.
+		state.tide.rate_mult *= Settings.assist_tide()
+		state.assist_mult = Settings.assist_pearl_mult()
 		var start_biome := 0
 		for a in OS.get_cmdline_user_args():
 			if a.begins_with("--biome="):
@@ -216,12 +229,64 @@ func _ready() -> void:
 		if start_biome > 0:
 			state.tide.level = SLACK_WATER
 		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
+	input_log.seed_value = state.seed
+	input_log.weapon = player.weapon.id
+	input_log.tier = state.tier
+	_ghost_log = InputLog.latest_for_seed(state.seed) if _replay == null else null
 	_handle_screenshot_arg()
 
 
-func _process(delta: float) -> void:
-	if state.ended:
+## `--replay=<file>` (or `--replay` for the newest) plays a night back from its input log.
+## The seed, weapon and tier come from the file; the profile is left alone.
+func _load_replay_arg() -> void:
+	for a in OS.get_cmdline_user_args():
+		if a == "--replay" or a.begins_with("--replay="):
+			var path := a.trim_prefix("--replay=").trim_prefix("--replay")
+			if path == "":
+				path = InputLog.latest()
+			_replay = InputLog.load_file(path)
+			if _replay == null:
+				push_warning("no replay at " + path)
+				return
+			state.seed = _replay.seed_value
+			_rng.seed = state.seed
+			seed(state.seed)
+			if Weapon.ALL.has(_replay.weapon) and _replay.weapon != player.weapon.id:
+				player._equip(_replay.weapon)
+			SaveManager.data["tide_tier"] = _replay.tier
+			print("replay: %s (%d ticks, seed %d, %s)" % [path, _replay.ticks.size(), state.seed, _replay.weapon])
+
+
+## The ghost: where the last keeper on this seed stood, this many ticks into this room.
+func _tick_ghost() -> void:
+	if _ghost_log == null or room == null:
 		return
+	var at := _ghost_log.position_at(state.depth_total, _room_tick)
+	_room_tick += 1
+	if at == Vector2.INF:
+		if _ghost:
+			_ghost.visible = false
+		return
+	if _ghost == null:
+		_ghost = AnimatedSprite2D.new()
+		_ghost.sprite_frames = player.sprite.sprite_frames
+		_ghost.modulate = Color(0.7, 0.85, 1.0, 0.28)
+		_ghost.z_index = 1
+		_ghost.play("idle")
+		content.add_child(_ghost)
+	_ghost.visible = true
+	if absf(at.x - _ghost.global_position.x) > 0.5:
+		_ghost.flip_h = at.x < _ghost.global_position.x
+	_ghost.global_position = at
+
+
+## The run's clock ticks with the physics step, so a night is the same night at any frame
+## rate and a replay lands on the same ticks.
+func _physics_process(delta: float) -> void:
+	if state.ended or room == null:
+		return
+	if _replay and not get_tree().paused and not _transitioning:
+		_replay.play_tick(player)
 	state.time += delta
 	state.tide.advance(delta)
 	room.set_tide(state.tide.level)
@@ -235,6 +300,11 @@ func _process(delta: float) -> void:
 	_tick_actives(delta)
 	if Input.is_action_just_pressed("consume") and not player.dead and not get_tree().paused:
 		eat_fish()
+	if not get_tree().paused:
+		_tick += 1
+		if _replay == null:
+			input_log.record(player, state.depth_total)
+		_tick_ghost()
 
 
 func _apply_water(delta: float) -> void:
@@ -375,6 +445,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 		room.queue_free()
 	room = Room.new()
 	room_holder.add_child(room)
+	_room_tick = 0
 	var template := _pick_template(type)
 	_room_seed = _rng.randi()
 	room.build(template, _room_seed, biome().theme)
@@ -924,7 +995,7 @@ func _set_cleared() -> void:
 	if room_type == RoomGraph.ECHO and cage and cage_echo != "":
 		# Doors wait: the cage opens first.
 		cage.unlock()
-		announcer.toast("the cage can be opened   [E]", Announcer.SEA_PALE)
+		announcer.toast("the cage can be opened   " + UI.hint("interact"), Announcer.SEA_PALE)
 		Audio.play("clear", 0.0, -4.0)
 		EventBus.room_cleared.emit(room)
 		return
@@ -1242,6 +1313,8 @@ func rest() -> bool:
 	SaveManager.data["suspended"] = snapshot()
 	SaveManager.save_profile()
 	state.ended = true
+	if _replay == null and input_log.ticks.size() > 0:
+		input_log.save()
 	Audio.stop_music()
 	announcer.low_health(false)
 	if not state.victory:
@@ -1353,9 +1426,15 @@ func give_up() -> void:
 func _end_run() -> void:
 	state.ended = true
 	Audio.stop_music()
+	# The night's inputs go to disk first: a crash in the results still leaves the file.
+	var replay_path := ""
+	if _replay == null and input_log.ticks.size() > 0:
+		replay_path = input_log.save()
 	# Let the last drops get collected before the ledger is written.
 	await get_tree().create_timer(1.2).timeout
 	var result := state.result()
+	if replay_path != "":
+		result["replay"] = replay_path
 	if state.victory:
 		if not SaveManager.flag("won_" + player.weapon.id):
 			SaveManager.set_flag("won_" + player.weapon.id)

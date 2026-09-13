@@ -14,6 +14,51 @@ func use_path(p: String) -> void:
 	load_profile()
 
 
+# --- M8: three save slots -----------------------------------------------------------------
+## Slot 1 is the profile every earlier version wrote; 2 and 3 sit beside it.
+static func slot_path(n: int) -> String:
+	return PATH if n <= 1 else "user://save_%d.json" % n
+
+
+func use_slot(n: int) -> void:
+	use_path(slot_path(clampi(n, 1, 3)))
+
+
+## The slot the profile came from; a scratch profile (bots, screenshots) reports the chosen slot.
+func slot_in_use() -> int:
+	for n in [1, 2, 3]:
+		if path == slot_path(n):
+			return n
+	return Settings.slot()
+
+
+## What a slot holds, without switching to it: {} when it is empty.
+static func slot_summary(n: int) -> Dictionary:
+	var p := slot_path(n)
+	if not FileAccess.file_exists(p):
+		return {}
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(p))
+	if not (parsed is Dictionary):
+		return {}
+	var flags: Dictionary = parsed.get("flags", {})
+	var echoes := 0
+	for id in Story.ECHO_IDS:
+		if bool(flags.get("echo_" + id, false)):
+			echoes += 1
+	return {"runs": int(parsed.get("runs", 0)), "wins": int(parsed.get("wins", 0)), "pearls": int(parsed.get("pearls", 0)),
+		"echoes": echoes, "endings": parsed.get("endings", []).size(), "weapon": str(parsed.get("weapon", "gaff")),
+		"saved": int(parsed.get("saved", 0)), "suspended": parsed.get("suspended", {}) is Dictionary and not parsed.get("suspended", {}).is_empty()}
+
+
+## Empty a slot: its file goes; the one in use starts fresh in memory too.
+func wipe_slot(n: int) -> void:
+	var p := slot_path(n)
+	if FileAccess.file_exists(p):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
+	if p == path:
+		data = _defaults()
+
+
 static func _defaults() -> Dictionary:
 	return {
 		"version": VERSION,
@@ -57,11 +102,12 @@ static func _defaults() -> Dictionary:
 		"cosmetics_owned": ["warm", "keeper"],
 		"epilogue": "",           # the last ending chosen: the hub stays that way
 		"chains_seen": [],        # affinity chains already read (skippable)
+		"saved": 0,               # when the profile was last written (unix time)
 	}
 
 
 func _ready() -> void:
-	load_profile()
+	use_slot(Settings.slot())
 
 
 func load_profile() -> void:
@@ -80,6 +126,7 @@ func load_profile() -> void:
 
 
 func save_profile() -> void:
+	data["saved"] = int(Time.get_unix_time_from_system())
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(data, "\t"))
