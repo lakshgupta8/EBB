@@ -583,6 +583,14 @@ func _screenshot(file: String) -> void:
 
 
 func _finish() -> void:
+	# A night takes a breath after it ends (the last drops are collected, the board is
+	# judged, the ledger is written). Quitting on `ended` alone meant the bot never
+	# exercised any of it: no contracts, no history, no daily board.
+	if run.state.ended:
+		var waited := 0.0
+		while Game.last_result.is_empty() and waited < 4.0:
+			await get_tree().create_timer(0.1, true, false, true).timeout
+			waited += 0.1
 	var s := run.state
 	print("sim_run: %.1fs  biome=%d depth=%d total=%d  cleared=%d  kills=%d  salt=%d  pearls=%d  tide=%.2f  hp=%d  ended=%s victory=%s taken=%s weapon=%s rescued=%s" % [
 		float(tick) / 60.0, s.biome, s.depth, s.depth_total, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
