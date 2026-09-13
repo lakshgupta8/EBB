@@ -27,6 +27,7 @@ const PAGES := [
 		{"key": "assist_tide", "name": "Assist: tide speed", "kind": "assist"},
 		{"key": "assist_damage", "name": "Assist: damage taken", "kind": "assist"},
 		{"key": "assist_aim", "name": "Assist: aim help", "kind": "bool"},
+		{"key": "ghost", "name": "Ghost of your last night", "kind": "bool", "note": "on the same seed, the keeper you were walks it again beside you"},
 		{"key": "", "name": "Controls and bindings...", "kind": "controls"},
 	]},
 ]

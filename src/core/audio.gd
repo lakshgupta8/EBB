@@ -14,6 +14,9 @@ var music_name: String = ""
 var _gull_t: float = 0.0
 var gulls_enabled: bool = false
 var _last_play: Dictionary = {}  # name -> msec, to avoid machine-gunning the same clip
+## Sound rolls on its own stream. It is asked for things once a frame, and a night has to
+## be the same night whatever the frame rate: only the game may draw from the global one.
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -49,7 +52,7 @@ func _resolve(name: String) -> String:
 	var count: int = _variants[name]
 	if count == 0:
 		return name
-	return "%s_%d" % [name, randi() % count]
+	return "%s_%d" % [name, _rng.randi() % count]
 
 
 func _stream(name: String) -> AudioStream:
@@ -78,14 +81,14 @@ func play(name: String, pitch_var: float = 0.0, db: float = 0.0, min_gap_ms: int
 	for p in _pool:
 		if not p.playing:
 			p.stream = s
-			p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+			p.pitch_scale = 1.0 + _rng.randf_range(-pitch_var, pitch_var)
 			p.volume_db = db
 			p.play()
 			return
 	# All busy: steal the first.
 	var p := _pool[0]
 	p.stream = s
-	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+	p.pitch_scale = 1.0 + _rng.randf_range(-pitch_var, pitch_var)
 	p.volume_db = db
 	p.play()
 
@@ -175,5 +178,5 @@ func _process(delta: float) -> void:
 		return
 	_gull_t -= delta
 	if _gull_t <= 0.0:
-		_gull_t = randf_range(18.0, 45.0)
-		play("gull_%d" % (randi() % 3), 0.1, -16.0)
+		_gull_t = _rng.randf_range(18.0, 45.0)
+		play("gull_%d" % (_rng.randi() % 3), 0.1, -16.0)
