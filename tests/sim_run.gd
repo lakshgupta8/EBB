@@ -340,17 +340,19 @@ func _fight(target: Enemy) -> void:
 		reach = 42.0
 	elif player.weapon.id == "bell":
 		reach = 26.0
-	# Nearly gone: give ground for a moment rather than trading hits into a death.
+	# Nearly gone: give ground for a breath, then go back in. The breath has to be short
+	# next to the fighting, or the bot kites a room forever, never clears it, and burns the
+	# whole tick budget standing off a shellback (seeds 1234, net and harpoon).
 	if player.health.hp * 4 < player.health.max_hp:
 		_retreat_t += 1
-		if _retreat_t < 90:
+		if _retreat_t < 45:
 			_press_dir(-to)
 			if _dash_cd <= 0 and dist < 40.0:
 				Input.action_press("dash")
 				_dash_cd = 40
 			_dash_cd -= 1
 			return
-		if _retreat_t > 150:
+		if _retreat_t > 285:
 			_retreat_t = 0
 	if dist > reach - 8.0:
 		# Always close. Waiting for a flyer to come to you deadlocks against anything that

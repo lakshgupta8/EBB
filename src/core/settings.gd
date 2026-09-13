@@ -26,6 +26,7 @@ const DEFAULTS := {
 	"hud_scale": 1.0,     # 1, 1.25, 1.5
 	"text_size": 1.0,     # menus and prompts: 1, 1.25, 1.5
 	"reduced_motion": false,  # no shake, no flashes, no slow time, no edge pulses
+	"ghost": true,        # the last night on this seed walks beside you, faint
 	"slot": 1,            # the save slot in use (1..3)
 }
 ## Values a float setting may take (anything else is clamped to 0..1).
@@ -240,6 +241,10 @@ func assist_pearl_mult() -> float:
 	return m
 
 
+func ghost() -> bool:
+	return bool(data.get("ghost", true))
+
+
 func slot() -> int:
 	return clampi(int(data.get("slot", 1)), 1, 3)
 
@@ -269,8 +274,10 @@ func is_rebound(action: String) -> bool:
 
 
 ## Bind `action` to the device of `event` (a key, a mouse button or a pad button). Another
-## bindable action already holding that input takes this action's old one, so nothing is
-## ever left without a way to press it. False when the event is not something bindable.
+## bindable action already holding that input takes this action's old one, so a swap leaves
+## both with a key. When this action had nothing on that device (the move keys carry no pad
+## button: the stick does), the other action simply loses it there and keeps its other
+## devices. False when the event is not something bindable.
 func bind(action: String, event: InputEvent) -> bool:
 	if not action in BINDABLE:
 		return false

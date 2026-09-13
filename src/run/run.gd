@@ -243,7 +243,7 @@ func _ready() -> void:
 	input_log.mode = state.mode
 	input_log.weapon = player.weapon.id
 	input_log.tier = state.tier
-	_ghost_log = InputLog.latest_for_seed(state.seed) if _replay == null else null
+	_ghost_log = InputLog.latest_for_seed(state.seed) if (_replay == null and Settings.ghost()) else null
 	_handle_screenshot_arg()
 
 

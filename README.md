@@ -42,8 +42,9 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 
 Every one of these can be moved: Settings -> Play -> Controls and bindings. Pick a row, press
 the key, mouse button or pad button you want. Whatever already held that input takes the one
-you just replaced, so nothing is ever left unbound, and every prompt in the game says the key
-you actually use.
+you just replaced, so a swap leaves both with a key, and every prompt in the game says the key
+you actually use. Esc always backs out of a menu and cannot be taken. The sticks and triggers
+stay as they are.
 
 ### Gamepad
 Left stick moves, right stick aims (tilt further to throw further; without it you aim where you walk).

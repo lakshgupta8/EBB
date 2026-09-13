@@ -5,6 +5,10 @@ const SLASH := preload("res://assets/sprites/fx_slash.png")
 const SPARK := preload("res://assets/sprites/fx_spark.png")
 const RING := preload("res://assets/sprites/fx_ring.png")
 
+## Effects roll on their own stream: they are asked for things per frame, and the night
+## must be the same night at any frame rate.
+var _rng := RandomNumberGenerator.new()
+
 var _flash_layer: CanvasLayer
 var _flash_rect: ColorRect
 
@@ -55,7 +59,7 @@ func slash(pos: Vector2, angle: float, mirror: bool = false, scale_mult: float =
 
 
 func spark(pos: Vector2) -> void:
-	_one_shot(SPARK, 12, 3, 24.0, pos, randf() * TAU, Vector2.ONE)
+	_one_shot(SPARK, 12, 3, 24.0, pos, _rng.randf() * TAU, Vector2.ONE)
 
 
 func burst(pos: Vector2, color: Color, amount: int = 12, speed: float = 60.0) -> void:
