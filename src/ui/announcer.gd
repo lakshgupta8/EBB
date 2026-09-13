@@ -27,8 +27,9 @@ const STIR_COLOR := Color(0.95, 0.5, 0.45)
 const WON_COLOR := Color(0.95, 0.85, 0.6)
 
 ## What a thing is, in plain words, the first time you meet it. Shown once per profile.
+## %s in a line is filled with the key that does it, whatever the player has bound (KEYS says which).
 const HINTS := {
-	"move": "WASD moves. The mouse aims: left click strikes, right click is your weapon's special. Space dashes through things. Clear the room and the doors open.",
+	"move": "%s moves. The mouse aims: left click strikes, right click is your weapon's special. %s dashes through things. Clear the room and the doors open.",
 	"move_pad": "Left stick moves, right stick aims. RT strikes, Y is your weapon's special, A dashes through things. Clear the room and the doors open.",
 	"goal": "Keep the tide: get to the boss at the bottom of this place before the water takes you. Whatever you find on the way is yours for the night.",
 	"salt": "Salt. It buys from the merchant tonight, and it is lost if you fall.",
@@ -36,19 +37,26 @@ const HINTS := {
 	"tide": "The tide has come up over the low ground. It rises with every room you enter, and deep water hurts to stand in. Keep moving down.",
 	"tide2": "The floor is under water now. You are slower in it, and the deep parts hurt.",
 	"altar": "An altar. Walk up to it and choose one tidemark: a power that lasts tonight only.",
-	"shop": "A merchant. Talk to him with E. Salt is his coin, and salt does not come home.",
+	"shop": "A merchant. Talk to him with %s. Salt is his coin, and salt does not come home.",
 	"fountain": "A fountain. Stand in it to heal. It is the only rest between here and the boss.",
 	"fork": "Two doors. The wet way is already flooded and harder, but it carries you two rooms down.",
-	"echo": "Someone is caged here. Clear the room, then open the cage with E. They go home to the lighthouse.",
+	"echo": "Someone is caged here. Clear the room, then open the cage with %s. They go home to the lighthouse.",
 	"challenge": "No door out. Hold on through the waves until the tide turns. Then the water drains, and pays.",
 	"vault": "A vault. It opens with a key, and elites carry keys.",
 	"dive": "A dive. The water is deep everywhere here and it hurts. The altar and the chest are worth it.",
 	"boss": "The boss of this place. Break it and the way down opens. When it stirs, the tide jumps.",
 	"elite": "An elite: tougher, and it leaves pearls behind. The named ones leave an echo shard.",
 	"low": "You are nearly out of health. Fountains heal, and the merchant sells salves for salt.",
-	"flare": "Your lantern is full. Press Q: a flare that hurts and stuns everything near you.",
+	"flare": "Your lantern is full. Press %s: a flare that hurts and stuns everything near you.",
 	"riptide": "A riptide: you dashed just as a strike landed. For a moment your hits crit and the world slows.",
 	"key": "A vault key. If a door offers a vault, this opens it.",
+}
+## Which keys a hint names, in the order its %s appear.
+const KEYS := {
+	"move": ["move_up", "dash"],
+	"shop": ["interact"],
+	"echo": ["interact"],
+	"flare": ["use_item"],
 }
 
 var _root: Control
@@ -356,11 +364,22 @@ func hint(key: String) -> void:
 		_run_hints()
 
 
+## A hint with the keys the player actually has in it.
+func _hint_line(key: String) -> String:
+	var text: String = HINTS[key]
+	if not "%s" in text:
+		return text  # the pad's own line names its buttons outright
+	var names: Array = []
+	for action in KEYS.get(key.trim_suffix("_pad"), []):
+		names.append(UI.key(action))
+	return text % names if names.size() > 0 else text
+
+
 func _run_hints() -> void:
 	_hint_busy = true
 	while _hints.size() > 0:
 		var key: String = _hints.pop_front()
-		_hint_text.text = HINTS[key]
+		_hint_text.text = _hint_line(key)
 		_hint_box.modulate = Color(1, 1, 1, 0)
 		_hint_box.visible = true
 		var tw := create_tween()

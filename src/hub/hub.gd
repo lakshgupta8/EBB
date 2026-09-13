@@ -45,6 +45,10 @@ func _ready() -> void:
 	Audio.gulls_enabled = epilogue != "walk"
 	if epilogue == "walk":
 		Audio.music("music_still", -12.0)
+	elif epilogue == "keep":
+		Audio.music("music_keep", -10.0)   # the lamp is lit and someone is keeping it
+	elif epilogue == "break":
+		Audio.music("music_break", -10.0)  # the water is in and the rock is quieter for it
 	elif SaveManager.flag("echo_choir"):
 		Audio.music("music_hub_choir", -10.0)
 		SaveManager.count("hymns")

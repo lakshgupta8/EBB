@@ -149,6 +149,10 @@ func biome() -> Dictionary:
 
 
 func _ready() -> void:
+	# Dev aid: `-- --seed=N` plays a chosen night without going through the menus.
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--seed="):
+			Game.run_seed = int(a.trim_prefix("--seed="))
 	state.seed = Game.run_seed if Game.run_seed != 0 else randi()
 	_rng.seed = state.seed
 	seed(state.seed)  # enemies roll on the global RNG: the same seed is the same night
@@ -379,6 +383,7 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 	if night:
 		night.color = b.tint
 	Audio.gulls_enabled = b.id in ["flats", "harbour"]
+	Audio.layer("amb_" + str(b.id), -15.0)  # what this place sounds like under the sea
 	Audio.music(b.music, -11.0)
 	Codex.discover("place", b.place)
 
@@ -836,6 +841,7 @@ func _spawn_boss() -> void:
 	boss.phase_changed.connect(func(_p):
 		announcer.card(str(biome().stir), "It is hurt, and angrier. The tide jumps.", 1.8, Announcer.STIR_COLOR)
 		announcer.pulse(Announcer.STIR_COLOR, 0.5, 0.9)
+		Audio.play("stinger_phase", 0.0, -3.0)
 		Audio.play(biome().boss_sfx, 0.0, 2.0)
 		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + (0.7 if state.tier >= 8 else 0.35))
 	)
@@ -855,6 +861,7 @@ func _boss_second_wind(current: int, max_hp: int) -> void:
 	_second_wind_used = true
 	boss.health.heal(int(max_hp * 0.2))
 	announcer.card("SECOND WIND", "It healed a fifth of itself. Finish it.", 1.6, Color(0.95, 0.6, 0.5))
+	Audio.play("stinger_phase", 0.0, -6.0)
 	FX.ring(boss.global_position, Color(1.0, 0.5, 0.4), 2.0)
 	Audio.play(biome().boss_sfx, 0.0, -2.0)
 
@@ -1081,6 +1088,7 @@ func _on_cage_opened(p: Prop) -> void:
 	FX.ring(p.global_position, Color(0.75, 0.9, 1.0), 2.4)
 	FX.burst(p.global_position, Color(0.8, 0.92, 1.0), 20, 90.0)
 	Audio.play("rescue")
+	Audio.play("stinger_rescue", 0.0, -4.0)
 	announcer.card(info.name.to_upper() + " IS FREE", "They go home to the lighthouse tonight.", 2.2)
 	await get_tree().create_timer(2.4).timeout
 	if state.ended:
@@ -1150,6 +1158,7 @@ func _on_enemy_spared(enemy: Node) -> void:
 		FX.flash_screen(Color(0.85, 0.8, 1.0, 0.45), 0.5)
 		FX.ring(pos, Color(0.85, 0.75, 1.0), 2.4)
 		Audio.play("rescue")
+		Audio.play("stinger_rescue", 0.0, -4.0)
 		announcer.card("THE CHOIR IS FREE", "You let the note end. It goes home.", 2.2, Color(0.85, 0.8, 1.0))
 		_whisper("choir_spared", 2.4)
 	else:
@@ -1198,6 +1207,7 @@ func _free_maren() -> void:
 	p.show_echo("maren")
 	FX.flash_screen(Color(0.8, 0.9, 1.0, 0.6), 0.8)
 	Audio.play("rescue")
+	Audio.play("stinger_rescue", 0.0, -2.0)
 	announcer.whisper(str(ECHOES.maren.line), "Maren")
 
 
@@ -1470,6 +1480,7 @@ func give_up() -> void:
 func _end_run() -> void:
 	state.ended = true
 	Audio.stop_music()
+	Audio.stop_layer()
 	# The night's inputs go to disk first: a crash in the results still leaves the file.
 	var replay_path := ""
 	if _replay == null and input_log.ticks.size() > 0:

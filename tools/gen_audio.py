@@ -412,6 +412,86 @@ def build_sfx_m7():
     save("gift", x, 0.4)
 
 
+def build_sfx_m8():
+    """M8: two stingers (a rescue, a boss turning) and one ambience layer per biome, laid
+    under the sea bed so each place sounds like itself."""
+    # stinger_rescue: a rising pair of fifths with air under it; the cage opening
+    n = int(SR * 1.6)
+    tt = t(1.6)
+    x = np.zeros(n)
+    for k, (f, delay, gain) in enumerate(((329.6, 0.0, 1.0), (493.9, 0.14, 0.8), (659.3, 0.3, 0.65), (987.8, 0.46, 0.4))):
+        s0 = int(SR * delay)
+        ln = n - s0
+        st = np.arange(ln) / SR
+        seg = np.sin(2 * np.pi * f * st) * env(ln, 0.02, 0.5, 0.25, 0.7)
+        seg += 0.3 * np.sin(2 * np.pi * f * 2 * st) * env(ln, 0.03, 0.3)
+        x[s0:] += seg * gain
+    x += 0.18 * bandpass(noise(n), 1500, 6000, 2) * env(n, 0.3, 0.6, 0.2, 0.6)
+    save("stinger_rescue", lowpass(x, 5200, 2), 0.42)
+
+    # stinger_phase: the floor drops out; a falling tritone with a drum under it
+    n = int(SR * 1.3)
+    tt = t(1.3)
+    x = sweep(n, 220, 155, 1.4) * env(n, 0.005, 0.5, 0.35, 0.6)
+    x += 0.7 * sweep(n, 110, 77, 1.4) * env(n, 0.005, 0.6, 0.4, 0.5)
+    x += 0.5 * np.sin(2 * np.pi * 58 * tt) * env(n, 0.002, 0.25, 0.1, 0.5)
+    x += 0.3 * lowpass(noise(n), 900, 2) * env(n, 0.001, 0.12)
+    x *= 1.0 + 0.25 * np.sin(2 * np.pi * 5.5 * tt)
+    save("stinger_phase", lowpass(x, 3800, 2), 0.5)
+
+    # --- ambience layers: 24 s each, quiet, laid under ambient_sea --------------------
+    dur = 24.0
+    n = int(SR * dur)
+    tt = t(dur)
+    rng2 = np.random.default_rng(81)
+
+    # the flats: wind over open sand and shallow water running out
+    x = bandpass(noise(n), 300, 1600, 2) * (0.3 + 0.25 * np.sin(2 * np.pi * 0.061 * tt) + 0.2 * np.sin(2 * np.pi * 0.017 * tt))
+    x += 0.35 * bandpass(noise(n), 2000, 7000, 2) * np.clip(np.sin(2 * np.pi * 0.09 * tt), 0, 1) ** 2
+    save("amb_flats", loopable(x, 1.5), 0.3)
+
+    # the harbour: hulls working against their ropes, a chain, a bell buoy far out
+    x = 0.25 * lowpass(noise(n), 400, 2) * (0.4 + 0.3 * np.sin(2 * np.pi * 0.043 * tt))
+    for i in range(7):
+        s0 = int(SR * rng2.uniform(0.5, dur - 2.0))
+        ln = int(SR * 0.7)
+        f = rng2.uniform(90, 150)
+        st = np.arange(ln) / SR
+        seg = np.sin(2 * np.pi * f * st + 3 * np.sin(2 * np.pi * 31 * st)) * env(ln, 0.08, 0.4, 0.25, 0.2)
+        x[s0:s0 + ln] += seg * 0.5
+    for i in range(3):
+        s0 = int(SR * rng2.uniform(1.0, dur - 3.0))
+        ln = int(SR * 2.4)
+        f = 430.0
+        st = np.arange(ln) / SR
+        seg = (np.sin(2 * np.pi * f * st) + 0.5 * np.sin(2 * np.pi * f * 2.76 * st)) * env(ln, 0.004, 1.6, 0.08, 0.7)
+        x[s0:s0 + ln] += seg * 0.16
+    save("amb_harbour", loopable(x, 1.5), 0.3)
+
+    # the drowned streets: water falling into water in a stone room
+    x = 0.18 * lowpass(noise(n), 250, 2)
+    for i in range(26):
+        s0 = int(SR * rng2.uniform(0.2, dur - 0.6))
+        ln = int(SR * 0.28)
+        f0 = rng2.uniform(700, 1800)
+        seg = sweep(ln, f0, f0 * 0.55, 1.0) * env(ln, 0.002, 0.06, 0.0, 0.05)
+        seg += 0.4 * bandpass(noise(ln), 1500, 5000, 2) * env(ln, 0.001, 0.04)
+        x[s0:s0 + ln] += seg * rng2.uniform(0.25, 0.6)
+    x += 0.08 * np.sin(2 * np.pi * 96 * tt) * (0.6 + 0.4 * np.sin(2 * np.pi * 0.037 * tt))
+    save("amb_streets", loopable(x, 1.5), 0.3)
+
+    # the deep hall: pressure, a room breathing, something far off that is not a voice
+    x = 0.5 * np.sin(2 * np.pi * 41 * tt) * (0.5 + 0.3 * np.sin(2 * np.pi * 0.029 * tt))
+    x += 0.3 * np.sin(2 * np.pi * 61.5 * tt + 2 * np.sin(2 * np.pi * 0.011 * tt)) * (0.4 + 0.3 * np.sin(2 * np.pi * 0.019 * tt))
+    x += 0.12 * lowpass(noise(n), 180, 2)
+    for i in range(4):
+        s0 = int(SR * rng2.uniform(1.0, dur - 4.0))
+        ln = int(SR * 3.2)
+        seg = np.sin(2 * np.pi * rng2.uniform(150, 260) * (np.arange(ln) / SR)) * env(ln, 1.2, 1.6, 0.1, 0.4)
+        x[s0:s0 + ln] += seg * 0.09
+    save("amb_hall", loopable(x, 1.5), 0.32)
+
+
 def main():
     build_sea()
     build_gull()
@@ -420,6 +500,7 @@ def main():
     build_sfx_m4b()
     build_sfx_m6()
     build_sfx_m7()
+    build_sfx_m8()
     import gen_music
     gen_music.build_music()
     print("wrote audio to", OUT)

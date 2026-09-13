@@ -190,6 +190,20 @@ func _drive() -> void:
 		return
 	if run._transitioning or player.dead:
 		return
+	# Deep water bites every half second and it is what drowns a bot. Wade out of it while
+	# there is a fight on, but never instead of leaving a room that is done with: once the
+	# doors are open the way out beats dry feet, and after three seconds of wading, so does
+	# the fight.
+	var fighting := not get_tree().get_nodes_in_group("enemies").is_empty()
+	if fighting and not player.mods.dry_feet and run.room.is_deep_at(player.global_position):
+		_deep_t += 1
+		if _deep_t < 180:
+			var dry := _dry_spot()
+			if dry != Vector2.INF:
+				_walk_to(dry, 4.0)
+				return
+	else:
+		_deep_t = 0
 	if _rest_at >= 0 and run.state.depth_total >= _rest_at and run.can_rest():
 		_rest_at = -1
 		_rest_and_resume()
@@ -198,6 +212,7 @@ func _drive() -> void:
 	if target:
 		_fight(target)
 		return
+	_retreat_t = 0
 	# Use any prop once (reusable ones like the merchant would loop forever otherwise).
 	for p in run.room.props:
 		if not p.used_up and not p in _props_done and p.interactive:
@@ -262,6 +277,10 @@ func _stuck_report(door: Door) -> void:
 
 var _hold_ticks: int = 0
 var _lunge_next: bool = false
+var _retreat_t: int = 0
+var _deep_t: int = 0
+var _dry_at: Vector2 = Vector2.INF
+var _dry_until: int = -1
 
 
 func _fight(target: Enemy) -> void:
@@ -321,6 +340,18 @@ func _fight(target: Enemy) -> void:
 		reach = 42.0
 	elif player.weapon.id == "bell":
 		reach = 26.0
+	# Nearly gone: give ground for a moment rather than trading hits into a death.
+	if player.health.hp * 4 < player.health.max_hp:
+		_retreat_t += 1
+		if _retreat_t < 90:
+			_press_dir(-to)
+			if _dash_cd <= 0 and dist < 40.0:
+				Input.action_press("dash")
+				_dash_cd = 40
+			_dash_cd -= 1
+			return
+		if _retreat_t > 150:
+			_retreat_t = 0
 	if dist > reach - 8.0:
 		# Always close. Waiting for a flyer to come to you deadlocks against anything that
 		# keeps its distance on purpose, and the gull dives just as happily at a moving
@@ -337,7 +368,7 @@ func _fight(target: Enemy) -> void:
 		player.aim_dist = dist
 		Input.action_press("special")
 		_special_cd = 180
-	if _dash_cd <= 0 and (target.state in [&"windup", &"dive", &"toll_windup", &"swing_windup", &"peal_windup", &"peal", &"chain_windup", &"pull_windup", &"slam_windup", &"wave_windup"]) and dist < 48.0:
+	if _dash_cd <= 0 and _threat_near():
 		_press_dir(-to)
 		Input.action_press("dash")
 		_dash_cd = 30
@@ -349,6 +380,19 @@ func _fight(target: Enemy) -> void:
 
 ## Rest the night, drop the run scene, lift the night back from the profile into a fresh
 ## run scene, and check that nothing was lost on the way.
+## Anything close enough to land a blow and already winding one up.
+const WINDUPS := [&"windup", &"dive", &"strike", &"toll_windup", &"swing_windup", &"peal_windup", &"peal",
+	&"chain_windup", &"pull_windup", &"slam_windup", &"wave_windup", &"wave", &"charge", &"leap"]
+
+
+func _threat_near() -> bool:
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e is Enemy and is_instance_valid(e) and e.state in WINDUPS \
+				and e.global_position.distance_to(player.global_position) < 52.0:
+			return true
+	return false
+
+
 func _rest_and_resume() -> void:
 	var before := run.snapshot()
 	if not run.rest():
@@ -386,6 +430,39 @@ func _rest_and_resume() -> void:
 	_resume_ok = bad.is_empty()
 	print("sim_run: rested at depth %d (%s, hp %d, %d tidemarks) and resumed: %s" % [
 		int(before.depth_total), before.template, int(before.hp), before.tidemarks.size(), "OK" if _resume_ok else str(bad)])
+
+
+## The nearest standing ground that is not deep: a ring search out from the keeper, in
+## cells. One path check on the cell it settles on (a check per candidate costs more than
+## the wading does), and the answer is kept for a third of a second.
+func _dry_spot() -> Vector2:
+	if _dry_until > tick:
+		return _dry_at
+	_dry_until = tick + 20
+	_dry_at = Vector2.INF
+	var here := run.room.world_to_cell(player.global_position)
+	var t: RoomTemplate = run.room.template
+	for r in range(1, 7):
+		var best := Vector2.INF
+		var best_d := INF
+		for dy in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				var c := Vector2i(here.x + dx, here.y + dy)
+				if c.x < 1 or c.y < 1 or c.x >= t.width - 1 or c.y >= t.height - 1 or t.is_solid(c.x, c.y):
+					continue
+				var at := run.room.cell_to_world(c)
+				if run.room.is_deep_at(at):
+					continue
+				var d := player.global_position.distance_squared_to(at)
+				if d < best_d:
+					best_d = d
+					best = at
+		if best != Vector2.INF and not run.room.nav_path(player.global_position, best).is_empty():
+			_dry_at = best
+			return _dry_at
+	return _dry_at
 
 
 func _walk_to(pos: Vector2, tolerance: float) -> void:

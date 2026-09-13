@@ -73,7 +73,7 @@ func _ready() -> void:
 	_build_world()
 	_build_menu()
 	Audio.ambient("ambient_sea", -12.0)
-	Audio.music("music_still", -8.0)
+	Audio.music("music_title", -9.0)
 	Audio.gulls_enabled = true
 	slots_ui = SlotsUI.new()
 	slots_ui.name = "SlotsUI"
@@ -270,7 +270,7 @@ func _menu_button(text: String, slot: int) -> Button:
 	b.add_theme_stylebox_override("hover", _row(Color(SLATE, 0.75), IRON_L))
 	b.add_theme_stylebox_override("pressed", _row(Color(NIGHT1, 0.9), WARM))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	b.text = text
+	b.text = UI.t(text)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_override("font", UI.FONT)
 	b.add_theme_font_size_override("font_size", 8)
@@ -319,7 +319,7 @@ func _apply_cursor() -> void:
 
 func _refresh() -> void:
 	var s := SaveManager.data
-	_buttons[0].text = _primary_text()
+	_buttons[0].text = UI.t(_primary_text())
 	var info: Label = layer.get_node("Info")
 	var waits: Label = layer.get_node("Waits")
 	if int(s.runs) == 0:

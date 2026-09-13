@@ -100,3 +100,13 @@ func test_log_has_a_milestone_per_mode() -> void:
 	for id in ["daily_1", "trial_win", "neap_win", "riptide_win"]:
 		var m := KeeperLog.get_milestone(id)
 		assert_true(not m.is_empty() and Dialog.valid_condition(str(m.cond)), "milestone " + id)
+
+
+func test_the_par_file_reads_back() -> void:
+	# The balance harness writes data/par.json; the daily board draws its bar against it.
+	var info := Modes.par_info()
+	if info.is_empty():
+		assert_true(Modes.par_seconds(10) > 0.0, "no measurement yet: the built-in pace stands in")
+		return
+	assert_true(float(info.get("seconds_per_room", 0.0)) > 0.0, "a measured pace")
+	assert_near(Modes.par_seconds(10), float(info.seconds_per_room) * 10.0, 0.01)
