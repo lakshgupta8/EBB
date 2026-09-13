@@ -35,6 +35,7 @@ foreach ($tier in $Tiers) {
             $log = & $GodotExe --headless --path "$ProjectRoot" tests/sim_run.tscn -- "--ticks=$Ticks" "--seed=$runSeed" `
                 "--weapon=$w" "--fresh" "--tier=$tier" "--fast=$Fast" "--profile=bal_$w" 2>&1 | Out-String
             $sw.Stop()
+            $wedged = $log -match "sim_run: WEDGED"
             if ($log -match "SCRIPT ERROR") {
                 $errors++
                 Write-Host "SCRIPT ERROR in $w tier $tier seed $runSeed" -ForegroundColor Red
@@ -49,7 +50,7 @@ foreach ($tier in $Tiers) {
                 rooms = $rooms; cleared = [int]$m.Groups[5].Value; kills = [int]$m.Groups[6].Value
                 salt = [int]$m.Groups[7].Value; pearls = [int]$m.Groups[8].Value; tide = [double]$m.Groups[9].Value
                 hp = [int]$m.Groups[10].Value; victory = $victory
-                cause = $(if ($victory) { "won" } elseif ($m.Groups[13].Value -eq "true") { "tide" } elseif ($m.Groups[11].Value -eq "true") { "deep" } else { "budget" })
+                cause = $(if ($wedged) { "wedged" } elseif ($victory) { "won" } elseif ($m.Groups[13].Value -eq "true") { "tide" } elseif ($m.Groups[11].Value -eq "true") { "deep" } else { "budget" })
                 real = [math]::Round($sw.Elapsed.TotalSeconds, 1)
             }
             Write-Host ("[{0,3}/{1,3}] {2,-8} tier {3}  seed {4,-6} rooms {5,3}  kills {6,3}  {7,6:N0}s  {8}" -f `
@@ -86,6 +87,8 @@ Write-Host "par: $perRoom seconds a room (from $($base.Count) runs at tier 0) ->
 # The gate.
 $red = @()
 if ($errors -gt 0) { $red += "$errors runs threw a script error" }
+$stuck = $rows | Where-Object { $_.cause -eq "wedged" }
+if ($stuck) { Write-Host "note: $($stuck.Count) runs wedged in a room (the bot, not the night: $(($stuck | ForEach-Object { "$($_.weapon)@$($_.rooms)" }) -join ', '))" -ForegroundColor Yellow }
 $short = $base | Where-Object { $_.rooms -lt $MinRooms }
 if ($short) { $red += "$($short.Count) tier-0 runs stopped before room $MinRooms ($(($short | ForEach-Object { "$($_.weapon)@$($_.rooms)" }) -join ', '))" }
 $winRate = [math]::Round(100.0 * (($base | Where-Object victory).Count) / [math]::Max(1, $base.Count), 1)
