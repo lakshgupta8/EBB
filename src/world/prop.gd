@@ -97,7 +97,7 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 		breathe.tween_property(glow, "modulate:a", 0.4, 1.0).set_trans(Tween.TRANS_SINE)
 		var al := Atmosphere.light(self, Color(0.8, 0.9, 1.0), 3.0, 1.0, Vector2(0, -10))
 		Atmosphere.breathe(al, 0.8, 1.3, 2.0)
-	_prompt = UI.label("[E]", 8, Color(0.95, 0.95, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_prompt = UI.label(UI.hint("interact"), 8, Color(0.95, 0.95, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	_prompt.size = Vector2(24, 10)
 	_prompt.position = Vector2(-12, -26)
 	_prompt.visible = false

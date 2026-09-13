@@ -69,6 +69,9 @@ func _click(pos: Vector2) -> void:
 
 func _ready() -> void:
 	SaveManager.use_path("user://sim_save.json")
+	Settings.path = "user://sim_settings.json"  # never the player's own settings
+	Settings.load_settings()
+	Settings.apply_bindings()
 	Game.run_seed = 5
 	run = RUN.instantiate()
 	add_child(run)
@@ -184,7 +187,7 @@ func _ready() -> void:
 	add_child(title)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(title._buttons.size() == 5, "five rows on the title")
+	_check(title._buttons.size() == 6, "six rows on the title")
 	await _key(KEY_2)
 	_check(title.log_ui.is_open, "2 opens the Keeper's Log from the title")
 	await _key(KEY_E)
@@ -202,6 +205,33 @@ func _ready() -> void:
 	_check(title.codex_ui.is_open, "clicking the codex row opens the codex")
 	await _key(KEY_E)
 	_check(not title.codex_ui.is_open, "title codex closed by E")
+	# M8: the controls page rebinds by pressing a key; another action takes the old one.
+	await _key(KEY_4)
+	_check(title.settings_ui.is_open, "4 opens settings")
+	await _key(KEY_TAB)
+	_check(title.settings_ui.page == 1, "Tab turns to the play page")
+	await _key(KEY_8)
+	_check(title.settings_ui._controls.is_open and not title.settings_ui.is_open, "row 8 opens the controls page")
+	await _key(KEY_5)
+	_check(title.settings_ui._controls.listening == "dash", "5 listens for the dash key")
+	await _key(KEY_J)
+	_check(Settings.key_name("dash") == "J" and title.settings_ui._controls.listening == "", "J is the dash now (%s)" % Settings.key_name("dash"))
+	await _key(KEY_8)
+	await _key(KEY_SPACE)
+	_check(Settings.key_name("interact") == "Space" and Settings.key_name("dash") == "J", "Space is use now; dash kept J")
+	var sp := InputEventKey.new()
+	sp.physical_keycode = KEY_SPACE
+	_check(InputMap.event_is_action(sp, "interact") and not InputMap.event_is_action(sp, "dash"), "the InputMap follows")
+	Settings.reset_bindings()
+	_check(Settings.key_name("dash") == "Space" and Settings.key_name("interact") == "E", "reset: the keeper's own keys")
+	await _key(KEY_ESCAPE)
+	_check(not title.settings_ui._controls.is_open and title.settings_ui.is_open, "Esc leaves the controls back to settings")
+	await _key(KEY_E)
+	_check(not title.settings_ui.is_open and not get_tree().paused, "settings closed")
+	await _key(KEY_5)
+	_check(title.slots_ui.is_open, "5 opens the keepers (save slots)")
+	await _key(KEY_E)
+	_check(not title.slots_ui.is_open, "slots closed by E")
 	await _key(KEY_1)
 	_check(title._busy, "1 starts the night: the tide is coming in")
 	title.queue_free()

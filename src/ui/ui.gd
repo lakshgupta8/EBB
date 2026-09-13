@@ -17,7 +17,7 @@ static func label(text: String, size: int = 8, color: Color = Color(0.95, 0.93, 
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", FONT)
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", scaled(size))
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_shadow_color", INK)
 	l.add_theme_constant_override("shadow_offset_x", 1)
@@ -25,6 +25,11 @@ static func label(text: String, size: int = 8, color: Color = Color(0.95, 0.93, 
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
+
+
+## A font size under the text-size setting (8 stays 8 at normal, 10 at large, 12 at largest).
+static func scaled(size: int) -> int:
+	return int(round(size * Settings.text_scale()))
 
 
 static func spacer(h: int) -> Control:
@@ -99,7 +104,7 @@ static func text_button(text: String, size: int = 8, color: Color = Color(0.85, 
 	var b := row_button()
 	b.text = text
 	b.add_theme_font_override("font", FONT)
-	b.add_theme_font_size_override("font_size", size)
+	b.add_theme_font_size_override("font_size", scaled(size))
 	b.add_theme_color_override("font_color", color)
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
@@ -125,7 +130,7 @@ static func is_close(event: InputEvent) -> bool:
 	if event.is_action_pressed("interact") or event.is_action_pressed("pause"):
 		return true
 	if event is InputEventKey and event.pressed and not event.echo:
-		return event.keycode in [KEY_ESCAPE, KEY_E] or event.physical_keycode in [KEY_ESCAPE, KEY_E]
+		return event.keycode == KEY_ESCAPE or event.physical_keycode == KEY_ESCAPE
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		return true
 	return false
@@ -148,23 +153,27 @@ static func nav(event: InputEvent) -> String:
 	return ""
 
 
-## The key or button to show for an action, for whichever device was used last.
+## The key or button to show for an action, for whichever device was used last. Bindable
+## actions read the player's own bindings; menu-only ones have fixed names.
 static func hint(action: String) -> String:
 	if Game.gamepad:
 		match action:
-			"interact": return "[B]"
 			"accept": return "[A]"
-			"pause": return "[Start]"
 			"leftright": return "[d-pad]"
-			"codex": return "[Back]"
-		return ""
+		var p := Settings.pad_name(action)
+		return "[%s]" % p if p != "" else ""
 	match action:
-		"interact": return "[E]"
 		"accept": return "[Enter]"
-		"pause": return "[Esc]"
-		"leftright": return "[A / D]"
-		"codex": return "[C]"
-	return ""
+		"leftright": return "[%s / %s]" % [Settings.key_name("move_left"), Settings.key_name("move_right")]
+	var k := Settings.key_name(action)
+	return "[%s]" % k if k != "" else ""
+
+
+## The bare key name without brackets ("E", "Q", "F"), for the HUD's short prompts.
+static func key(action: String) -> String:
+	if Game.gamepad:
+		return Settings.pad_name(action)
+	return Settings.key_name(action)
 
 
 ## A highlighted row that the keyboard or pad moves through. `handle(nav)` moves on

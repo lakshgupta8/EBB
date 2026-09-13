@@ -214,6 +214,8 @@ func _physics_process(delta: float) -> void:
 		aim = (get_global_mouse_position() - global_position)
 		aim_dist = aim.length()
 		aim = aim.normalized() if aim.length() > 0.5 else facing
+	if Settings.assist_aim() and aim_override == Vector2.ZERO:
+		aim = _aim_help(aim)
 
 	attack_held = Input.is_action_pressed("attack")
 	if Input.is_action_just_pressed("attack"):
@@ -271,12 +273,29 @@ func _physics_process(delta: float) -> void:
 	if mods.low_guard and health.hp * 10 < health.max_hp * 3:
 		taken *= 0.75
 	taken *= float(mods.armour)
+	taken *= Settings.assist_damage()
 	hurtbox.damage_mult = taken
 	_tick_regen(delta)
 	collision_mask = MASK_WORLD if ghosting else MASK_WORLD_AND_ENEMIES
 	_recharge(delta)
 	move_and_slide()
 	_animate(input)
+
+
+## Aim help: the aim leans toward the nearest enemy within a narrow cone and a short reach.
+func _aim_help(dir: Vector2) -> Vector2:
+	var best := Vector2.ZERO
+	var best_d := 140.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not (e is Node2D):
+			continue
+		var to: Vector2 = e.global_position - global_position
+		var d := to.length()
+		if d < 4.0 or d > best_d or absf(dir.angle_to(to)) > deg_to_rad(28.0):
+			continue
+		best_d = d
+		best = to.normalized()
+	return dir.slerp(best, 0.6).normalized() if best != Vector2.ZERO else dir
 
 
 func _start_dash(dir: Vector2) -> void:

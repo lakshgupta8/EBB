@@ -73,6 +73,7 @@ func show_result(r: Dictionary) -> void:
 		["Time", "%d:%02d" % [mins, secs]],
 		["Echoes freed", str(r.get("echoes", []).size())],
 		["Spring tide", "tier %d  (pearls +%d%%)" % [int(r.get("tier", 0)), 15 * int(r.get("tier", 0))]] if int(r.get("tier", 0)) > 0 else ["", ""],
+		["Assists", "on  (pearls x%.2f)" % float(r.get("assist_mult", 1.0))] if float(r.get("assist_mult", 1.0)) < 1.0 else ["", ""],
 		["", ""],
 		["Pearls total", "%d" % SaveManager.data.pearls],
 	]

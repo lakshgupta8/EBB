@@ -34,10 +34,11 @@ var first_altar_extra: int = 0  # Wren's prayer: the first altar offers one more
 var fish_cap: int = 3           # how many fish can be carried
 var fish: Array = []            # consumables carried (kinds, eaten in order with F)
 var stats: Dictionary = {}      # counters the contracts and the Log read (see Run.count)
+var assist_mult: float = 1.0    # M8: assists trade pearls away (Settings.assist_pearl_mult)
 
 ## Plain fields that a rested night keeps (ended / victory / taken are never saved).
 const SAVED := ["seed", "biome", "depth", "depth_total", "rooms_cleared", "kills", "salt", "pearls", "keys", "tier",
-	"time", "bargain", "full_fountain", "still_water"]
+	"time", "bargain", "full_fountain", "still_water", "assist_mult"]
 
 
 ## Everything needed to pick the night up again, as JSON-safe values.
@@ -113,10 +114,11 @@ func result() -> Dictionary:
 	if victory:
 		bonus = salt / 2 + 5 + 10 * biome
 	# The spring tide pays: +15% pearls per tier; the tithe and the hymn a little more.
-	var total := int(round(float(pearls + bonus) * (1.0 + 0.15 * tier) * pearl_mult))
+	var total := int(round(float(pearls + bonus) * (1.0 + 0.15 * tier) * pearl_mult * assist_mult))
 	return {
 		"seed": seed, "biome": biome, "depth": depth_total, "rooms_cleared": rooms_cleared, "kills": kills,
-		"salt": salt, "pearls": total, "pearls_from_salt": bonus, "tier": tier,
+		"salt": salt, "pearls": total, "pearls_from_salt": bonus, "tier": tier, "assist_mult": assist_mult,
+		"marks": tidemarks.duplicate(),
 		"time": time, "victory": victory, "taken": taken, "echoes": echoes.duplicate(),
 		"weapon": str(stats.get("weapon", "")), "stats": stats.duplicate(),
 	}
