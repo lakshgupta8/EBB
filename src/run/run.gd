@@ -189,14 +189,19 @@ func _ready() -> void:
 		SaveManager.use_path("user://sim_save.json")
 	if "--continue" in OS.get_cmdline_user_args():
 		Game.load_suspended()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--mode="):
+			Game.mode = a.trim_prefix("--mode=")
 	_load_replay_arg()
 	var rested := Game.take_resume()
 	if not rested.is_empty():
 		_resume(rested)
 	else:
+		state.mode = Game.mode if Modes.get_mode(Game.mode).size() > 0 else "night"
 		# Assists are a trade: a slower tide now, fewer pearls at the end.
 		state.tide.rate_mult *= Settings.assist_tide()
 		state.assist_mult = Settings.assist_pearl_mult()
+		_apply_mode()
 		var start_biome := 0
 		for a in OS.get_cmdline_user_args():
 			if a.begins_with("--biome="):
@@ -215,10 +220,11 @@ func _ready() -> void:
 			state.fish.append(str(f))
 		SaveManager.data["fish"] = []
 		var kept := str(SaveManager.data.get("kept_mark", ""))
-		if Ledger.tier("keep_mark") > 0 and kept != "" and Tidemarks.get_mark(kept).size() > 0:
+		if Ledger.tier("keep_mark") > 0 and kept != "" and Tidemarks.get_mark(kept).size() > 0 and state.mode != "neap":
 			_on_tidemark_chosen(kept)
-		# Idris's dock: the night starts at the harbour, for a fee.
-		if start_biome == 0 and bool(SaveManager.data.get("launch_harbour", false)) and SaveManager.flag("boss_chainmother_broken"):
+		# Idris's dock: the night starts at the harbour, for a fee. Not on a shared seed:
+		# the daily and a seeded night start where every keeper starts.
+		if start_biome == 0 and state.mode == "night" and bool(SaveManager.data.get("launch_harbour", false)) and SaveManager.flag("boss_chainmother_broken"):
 			var cost := 0 if Story.perk("idris") else LAUNCH_COST
 			if int(SaveManager.data.pearls) >= cost:
 				SaveManager.data["pearls"] = int(SaveManager.data.pearls) - cost
@@ -228,8 +234,9 @@ func _ready() -> void:
 		SaveManager.save_profile()
 		if start_biome > 0:
 			state.tide.level = SLACK_WATER
-		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args())
+		_start_biome(start_biome, "--boss" in OS.get_cmdline_user_args() or state.mode == "trial")
 	input_log.seed_value = state.seed
+	input_log.mode = state.mode
 	input_log.weapon = player.weapon.id
 	input_log.tier = state.tier
 	_ghost_log = InputLog.latest_for_seed(state.seed) if _replay == null else null
@@ -376,10 +383,34 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 	Codex.discover("place", b.place)
 
 
-## Past a boss: the tide slackens, the next biome begins.
+## Past a boss: the tide slackens, the next biome begins. On the trial it never slackens:
+## the next boss stands in the same water, and it keeps rising.
 func _next_biome() -> void:
-	state.tide.level = SLACK_WATER
-	_start_biome(state.biome + 1)
+	if state.mode != "trial":
+		state.tide.level = SLACK_WATER
+	_start_biome(state.biome + 1, state.mode == "trial")
+
+
+## What the way down changes about the night (Modes.ALL says what each one is).
+func _apply_mode() -> void:
+	match state.mode:
+		"riptide":
+			state.tide.rate_mult *= 3.0
+		"neap":
+			state.pearl_mult *= 2.0
+		"trial":
+			state.tide.level = SLACK_WATER
+	if state.mode != "night":
+		var m := Modes.get_mode(state.mode)
+		announcer.card(str(m.name).to_upper(), str(m.desc).capitalize() + ".", 3.0, Color(0.7, 0.85, 1.0))
+		if state.mode in ["daily", "seeded"]:
+			announcer.toast("seed %d" % state.seed, Announcer.SEA_PALE, 4.0)
+
+
+## Neap: no marks are ever offered. Every altar is bare stone with a chest left on it,
+## so the room is the room it always was and the night still pays.
+func _neap() -> bool:
+	return state.mode == "neap"
 
 
 # --- rooms -----------------------------------------------------------------------
@@ -476,9 +507,12 @@ func _enter_room(type: int, wet: bool = false) -> void:
 				_add_room_prop(Prop.Kind.CHEST, cell)
 			_set_cleared()
 		RoomGraph.ALTAR:
-			announcer.hint("altar")
+			if _neap():
+				announcer.toast("bare stone: a chest where the altar was", Announcer.SALT, 3.0)
+			else:
+				announcer.hint("altar")
 			for cell in room.template.marker_cells("A"):
-				_add_room_prop(Prop.Kind.ALTAR, cell)
+				_add_room_prop(Prop.Kind.CHEST if _neap() else Prop.Kind.ALTAR, cell)
 			_set_cleared()
 		RoomGraph.SHOP:
 			announcer.hint("shop")
@@ -495,7 +529,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			_set_cleared()
 		RoomGraph.DIVE:
 			for cell in room.template.marker_cells("A"):
-				_add_room_prop(Prop.Kind.ALTAR, cell)
+				_add_room_prop(Prop.Kind.CHEST if _neap() else Prop.Kind.ALTAR, cell)
 			for cell in room.template.marker_cells("T"):
 				_add_room_prop(Prop.Kind.CHEST, cell)
 			announcer.hint("dive")
@@ -511,8 +545,9 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			Audio.play(biome().boss_sfx)
 			_whisper(biome().boss_whisper, 2.8)
 
-	_show_room_label(biome().name, "room %d of %d   %s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
-		"  (wet)" if wet else "", "   spring tide %d" % state.tier if state.tier > 0 else ""])
+	_show_room_label(biome().name, "room %d of %d   %s%s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
+		"  (wet)" if wet else "", "   spring tide %d" % state.tier if state.tier > 0 else "",
+		"   " + Modes.name_of(state.mode) if state.mode != "night" else ""])
 	EventBus.room_entered.emit(room)
 	var fade_tw := create_tween()
 	fade_tw.tween_property(fade, "color:a", 0.0, 0.25)
@@ -635,6 +670,11 @@ var _altar_count: int = 3
 
 
 func _offer_marks(count: int, blessed: String) -> void:
+	if _neap():
+		# Nothing is offered; what would have been a mark is pearls instead.
+		for i in 4:
+			Pickup.spawn(content, player.global_position + Vector2(0, -10), Pickup.Kind.PEARL)
+		return
 	if state.first_altar_extra > 0 and int(state.stats.get("altars", 0)) == 0:
 		count += state.first_altar_extra
 	state.count("altars")
@@ -1331,6 +1371,7 @@ func rest() -> bool:
 func _resume(d: Dictionary) -> void:
 	resumed = true
 	state.from_dict(d)
+	Game.mode = state.mode
 	_rng.state = str(d.get("rng_state", "0")).to_int()
 	var wid := str(d.get("weapon", player.weapon.id))
 	if wid != player.weapon.id and Weapon.ALL.has(wid):
@@ -1386,7 +1427,10 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 		shop.restock()
 	for pd in props:
 		var cell: Array = pd.get("cell", [0, 0])
-		_add_room_prop(int(pd.get("kind", 0)) as Prop.Kind, Vector2i(int(cell[0]), int(cell[1])))
+		var kind := int(pd.get("kind", 0))
+		if _neap() and kind == int(Prop.Kind.ALTAR):
+			kind = int(Prop.Kind.CHEST)
+		_add_room_prop(kind as Prop.Kind, Vector2i(int(cell[0]), int(cell[1])))
 	room_cleared = true
 	room.open_doors()
 	_show_room_label(biome().name, "%d / %d   %s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],

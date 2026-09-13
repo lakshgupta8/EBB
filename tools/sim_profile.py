@@ -41,12 +41,34 @@ def village():
     return d
 
 
+def nights():
+    """A believable history and daily board (M8): fifty nights is more than a screen, so
+    a dozen, and four dailies, most of them lost the way nights are."""
+    import datetime
+    hist = []
+    weapons = ["gaff", "net", "harpoon", "lantern", "bell", "line"]
+    causes = ["deep", "tide", "deep", "won", "tide", "deep", "rested", "deep", "tide", "won", "deep", "tide"]
+    modes = ["night", "night", "daily", "night", "riptide", "night", "night", "neap", "night", "night", "daily", "trial"]
+    day = datetime.date.today() - datetime.timedelta(days=len(causes))
+    for i, cause in enumerate(causes):
+        d = day + datetime.timedelta(days=i)
+        hist.append({"date": d.isoformat(), "seed": 100003 + i * 7919, "mode": modes[i],
+                     "weapon": weapons[i % len(weapons)], "depth": 4 + (i * 5) % 30,
+                     "marks": ["salt_edge", "brine_hp", "current_dash"][: 1 + i % 3],
+                     "time": 240.0 + i * 37.5, "cause": cause, "pearls": 20 + i * 3,
+                     "tier": i % 3, "assisted": i == 4})
+    board = [h for h in hist if h["mode"] == "daily"]
+    return hist, board
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "village"
     if mode == "fresh":
         d = {"version": 2}
     else:
         d = village()
+        d["history"], d["daily_scores"] = nights()
+        d["stats"]["dailies"] = len(d["daily_scores"])
         if mode == "epilogue-break":
             d["endings"] = ["break"]
             d["epilogue"] = "break"

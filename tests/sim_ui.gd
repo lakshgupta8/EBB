@@ -187,27 +187,27 @@ func _ready() -> void:
 	add_child(title)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(title._buttons.size() == 6, "six rows on the title")
-	await _key(KEY_2)
-	_check(title.log_ui.is_open, "2 opens the Keeper's Log from the title")
+	_check(title._buttons.size() == 7, "seven rows on the title")
+	await _key(KEY_3)
+	_check(title.log_ui.is_open, "3 opens the Keeper's Log from the title")
 	await _key(KEY_E)
 	_check(not title.log_ui.is_open and not get_tree().paused, "Log closed by E")
-	# 2 left the cursor on the Log row; two S presses from there reach Settings.
+	# 3 left the cursor on the Log row; two S presses from there reach Settings.
 	await _key(KEY_S)
 	await _key(KEY_S)
-	_check(title._cursor.index == 3, "S S moves the cursor to settings (index=%d)" % title._cursor.index)
+	_check(title._cursor.index == 4, "S S moves the cursor to settings (index=%d)" % title._cursor.index)
 	await _key(KEY_ENTER)
 	_check(title.settings_ui.is_open, "Enter opens the highlighted row")
 	await _key(KEY_E)
 	_check(not title.settings_ui.is_open, "title settings closed by E")
-	var codex_row: Button = title._buttons[2]
+	var codex_row: Button = title._buttons[3]
 	await _click(codex_row.global_position + Vector2(20, 10))
 	_check(title.codex_ui.is_open, "clicking the codex row opens the codex")
 	await _key(KEY_E)
 	_check(not title.codex_ui.is_open, "title codex closed by E")
 	# M8: the controls page rebinds by pressing a key; another action takes the old one.
-	await _key(KEY_4)
-	_check(title.settings_ui.is_open, "4 opens settings")
+	await _key(KEY_5)
+	_check(title.settings_ui.is_open, "5 opens settings")
 	await _key(KEY_TAB)
 	_check(title.settings_ui.page == 1, "Tab turns to the play page")
 	await _key(KEY_8)
@@ -228,10 +228,37 @@ func _ready() -> void:
 	_check(not title.settings_ui._controls.is_open and title.settings_ui.is_open, "Esc leaves the controls back to settings")
 	await _key(KEY_E)
 	_check(not title.settings_ui.is_open and not get_tree().paused, "settings closed")
-	await _key(KEY_5)
-	_check(title.slots_ui.is_open, "5 opens the keepers (save slots)")
+	await _key(KEY_6)
+	_check(title.slots_ui.is_open, "6 opens the keepers (save slots)")
 	await _key(KEY_E)
 	_check(not title.slots_ui.is_open, "slots closed by E")
+	# M8: the modes menu; a locked trial refuses, the daily starts on today's seed.
+	await _key(KEY_2)
+	_check(title.modes_ui.is_open, "2 opens the modes")
+	SaveManager.data["flags"].erase("ebb_broken")
+	await _key(KEY_3)
+	_check(title.modes_ui.is_open and title.modes_ui._hint.text != " ", "a locked trial says why: %s" % title.modes_ui._hint.text)
+	await _key(KEY_TAB)
+	_check(title.modes_ui.page == 1, "Tab shows the history")
+	await _key(KEY_TAB)
+	# The title's own handler would start the night and change the scene under us; we take
+	# it off and watch the signal instead.
+	title.modes_ui.start.disconnect(title._start_mode)
+	var started: Array = []
+	title.modes_ui.start.connect(func(m, sd): started.append([m, sd]))
+	SaveManager.data["daily_scores"] = []
+	await _key(KEY_1)
+	_check(started.size() == 1 and started[0][0] == "daily" and started[0][1] == Modes.daily_seed(), "1 starts the daily on today's seed")
+	_check(not title.modes_ui.is_open and not get_tree().paused, "the modes menu closed and the tree is running")
+	# A daily already on the board is refused: one attempt a day.
+	SaveManager.data["daily_scores"] = [{"date": Modes.today(), "depth": 3, "time": 90.0, "cause": "deep"}]
+	title.modes_ui.open()
+	await get_tree().process_frame
+	await _key(KEY_1)
+	_check(started.size() == 1 and title.modes_ui.is_open, "today's daily is played: it refuses a second try")
+	SaveManager.data["daily_scores"] = []
+	await _key(KEY_E)
+	await get_tree().process_frame
 	await _key(KEY_1)
 	_check(title._busy, "1 starts the night: the tide is coming in")
 	title.queue_free()

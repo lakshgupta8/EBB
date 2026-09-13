@@ -35,6 +35,7 @@ var fish_cap: int = 3           # how many fish can be carried
 var fish: Array = []            # consumables carried (kinds, eaten in order with F)
 var stats: Dictionary = {}      # counters the contracts and the Log read (see Run.count)
 var assist_mult: float = 1.0    # M8: assists trade pearls away (Settings.assist_pearl_mult)
+var mode: String = "night"      # M8: night / daily / seeded / trial / neap / riptide (Modes)
 
 ## Plain fields that a rested night keeps (ended / victory / taken are never saved).
 const SAVED := ["seed", "biome", "depth", "depth_total", "rooms_cleared", "kills", "salt", "pearls", "keys", "tier",
@@ -46,6 +47,7 @@ func to_dict() -> Dictionary:
 	var d := {}
 	for k in SAVED:
 		d[k] = get(k)
+	d["mode"] = mode
 	d["tide_level"] = tide.level
 	d["tide_rate"] = tide.rate_mult
 	d["tidemarks"] = tidemarks.duplicate()
@@ -78,6 +80,7 @@ func from_dict(d: Dictionary) -> void:
 			TYPE_INT: set(k, int(d[k]))
 			TYPE_FLOAT: set(k, float(d[k]))
 			TYPE_BOOL: set(k, bool(d[k]))
+	mode = str(d.get("mode", "night"))
 	tide.level = float(d.get("tide_level", 0.0))
 	tide.rate_mult = float(d.get("tide_rate", 1.0))
 	tidemarks = []
@@ -117,7 +120,7 @@ func result() -> Dictionary:
 	var total := int(round(float(pearls + bonus) * (1.0 + 0.15 * tier) * pearl_mult * assist_mult))
 	return {
 		"seed": seed, "biome": biome, "depth": depth_total, "rooms_cleared": rooms_cleared, "kills": kills,
-		"salt": salt, "pearls": total, "pearls_from_salt": bonus, "tier": tier, "assist_mult": assist_mult,
+		"salt": salt, "pearls": total, "pearls_from_salt": bonus, "tier": tier, "assist_mult": assist_mult, "mode": mode,
 		"marks": tidemarks.duplicate(),
 		"time": time, "victory": victory, "taken": taken, "echoes": echoes.duplicate(),
 		"weapon": str(stats.get("weapon", "")), "stats": stats.duplicate(),

@@ -103,6 +103,9 @@ static func _defaults() -> Dictionary:
 		"epilogue": "",           # the last ending chosen: the hub stays that way
 		"chains_seen": [],        # affinity chains already read (skippable)
 		"saved": 0,               # when the profile was last written (unix time)
+		# --- M8: modes ---
+		"history": [],            # the last fifty nights: date, seed, mode, weapon, depth, marks, time, cause
+		"daily_scores": [],       # one entry per daily played: date, seed, depth, time, cause, pearls, assisted
 	}
 
 
@@ -186,8 +189,16 @@ func stat(key: String) -> int:
 	return int(data.get("stats", {}).get(key, 0))
 
 
+const HISTORY_KEEP := 50
+
+
 func record_run(result: Dictionary) -> void:
 	data["runs"] += 1
+	var mode := str(result.get("mode", "night"))
+	count("runs_" + mode)
+	if mode == "daily":
+		count("dailies")
+	_record_history(result)
 	data["pearls"] += int(result.get("pearls", 0))
 	data["total_kills"] += int(result.get("kills", 0))
 	data["best_depth"] = maxi(int(data["best_depth"]), int(result.get("depth", 0)))
@@ -200,12 +211,33 @@ func record_run(result: Dictionary) -> void:
 			data["tide_unlocked"] = mini(8, t + 1)
 		count("wins_" + str(result.get("weapon", "")))
 		count("wins_tier_%d" % t)
+		if mode != "night":
+			count("wins_" + mode)
 	elif result.get("taken", false):
 		count("taken")
 	else:
 		count("deaths")
 	data["suspended"] = {}  # a finished night cannot also be waiting at the shore
 	save_profile()
+
+
+## The night goes into the history (the last fifty) and, for a daily, onto the board.
+func _record_history(result: Dictionary) -> void:
+	var entry := {"date": Modes.today(), "seed": int(result.get("seed", 0)), "mode": str(result.get("mode", "night")),
+		"weapon": str(result.get("weapon", "")), "depth": int(result.get("depth", 0)), "marks": result.get("marks", []).duplicate(),
+		"time": snappedf(float(result.get("time", 0.0)), 0.1), "cause": Modes.cause_of(result), "pearls": int(result.get("pearls", 0)),
+		"tier": int(result.get("tier", 0)), "assisted": float(result.get("assist_mult", 1.0)) < 1.0}
+	var hist: Array = data.get("history", [])
+	hist.append(entry)
+	while hist.size() > HISTORY_KEEP:
+		hist.pop_front()
+	data["history"] = hist
+	if entry.mode == "daily":
+		var board: Array = data.get("daily_scores", [])
+		board.append(entry.duplicate())
+		while board.size() > HISTORY_KEEP:
+			board.pop_front()
+		data["daily_scores"] = board
 
 
 func wipe() -> void:
