@@ -15,7 +15,7 @@ const ROW_PRESSED := Color(0.26, 0.3, 0.42)
 static func label(text: String, size: int = 8, color: Color = Color(0.95, 0.93, 0.9),
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
 	var l := Label.new()
-	l.text = text
+	l.text = t(text)
 	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", scaled(size))
 	l.add_theme_color_override("font_color", color)
@@ -25,6 +25,36 @@ static func label(text: String, size: int = 8, color: Color = Color(0.95, 0.93, 
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
+
+
+# --- M8: every line of chrome goes through one door -------------------------------------
+## Words the game says, in the language of data/strings.json. The key is the English
+## itself, so a translation is one file of pairs and a missing line simply stays English.
+## Run with `-- --dump-strings` to write every line the game showed to
+## user://strings_seen.json, which is the file a translator starts from.
+const STRINGS_PATH := "res://data/strings.json"
+static var _strings: Dictionary = {}
+static var _loaded: bool = false
+static var _seen: Dictionary = {}
+static var _dumping: bool = false
+
+
+static func t(text: String) -> String:
+	if not _loaded:
+		_loaded = true
+		_dumping = "--dump-strings" in OS.get_cmdline_user_args()
+		if FileAccess.file_exists(STRINGS_PATH):
+			var parsed = JSON.parse_string(FileAccess.get_file_as_string(STRINGS_PATH))
+			if parsed is Dictionary:
+				for k in parsed:
+					_strings[str(k)] = str(parsed[k])
+	if _dumping and text.strip_edges() != "":
+		_seen[text] = _strings.get(text, text)
+		var f := FileAccess.open("user://strings_seen.json", FileAccess.WRITE)
+		if f:
+			f.store_string(JSON.stringify(_seen, "	", false))
+	var out: String = _strings.get(text, text)
+	return out if out != "" else text
 
 
 ## A font size under the text-size setting (8 stays 8 at normal, 10 at large, 12 at largest).
@@ -102,7 +132,7 @@ static func fill(inner: Control, margin_x: float = 6.0, margin_y: float = 4.0) -
 ## A simple text button (Resume, Leave...).
 static func text_button(text: String, size: int = 8, color: Color = Color(0.85, 0.9, 1.0)) -> Button:
 	var b := row_button()
-	b.text = text
+	b.text = t(text)
 	b.add_theme_font_override("font", FONT)
 	b.add_theme_font_size_override("font_size", scaled(size))
 	b.add_theme_color_override("font_color", color)

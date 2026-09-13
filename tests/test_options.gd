@@ -158,3 +158,21 @@ func test_input_log_round_trip() -> void:
 	assert_true(not back.done())
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_replay.json"))
 	assert_eq(InputLog._stamp("replay_777_1700000000.json"), 1700000000)
+
+
+func test_strings_file_stands_in_for_english() -> void:
+	# The English text is its own key: an untranslated line comes back as it was.
+	assert_eq(UI.t("Keep the tide"), "Keep the tide")
+	assert_eq(UI.t(""), "")
+	var f := FileAccess.open("res://data/strings.json", FileAccess.READ)
+	assert_true(f != null, "data/strings.json is there for a translator to fill")
+	var parsed = JSON.parse_string(f.get_as_text())
+	assert_true(parsed is Dictionary, "and it parses")
+	assert_true(parsed.has("_note"), "with a note saying how to use it")
+	# A label takes its text through the same door.
+	var l := UI.label("Done")
+	assert_eq(l.text, "Done")
+	l.free()
+	var b := UI.text_button("Back")
+	assert_eq(b.text, "Back")
+	b.free()

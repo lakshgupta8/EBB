@@ -29,6 +29,11 @@ TRACKS = {
     # the still sea after Walk out (nearly nothing: a drone and a note now and then).
     "music_hub_choir": (110.0, "dorian", 58, 8, [0, 5, 2, 6], 0.55, False),
     "music_still": (98.0, "aeolian", 48, 8, [0, 0, 5, 0], 0.15, False),
+    # M8: the title's own theme (the lamp turning, nothing decided yet), and the two
+    # epilogues that are not the still sea: the lamp kept lit, and the water let in.
+    "music_title": (87.31, "dorian", 52, 8, [0, 4, 5, 2], 0.3, False),
+    "music_keep": (98.0, "dorian", 56, 8, [0, 4, 0, 5], 0.4, False),
+    "music_break": (77.78, "phrygian", 62, 8, [0, 5, 1, 4], 0.35, False),
 }
 
 

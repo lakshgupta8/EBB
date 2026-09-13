@@ -1,0 +1,4 @@
+{
+	"_note": "Every line the game shows through UI.label or UI.text_button is looked up here by its English text. Fill a value in to change or translate a line; leave it out and the English stands. Run the game with -- --dump-strings and play a screen to collect its lines into user://strings_seen.json, which is the file to start from.",
+	"_language": "English"
+}

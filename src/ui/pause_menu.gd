@@ -126,13 +126,15 @@ func _build() -> void:
 	box.add_child(UI.spacer(6))
 	var hint := Color(0.6, 0.7, 0.8)
 	if _in_run():
-		box.add_child(UI.label("LMB attack (gaff: hold to charge)   RMB special", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
-		box.add_child(UI.label("Space dash (attack out of it: lunge)", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
-		box.add_child(UI.label("Q lantern flare when the glow is full   R active tidemark   F eat", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		# The reminders say the keys the player actually has (Settings -> Controls).
+		box.add_child(UI.label("%s attack (gaff: hold to charge)   %s special" % [UI.key("attack"), UI.key("special")], 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("%s dash (attack out of it: lunge)" % UI.key("dash"), 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("%s lantern flare when the glow is full   %s active tidemark   %s eat" % [
+			UI.key("use_item"), UI.key("active"), UI.key("consume")], 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Dash on an enemy's white flash: riptide", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Rest in a cleared room: the shore continues the night", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 	else:
-		box.add_child(UI.label("E talks to people; the shore leads down", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
+		box.add_child(UI.label("%s talks to people; the shore leads down" % UI.key("interact"), 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 		box.add_child(UI.label("Pearls and rescues are already saved", 8, hint, HORIZONTAL_ALIGNMENT_CENTER))
 	_root = center
 

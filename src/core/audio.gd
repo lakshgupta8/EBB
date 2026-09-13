@@ -8,6 +8,7 @@ const POOL_SIZE := 14
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
 var _ambient: AudioStreamPlayer
+var _layer: AudioStreamPlayer   # a second bed under the sea: the place itself (M8)
 var _music: AudioStreamPlayer
 var music_name: String = ""
 var _gull_t: float = 0.0
@@ -26,6 +27,10 @@ func _ready() -> void:
 	_ambient.volume_db = -9.0
 	_ambient.bus = "SFX"
 	add_child(_ambient)
+	_layer = AudioStreamPlayer.new()
+	_layer.volume_db = -16.0
+	_layer.bus = "SFX"
+	add_child(_layer)
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
 	add_child(_music)
@@ -102,6 +107,28 @@ func ambient(name: String, db: float = -9.0) -> void:
 
 func stop_ambient() -> void:
 	_ambient.stop()
+
+
+## The second ambience bed: what this place sounds like under the sea (amb_flats,
+## amb_harbour, amb_streets, amb_hall). "" stops it.
+func layer(name: String, db: float = -16.0) -> void:
+	if name == "":
+		_layer.stop()
+		return
+	var s := _stream(name)
+	if s == null:
+		return
+	_loop(s)
+	if _layer.stream == s and _layer.playing:
+		_layer.volume_db = db
+		return
+	_layer.stream = s
+	_layer.volume_db = db
+	_layer.play()
+
+
+func stop_layer() -> void:
+	_layer.stop()
 
 
 static func _loop(s: AudioStream) -> void:

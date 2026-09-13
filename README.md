@@ -11,10 +11,13 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 |---|---|
 | Run the game | `.\tools\run.ps1` (title screen; `.\tools\run.ps1 src/hub/hub.tscn` skips it) |
 | Build the Windows .exe | `.\tools\export.ps1` (fetches the 4.7.2 export templates once, ~1 GB) -> `dist\EBB.exe` |
-| Balance table | `.\tools\balance.ps1 [-Ticks 9000] [-Tiers 0,4,8]`: the bot plays every weapon at each spring tide, writes `tools/balance.csv` |
+| Balance table | `.\tools\balance.ps1 [-Seeds 3] [-Tiers 0,4,8] [-MinRooms 8] [-Fast 4]`: the bot plays every weapon at each spring tide on several seeds, writes `tools/balance.csv` and the pace the daily board uses (`data/par.json`). Red when a tier-0 run stops before room 8 or anything throws a script error |
+| Content check | `.\tools\content.ps1`: every sound, loop, sprite, line and room type the game asks for against what is on disk |
+| Room editor | `.\tools\edit_room.ps1 [-Room data/rooms/biome1/flats_01.txt]`: paint a template, watch the room rebuild, save it back |
 | Jump to a biome / its boss | `.\tools\run.ps1 -- --biome=1` (streets), `--biome=2` (hall), add `--boss` |
 | Run tests (headless) | `.\tools\test.ps1` |
-| Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern, bell, line); `tests/sim_run.tscn -- --take-wet --fish --tier=N` |
+| Bot playtest (headless) | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon [-Fresh]` (gaff, net, harpoon, lantern, bell, line); `tests/sim_run.tscn -- --take-wet --fish --tier=N --mode=daily --fast=4` (`--fast` runs the night up to eight times faster) |
+| Replay a night | `.\tools\run.ps1 src/run/run.tscn -- --replay` (the newest) or `--replay=user://replays/replay_<seed>_<when>.json` |
 | Regenerate sprites / rooms / audio | `python tools\gen_sprites.py --preview`, `python tools\gen_rooms.py`, `python tools\gen_audio.py` |
 | Open Godot editor | `.\tools\editor.ps1` |
 
@@ -37,6 +40,11 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | C | the codex: the drowned, tidemarks, people and places you have met |
 | 1-9 or click | pick in any menu; arrows / WASD move a highlight, Enter picks it; E / Esc / right-click leaves |
 
+Every one of these can be moved: Settings -> Play -> Controls and bindings. Pick a row, press
+the key, mouse button or pad button you want. Whatever already held that input takes the one
+you just replaced, so nothing is ever left unbound, and every prompt in the game says the key
+you actually use.
+
 ### Gamepad
 Left stick moves, right stick aims (tilt further to throw further; without it you aim where you walk).
 A dash, X or right trigger attack, Y or left trigger special, LB flare, B use / talk / leave, Start pause,
@@ -44,8 +52,25 @@ Back codex. Menus: d-pad or stick to highlight, A picks, B leaves. Prompts switc
 moment a pad is used.
 
 ### Settings
-From the pause menu or the title: master / music / sound volume, screen shake (off, low, full), screen
-flashes, fullscreen. Saved to `user://settings.json`.
+From the pause menu or the title, on two pages ([Tab] turns them). Saved to `user://settings.json`,
+which belongs to the machine, not to a keeper.
+
+**Screen and sound**: master / music / sound volume, screen shake (off, low, full), screen flashes,
+fullscreen, HUD size and text size (normal, large, largest), and reduced motion, which takes away
+shake, flashes, slow time and the coloured pulses at the edge of the screen.
+
+**Play**: dialogue speed, skip dialogue seen before, hints, the colour of water (sea, amber for
+colourblind eyes, or high contrast), three assists, and the controls page.
+
+**Assists** are a trade, not a cheat. The tide can rise at three quarters or half speed, damage taken
+can be cut the same way, and aim help leans your aim toward what is nearest. Each one takes a bite out
+of the pearls the night pays (the settings page and the results card both say how much), and a night
+played with assists is marked on the daily board.
+
+### Keepers (save slots)
+Three of them, from the title. Each row says what the slot holds before you pick it: the night it is
+on, wins, pearls, who is home, whether a night waits at the shore. The one in use can be wiped, and
+wiping asks twice. An old single-slot profile is slot 1, untouched.
 
 Knocking an enemy into a wall deals bonus damage. Enemies flash white and ring right
 before they strike: dash on the flash for a riptide.
@@ -102,6 +127,24 @@ Everything a run says goes through `src/ui/announcer.gd`, in four voices that ne
 The HUD names its bars (hp, dash, special, lantern, marks, salt, pearls), the tide staff says in a
 word how high the water is (out, pools, flooded, deep) and flashes when it crosses a mark, the edge
 of the screen pulses blue with it and beats red when you are nearly out. Tidemark cards say what they do in a sentence.
+
+## The other ways down (M8)
+"The sea keeps time," Idris says. From the title, the second row:
+
+| Way | What it is |
+|---|---|
+| Daily Night | one attempt a day on a seed made from the date, so every keeper plays the same night. The board keeps each one and draws your time against the bot's pace |
+| Seeded Night | type a number or a phrase; the same seed is the same night, room for room, card for card |
+| Keeper's Trial | the four bosses back to back on one tide that never slackens. Opens once the Ebb is broken |
+| Neap Night | every altar is bare stone with a chest left on it: no tidemarks all night, and pearls pay double. Opens after a win |
+| Riptide | the water rises three times as fast, and it still counts for the spring-tide ladder. Opens after a win |
+
+The same menu keeps a **history** of the last fifty nights: date, way down, weapon, seed, how far you
+got, how many marks you held, how long it took and how it ended.
+
+Every night writes its inputs to `user://replays/` (the newest ten). Playing one back is
+`--replay`, which is how a bug travels: send the file. The keeper from the last night on the same
+seed walks that night again beside you, faint, as a ghost.
 
 ## Story (M5)
 - **The lantern whispers.** One-time lines during a run, at the first night, the first cage, each
