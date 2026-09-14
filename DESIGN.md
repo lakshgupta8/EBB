@@ -198,7 +198,8 @@ res://
   data/          tidemarks/*.tres, enemies/*.tres, weapons/*.tres, dialog/*.json, ledger.json
   assets/        sprites/, tiles/, audio/, fonts/
   tests/         unit tests
-  tools/         Python asset generators
+  tools/         Python asset generators and build scripts
+  installer/     Inno Setup script and .ico for the Windows installer
 ```
 Principles:
 - Data-driven content: enemies, weapons, tidemarks, dialog are resources/JSON, not hardcoded.
