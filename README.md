@@ -11,6 +11,7 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 |---|---|
 | Run the game | `.\tools\run.ps1` (title screen; `.\tools\run.ps1 src/hub/hub.tscn` skips it) |
 | Build the Windows .exe | `.\tools\export.ps1` (fetches the 4.7.2 export templates once, ~1 GB) -> `dist\EBB.exe` |
+| Build the installer | `.\tools\installer.ps1` (builds the exe first; fetches Inno Setup once) -> `dist\EBB-Setup-<version>.exe`. See [Installing](#installing) |
 | Balance table | `.\tools\balance.ps1 [-Seeds 3] [-Tiers 0,4,8] [-Fast 4]`: the bot plays every weapon at each spring tide on several seeds, writes `tools/balance.csv` and the pace the daily board uses (`data/par.json`). It plays a fresh keeper with nothing bought, so it measures the hardest case. Red when the tier-0 average drops under eight rooms, a run ends before room four, a room wedges, or anything throws a script error |
 | Content check | `.\tools\content.ps1`: every sound, loop, sprite, line and room type the game asks for against what is on disk |
 | Room editor | `.\tools\edit_room.ps1 [-Room data/rooms/biome1/flats_01.txt]`: paint a template, watch the room rebuild, save it back |
@@ -20,6 +21,39 @@ Top-down action roguelite. Keep the tide. See [DESIGN.md](DESIGN.md).
 | Replay a night | `.\tools\run.ps1 src/run/run.tscn -- --replay` (the newest) or `--replay=user://replays/replay_<seed>_<when>.json` |
 | Regenerate sprites / rooms / audio | `python tools\gen_sprites.py --preview`, `python tools\gen_rooms.py`, `python tools\gen_audio.py` |
 | Open Godot editor | `.\tools\editor.ps1` |
+
+## Installing
+`.\tools\installer.ps1` builds the game and wraps it in one file to hand over or
+double-click: `dist\EBB-Setup-<version>.exe`. Nobody needs Godot or admin rights to run it.
+
+What it puts on the machine, and so what the uninstaller takes back off:
+
+| Where | What |
+|---|---|
+| the folder you pick (default `%LOCALAPPDATA%\Programs\EBB`) | `EBB.exe`, the whole game, and `unins000.exe` beside it |
+| Desktop | `EBB` shortcut, ticked by default on the last page |
+| Start menu | `EBB` and `Uninstall EBB` |
+| Apps & features | an `EBB <version>` entry |
+
+- **Where it lands.** The folder page comes up on a first install, so the game can go on
+  whatever drive has room (`D:\Games\EBB`, say). No admin prompt: it installs for you.
+- **Updating.** Build a new installer and run it. It recognises the old install by its ID,
+  keeps the folder the last one chose, skips the folder question and writes over the game.
+  If EBB is running it offers to close it. Shortcuts and saves survive.
+- **Uninstalling.** `unins000.exe` next to the game, the Start menu entry, or Apps &
+  features: any of the three, same uninstaller. It removes the files, the shortcuts, the
+  registry entry and the folder.
+- **Saves.** Keepers, settings and replays live in `%APPDATA%\Godot\app_userdata\EBB`,
+  which the installer never wrote, so the uninstaller asks before deleting them and keeps
+  them if you just press Enter. Reinstalling later finds them again.
+- **The version** on the setup file, in the exe's file properties, in Apps & features and
+  on the title screen is one number: `Game.VERSION` in `src/core/game.gd`. Raise it there
+  before building a release.
+- Tools fetched once, both per-user and silent: Godot's export templates (~1 GB) and
+  [Inno Setup](https://jrsoftware.org/isinfo.php), which compiles `installer/ebb.iss`.
+  `.\tools\installer.ps1 -SelfTest` installs to a temp folder and uninstalls again to prove
+  both halves still work; it skips itself if EBB is already installed, since the test and a
+  real install share one entry in Apps & features.
 
 ## Controls
 | Input | Action |
