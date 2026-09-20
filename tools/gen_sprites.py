@@ -1331,24 +1331,25 @@ def build_lighthouse():
 def main():
     os.makedirs(OUT, exist_ok=True)
     built = {
-        "player": build_player(),
+        # Stage 06: Tam is drawn by tools/gen_characters.py (18 frames); read the sheet, never rebuild it.
+        "player": Image.open(os.path.join(OUT, "player.png")).convert("RGBA"),
         "gaff": build_gaff(),
-        "shellback": build_shellback(),
-        "gull": build_gull(),
+        "shellback": Image.open(os.path.join(OUT, "shellback.png")).convert("RGBA"),  # art Stage 07 sheet
+        "gull": Image.open(os.path.join(OUT, "gull.png")).convert("RGBA"),  # art Stage 07 sheet
         "slash": build_slash(),
         "spark": build_spark(),
         "shadow": build_shadow(),
-        "tiles": build_tiles(),
-        "icons": build_icons(),
+        "tiles": Image.open(os.path.join(OUT, "tiles.png")).convert("RGBA"),  # art Stage 09 sheet
+        "icons": Image.open(os.path.join(OUT, "icons.png")).convert("RGBA"),  # art Stage 09 sheet
         "pickups": build_pickups(),
-        "props": build_props(),
-        "door": build_door(),
+        "props": Image.open(os.path.join(OUT, "props.png")).convert("RGBA"),  # art Stage 09 sheet
+        "door": Image.open(os.path.join(OUT, "door.png")).convert("RGBA"),  # art Stage 09 sheet
         "glow": build_glow(),
-        "decor": build_decor(),
-        "wrack_crab": build_wrack_crab(),
+        "decor": Image.open(os.path.join(OUT, "decor.png")).convert("RGBA"),  # art Stage 09 sheet
+        "wrack_crab": Image.open(os.path.join(OUT, "wrack_crab.png")).convert("RGBA"),  # art Stage 07 sheet
         "debris": build_debris(),
         "ring": build_ring(),
-        "lighthouse": build_lighthouse(),
+        "lighthouse": Image.open(os.path.join(OUT, "lighthouse.png")).convert("RGBA"),  # art Stage 09 sheet
     }
     import gen_sprites_m4
     gen_sprites_m4.build_all(built)

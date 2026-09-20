@@ -2,6 +2,10 @@ class_name Door
 extends Area2D
 ## An exit. A stone archway in the wall with a big icon and label showing what is
 ## behind it. Barred until the room opens it, then it glows and the icon bobs.
+## The arch shows the water too (art Stage 10): a shut door with the tide against it is
+## water-closed (grate down, water line across), an open one is flooded (dark water in the
+## arch, foam on the sill), and the wet way is a low arch, barred while shut and a Sea-lit
+## passage once open.
 
 signal entered(door: Door)
 
@@ -9,11 +13,14 @@ const ICONS := preload("res://assets/sprites/icons.png")
 const FRAME := preload("res://assets/sprites/door.png")
 const GLOW := preload("res://assets/sprites/glow.png")
 const DESCEND := -1  # hub door, and the way down out of a boss arena
+## door.png cells.
+enum Frame { SHUT, OPEN, WATER_CLOSED, FLOODED, WET_SHUT, WET_OPEN }
 
 var room_type: int = 0
 var cell: Vector2i
 var is_open: bool = false
 var wet: bool = false  # the flooded way at the fork
+var flooded: bool = false  # the tide has reached the doorway
 
 var _icon: Sprite2D
 var _label: Label
@@ -43,11 +50,12 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 
 	# Archway, drawn with its opening facing the interior.
 	_frame = Sprite2D.new()
-	_frame.texture = _atlas(FRAME, 0, 32)
 	_frame.offset = Vector2(0, 2)
 	_frame.rotation = Vector2.DOWN.angle_to(_interior)
 	_frame.z_index = 2
 	add_child(_frame)
+	flooded = _room.is_flooded_at(position)
+	_refresh_frame()
 
 	_glow = Sprite2D.new()
 	_glow.texture = GLOW
@@ -82,6 +90,19 @@ func _atlas(tex: Texture2D, index: int, cell_size: int) -> AtlasTexture:
 	return at
 
 
+## Which arch to show: the wet way has its own pair; otherwise the tide decides.
+static func frame_for(p_wet: bool, p_open: bool, p_flooded: bool) -> int:
+	if p_wet:
+		return Frame.WET_OPEN if p_open else Frame.WET_SHUT
+	if p_flooded:
+		return Frame.FLOODED if p_open else Frame.WATER_CLOSED
+	return Frame.OPEN if p_open else Frame.SHUT
+
+
+func _refresh_frame() -> void:
+	_frame.texture = _atlas(FRAME, frame_for(wet, is_open, flooded), 32)
+
+
 ## The wet way: same room type, already under water, tinted so. Usually a shortcut too.
 func set_wet(shortcut: bool = true) -> void:
 	wet = true
@@ -90,6 +111,7 @@ func set_wet(shortcut: bool = true) -> void:
 	# Side doors sit on the room's edge: slide the wider label inward so it is not cut off.
 	_label.position = _icon.position + Vector2(-70, 12) + Vector2(_interior.x * 50.0, 0)
 	_icon.modulate = Color(0.4, 0.5, 0.65)
+	_refresh_frame()
 
 
 ## Replace the signboard text (the hub's shore says what the night holds).
@@ -104,7 +126,7 @@ func open() -> void:
 		return
 	is_open = true
 	_room.set_ground_tile(cell, Tiles.DOOR_OPEN)
-	_frame.texture = _atlas(FRAME, 1, 32)
+	_refresh_frame()
 	_icon.modulate = Color(0.65, 0.85, 1.0) if wet else Color.WHITE
 	_label.modulate = Color(1, 1, 1, 1)
 	# Pop, then bob forever; glow breathes.
@@ -124,6 +146,11 @@ func open() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	# The tide reaches the doorway: the arch changes with it.
+	var now := _room.is_flooded_at(position)
+	if now != flooded:
+		flooded = now
+		_refresh_frame()
 	# body_entered misses a player already standing in the doorway when it opens.
 	if not is_open:
 		return

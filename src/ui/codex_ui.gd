@@ -136,9 +136,14 @@ func _row(e: Dictionary) -> Control:
 	p.add_child(v)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
-	var accent: Color = e.get("color", Color(0.95, 0.93, 0.9))
 	if e.found:
-		var a := UI.label(e.name, 8, accent)
+		if e.has("color"):
+			# Family colour rides on a 2 px edge, never on the text (STYLE.md 15).
+			var edge := ColorRect.new()
+			edge.color = e.color
+			edge.custom_minimum_size = Vector2(2, 0)
+			h.add_child(edge)
+		var a := UI.label(e.name, 8, Palette.TEXT.primary)
 		a.custom_minimum_size = Vector2(150, 0)
 		h.add_child(a)
 		var d := UI.flex_label(e.desc)

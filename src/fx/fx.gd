@@ -4,6 +4,14 @@ extends Node
 const SLASH := preload("res://assets/sprites/fx_slash.png")
 const SPARK := preload("res://assets/sprites/fx_spark.png")
 const RING := preload("res://assets/sprites/fx_ring.png")
+# Water (art Stage 10, STYLE.md 12): a splash on entering water, a ripple ring under wading
+# feet, a bubble rising from deep water.
+const SPLASH := preload("res://assets/sprites/fx_splash.png")
+const RIPPLE := preload("res://assets/sprites/fx_ripple.png")
+const BUBBLE := preload("res://assets/sprites/fx_bubble.png")
+
+## One SpriteFrames per sheet: one-shots are asked for many times a second.
+var _frames_cache: Dictionary = {}
 
 ## Effects roll on their own stream: they are asked for things per frame, and the night
 ## must be the same night at any frame rate.
@@ -83,15 +91,38 @@ func burst(pos: Vector2, color: Color, amount: int = 12, speed: float = 60.0) ->
 	get_tree().create_timer(p.lifetime + 0.1).timeout.connect(p.queue_free)
 
 
-func _one_shot(tex: Texture2D, cell: int, frames: int, fps: float, pos: Vector2, angle: float, scl: Vector2) -> AnimatedSprite2D:
+## Entering water, or dashing through it: Salt white drops, no outline.
+func splash(pos: Vector2) -> void:
+	_one_shot(SPLASH, 16, 3, 12.0, pos + Vector2(0, -6), 0.0, Vector2.ONE)
+
+
+## A ring under wading feet. Spawned into `parent` (the room) so it sits on the water and
+## under the body: everything at z 0 draws in tree order.
+func ripple(pos: Vector2, parent: Node = null) -> void:
+	_one_shot(RIPPLE, 16, 3, 6.0, pos, 0.0, Vector2.ONE, 8, 0, parent)
+
+
+## A bubble from deep water: rises 6 px and is gone.
+func bubble(pos: Vector2, parent: Node = null) -> void:
+	var s := _one_shot(BUBBLE, 4, 2, 3.0, pos, 0.0, Vector2.ONE, 4, 0, parent)
+	var tw := s.create_tween()
+	tw.tween_property(s, "position:y", pos.y - 6.0, 0.66).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(s, "modulate:a", 0.0, 0.66).set_delay(0.3)
+
+
+func _one_shot(tex: Texture2D, cell: int, frames: int, fps: float, pos: Vector2, angle: float, scl: Vector2,
+		cell_h: int = -1, z: int = 5, parent: Node = null) -> AnimatedSprite2D:
 	var s := AnimatedSprite2D.new()
-	var idx := range(frames)
-	s.sprite_frames = SheetFrames.build(tex, cell, {"play": {"frames": idx, "fps": fps, "loop": false}})
+	var key := [tex, cell, frames, fps, cell_h]
+	if not _frames_cache.has(key):
+		var idx := range(frames)
+		_frames_cache[key] = SheetFrames.build(tex, cell, {"play": {"frames": idx, "fps": fps, "loop": false}}, cell_h)
+	s.sprite_frames = _frames_cache[key]
 	s.position = pos
 	s.rotation = angle
 	s.scale = scl
-	s.z_index = 5
+	s.z_index = z
 	s.animation_finished.connect(s.queue_free)
-	_root().add_child(s)
+	(parent if parent != null else _root()).add_child(s)
 	s.play("play")
 	return s

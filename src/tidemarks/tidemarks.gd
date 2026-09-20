@@ -4,11 +4,11 @@ extends RefCounted
 ## the player's `mods` dictionary or run state. Families colour the UI.
 
 const FAMILY_COLOR := {
-	"salt": Color(0.92, 0.42, 0.36),      # offence
-	"brine": Color(0.42, 0.62, 0.92),     # defence
-	"current": Color(0.55, 0.92, 0.95),   # mobility
-	"deep": Color(0.72, 0.52, 0.92),      # weird
-	"echo": Color(0.95, 0.85, 0.55),      # what the rescued lend you
+	"salt": Palette.SALT_RED,        # offence
+	"brine": Palette.VERDIGRIS,      # defence
+	"current": Palette.SEA_PALE,     # mobility
+	"deep": Palette.DEEP_VIOLET,     # weird
+	"echo": Palette.AMBER,           # what the rescued lend you
 }
 const FAMILY_NAME := {"salt": "Salt", "brine": "Brine", "current": "Current", "deep": "Deep", "echo": "Echo"}
 ## Rarities: plain marks always; echo marks need the person (`needs`: an echo flag or a

@@ -103,7 +103,7 @@ func _build() -> void:
 		var inner := VBoxContainer.new()
 		inner.add_theme_constant_override("separation", 2)
 		var tag := str(m.family) + ("  " + str(m.rarity) if m.has("rarity") else "") + ("  active" if m.has("active") else "")
-		inner.add_child(UI.label("[%d] %s   %s" % [i + 1, m.name.to_upper(), tag], 8, col))
+		inner.add_child(UI.label("[%d] %s   %s" % [i + 1, m.name.to_upper(), tag], 8, Palette.TEXT.primary))
 		var desc := UI.label(m.desc, 8, Color(0.85, 0.85, 0.9))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		inner.add_child(desc)

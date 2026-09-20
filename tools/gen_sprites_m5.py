@@ -80,5 +80,5 @@ def build_logo():
 
 
 def build_all(built):
-    built["props"] = build_props_m5(built["props"])
+    built["props"] = Image.open(os.path.join(OUT, "props.png")).convert("RGBA")  # art Stage 09 sheet
     built["logo"] = build_logo()

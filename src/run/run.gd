@@ -111,6 +111,7 @@ var challenge_label: Label
 ## Dev aids: `--first=challenge|vault|dive|elite|combat` and `--wet` shape the first room.
 var _dev_first: int = -1
 var _dev_wet: bool = false
+var _dev_tide: float = -1.0      # `--tide=1.5`: start the first room at that water level
 var _dev_named: bool = false     # --named: elites are the biome's named one wherever they spawn
 var _mend_salt: int = 0          # Salt Mend: salt counted toward the next point of health
 var _drown_t: float = 0.0        # Drowning: tick timer
@@ -216,6 +217,8 @@ func _ready() -> void:
 						_dev_first = k
 			elif a == "--wet":
 				_dev_wet = true
+			elif a.begins_with("--tide="):
+				_dev_tide = float(a.trim_prefix("--tide="))
 			elif a == "--named":
 				_dev_named = true
 		# Nessa's fish come down with you; Long Memory brings one mark from last night.
@@ -357,6 +360,10 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	_enter_room(_dev_first if _dev_first >= 0 else RoomGraph.COMBAT, _dev_wet)
 	_dev_first = -1
 	_dev_wet = false
+	if _dev_tide >= 0.0:
+		state.tide.level = minf(TideSystem.MAX_LEVEL, _dev_tide)
+		room.set_tide(state.tide.level)
+		_dev_tide = -1.0
 	if state.slack_start > 0.0:
 		state.tide.pause(state.slack_start)
 	announcer.card(str(b.name), str(b.intro), 3.0)

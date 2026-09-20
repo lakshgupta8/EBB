@@ -33,9 +33,11 @@ const DEFAULTS := {
 const RANGES := {"dialog_speed": [0.0, 2.0], "assist_tide": [0.5, 1.0], "assist_damage": [0.5, 1.0],
 	"hud_scale": [1.0, 1.5], "text_size": [1.0, 1.5]}
 const WATER_TINTS := {
-	"sea": {"name": "sea", "color": Color(1, 1, 1, 0.62)},
-	"amber": {"name": "amber (colourblind)", "color": Color(1.0, 0.72, 0.4, 0.72)},
-	"high": {"name": "high contrast", "color": Color(1.35, 1.35, 1.6, 0.85)},
+	# The overlay cells carry their own alpha (shallow water is Sea at 55 %, art Stage 10);
+	# these only recolour or strengthen it.
+	"sea": {"name": "sea", "color": Color(1, 1, 1, 1)},
+	"amber": {"name": "amber (colourblind)", "color": Color(1.0, 0.72, 0.4, 1.0)},
+	"high": {"name": "high contrast", "color": Color(1.35, 1.35, 1.6, 1.3)},
 }
 
 ## Actions a player can rebind, in the order the controls menu lists them.
