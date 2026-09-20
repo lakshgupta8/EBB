@@ -307,7 +307,7 @@ def build_wisp_shot():
 
 
 def build_all(built):
-    built["tidewisp"] = build_tidewisp()
+    built["tidewisp"] = Image.open(os.path.join(OUT, "tidewisp.png")).convert("RGBA")  # art Stage 07 sheet
     built["netted"] = build_netted()
     built["choir"] = build_choir()
     built["tallow"] = build_tallow()

@@ -22,6 +22,18 @@ const ECHO_FRAME := {"bram": 9, "wren": 10, "cartographer": 11, "maren": 12, "pe
 ## The frame each person shows as a portrait when they talk.
 const PORTRAIT := {"orla": 6, "fen": 13, "bram": 9, "wren": 10, "cartographer": 11, "maren": 12, "nessa": 15,
 	"idris": 16, "aldous": 17, "pell": 18, "choir": 19}
+## People redrawn at 24 px (art Stage 06 on) get a two-frame idle sheet of their own; the
+## rest still come from the 16 px strip until their turn (STYLE.md 7, 17).
+const NPC_SHEETS := {Kind.MAREN: preload("res://assets/sprites/npc_maren.png"),
+	Kind.BRAM: preload("res://assets/sprites/npc_bram.png")}
+const ECHO_SHEET := {"maren": Kind.MAREN, "bram": Kind.BRAM}
+## Major props drawn at the size they need (STYLE.md 1), anchored at the bottom centre:
+## texture, cell size, sprite offset. The cage has two frames (shut, open).
+const BIG := {
+	Kind.FOUNTAIN: [preload("res://assets/sprites/prop_fountain.png"), Vector2i(32, 32), Vector2(0, -14)],
+	Kind.ALTAR: [preload("res://assets/sprites/prop_altar.png"), Vector2i(24, 32), Vector2(0, -14)],
+	Kind.CAGE: [preload("res://assets/sprites/prop_cage.png"), Vector2i(24, 24), Vector2(0, -10)],
+}
 
 var kind: Kind
 var used_up: bool = false
@@ -49,6 +61,16 @@ func setup(p_kind: Kind, pos: Vector2) -> void:
 	_sprite.texture = _frame(FRAMES[kind])
 	_sprite.position = Vector2(0, -4)
 	add_child(_sprite)
+	if kind in BIG:
+		_sprite.texture = _big_frame(0)
+		_sprite.position = BIG[kind][2]
+	if kind in NPC_SHEETS:
+		_sprite.visible = false
+		var anim := AnimatedSprite2D.new()
+		anim.sprite_frames = SheetFrames.build(NPC_SHEETS[kind], 24, {"idle": {"frames": [0, 1], "fps": 1.5}})
+		anim.position = Vector2(0, -8)
+		anim.play("idle")
+		add_child(anim)
 	if kind == Kind.LIGHTHOUSE:
 		_sprite.texture = preload("res://assets/sprites/lighthouse.png")
 		# Sprite is 48 tall; its rock base (rows 35-43) should sit on the footprint centre.
@@ -119,6 +141,14 @@ func _on_body_exited(b: Node) -> void:
 		_prompt.visible = false
 
 
+func _big_frame(i: int) -> AtlasTexture:
+	var at := AtlasTexture.new()
+	at.atlas = BIG[kind][0]
+	var c: Vector2i = BIG[kind][1]
+	at.region = Rect2(i * c.x, 0, c.x, c.y)
+	return at
+
+
 func _frame(i: int) -> AtlasTexture:
 	var at := AtlasTexture.new()
 	at.atlas = PROPS
@@ -134,7 +164,7 @@ func mark_used() -> void:
 	elif kind == Kind.ALTAR:
 		_sprite.modulate = Color(0.7, 0.7, 0.75)
 	elif kind == Kind.CAGE:
-		_sprite.texture = _frame(8)
+		_sprite.texture = _big_frame(1)
 
 
 ## The cage can be opened now (guards dead): show the prompt if the player is already here.
@@ -146,7 +176,14 @@ func unlock() -> void:
 
 ## Show a rescued echo standing free for a moment, then fading toward the surface.
 func show_echo(echo_id: String) -> void:
-	_sprite.texture = _frame(ECHO_FRAME.get(echo_id, 9))
+	if echo_id in ECHO_SHEET:
+		var at := AtlasTexture.new()
+		at.atlas = NPC_SHEETS[ECHO_SHEET[echo_id]]
+		at.region = Rect2(0, 0, 24, 24)
+		_sprite.texture = at
+		_sprite.position = Vector2(0, -8)
+	else:
+		_sprite.texture = _frame(ECHO_FRAME.get(echo_id, 9))
 	var tw := create_tween()
 	tw.tween_interval(2.2)
 	tw.tween_property(_sprite, "modulate:a", 0.0, 1.4)

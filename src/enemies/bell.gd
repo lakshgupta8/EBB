@@ -6,7 +6,7 @@ extends Enemy
 
 signal phase_changed(phase: int)
 
-const SHEET := preload("res://assets/sprites/bell_ringer.png")
+const SHEET := preload("res://assets/sprites/bell.png")  # 48x72 native (art Stage 08)
 const TOLL := preload("res://assets/sprites/toll.png")
 const CITIZEN := preload("res://src/enemies/still_citizen.tscn")
 const SWIMMER := preload("res://src/enemies/swimmer.tscn")
@@ -35,14 +35,13 @@ var _chase_limit: float = 1.4
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
+	sprite.sprite_frames = SheetFrames.build(SHEET, 48, {
 		"idle": {"frames": [0, 1], "fps": 2},
 		"walk": {"frames": [2, 3], "fps": 4},
 		"windup": {"frames": [4], "fps": 1},
 		"ring": {"frames": [5], "fps": 1},
 		"hurt": {"frames": [6], "fps": 1},
-	})
-	sprite.modulate = Color(0.85, 0.88, 0.95)
+	}, 72)
 	swing_box.source = self
 	swing_box.landed.connect(_on_hit_landed)
 
@@ -114,11 +113,11 @@ func _tick(_delta: float) -> void:
 			velocity = Vector2.ZERO
 			if d != Vector2.ZERO:
 				face(d.x)
-			sprite.position.y = -8.0 - 2.0 * sin(state_t / TOLL_WINDUP[p] * PI)
+			sprite.position.y = -33.0 - 2.0 * sin(state_t / TOLL_WINDUP[p] * PI)
 			if state_t >= TOLL_WINDUP[p] - STRIKE_CUE_LEAD:
 				strike_cue()
 			if state_t >= TOLL_WINDUP[p]:
-				sprite.position.y = -8.0
+				sprite.position.y = -33.0
 				change_state(&"toll")
 		&"toll":
 			velocity = Vector2.ZERO

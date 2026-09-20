@@ -714,16 +714,16 @@ def build_toll():
 
 def build_all(built):
     """Called by gen_sprites.main with its dict of built images; extends the shared sheets."""
-    built["tiles"] = build_tiles_m4(built["tiles"])
-    built["props"] = build_props_m4(built["props"])
-    built["icons"] = build_icons_m4(built["icons"])
-    built["decor2"] = build_decor2()
+    built["tiles"] = Image.open(os.path.join(OUT, "tiles.png")).convert("RGBA")  # art Stage 09 sheet
+    built["props"] = Image.open(os.path.join(OUT, "props.png")).convert("RGBA")  # art Stage 09 sheet
+    built["icons"] = Image.open(os.path.join(OUT, "icons.png")).convert("RGBA")  # art Stage 09 sheet
+    built["decor2"] = Image.open(os.path.join(OUT, "decor2.png")).convert("RGBA")  # art Stage 09 sheet
     built["knife"] = build_knife()
     built["net"] = build_net()
-    built["still_citizen"] = build_still_citizen()
-    built["lamplighter"] = build_lamplighter()
-    built["bell_ringer"] = build_bell_ringer()
-    built["swimmer"] = build_swimmer()
+    built["still_citizen"] = Image.open(os.path.join(OUT, "still_citizen.png")).convert("RGBA")  # art Stage 07 sheet
+    built["lamplighter"] = Image.open(os.path.join(OUT, "lamplighter.png")).convert("RGBA")  # art Stage 07 sheet
+    built["bell_ringer"] = Image.open(os.path.join(OUT, "bell_ringer.png")).convert("RGBA")  # art Stage 07 sheet
+    built["swimmer"] = Image.open(os.path.join(OUT, "swimmer.png")).convert("RGBA")  # art Stage 07 sheet
     built["lantern_shot"] = build_lantern_shot()
     built["toll"] = build_toll()
     return built

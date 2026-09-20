@@ -286,8 +286,8 @@ def build_coats(player):
 
 def build_all(built):
     PAL.update(M7_PAL)
-    built["props"] = build_props_m7(built["props"])
+    built["props"] = Image.open(os.path.join(OUT, "props.png")).convert("RGBA")  # art Stage 09 sheet
     built["pickups"] = build_pickups_m7(built["pickups"])
     built["dock"] = build_dock()
-    built.update(build_coats(built["player"]))
+    # Coats moved to tools/gen_characters.py with the Stage 06 player sheet.
     return built

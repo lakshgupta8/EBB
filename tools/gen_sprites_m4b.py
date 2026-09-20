@@ -479,13 +479,13 @@ def build_beacon():
 
 
 def build_all(built):
-    built["tiles"] = build_tiles_m4b(built["tiles"])
-    built["props"] = build_props_m4b(built["props"])
-    built["decor3"] = build_decor3()
+    built["tiles"] = Image.open(os.path.join(OUT, "tiles.png")).convert("RGBA")  # art Stage 09 sheet
+    built["props"] = Image.open(os.path.join(OUT, "props.png")).convert("RGBA")  # art Stage 09 sheet
+    built["decor3"] = Image.open(os.path.join(OUT, "decor3.png")).convert("RGBA")  # art Stage 09 sheet
     built.update(build_weapons_m4b())
-    built["keeper_shade"] = build_keeper_shade()
-    built["anchor"] = build_anchor()
-    built["deep_maw"] = build_deep_maw()
-    built["ebb"] = build_ebb()
+    built["keeper_shade"] = Image.open(os.path.join(OUT, "keeper_shade.png")).convert("RGBA")  # art Stage 07 sheet
+    built["anchor"] = Image.open(os.path.join(OUT, "anchor.png")).convert("RGBA")  # art Stage 07 sheet
+    built["deep_maw"] = Image.open(os.path.join(OUT, "deep_maw.png")).convert("RGBA")  # art Stage 07 sheet
+    built["ebb"] = Image.open(os.path.join(OUT, "ebb.png")).convert("RGBA")  # art Stage 08: 72x72 from gen_bosses.py
     built["beacon"] = build_beacon()
     return built

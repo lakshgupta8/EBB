@@ -67,9 +67,19 @@ func is_solid(x: int, y: int) -> bool:
 func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 	var ch := char_at(x, y)
 	var v := (x * 7 + y * 13) % 5 == 0  # cheap variation
+	# A wall shows its face when there is floor to its south, its top otherwise (art Stage 09).
+	var face := y + 1 < height and not (char_at(x, y + 1) in ["#", "o"])
+	if theme == Tiles.Look.HUB:
+		match ch:
+			"#": return Tiles.HUB_WALL if face else Tiles.HUB_WALL2
+			"_", "X": return Tiles.HUB_LOW
+			"=", "h": return Tiles.HUB_RAISED
+			"o": return Tiles.ROCK
+			"D": return Tiles.DOOR
+			_: return Tiles.HUB_SAND2 if v else Tiles.HUB_SAND
 	if theme == Tiles.Look.HARBOUR:
 		match ch:
-			"#": return Tiles.HULL2 if v else Tiles.HULL
+			"#": return Tiles.HULL if face else Tiles.HULL2
 			"_", "X": return Tiles.SILT
 			"=", "h": return Tiles.QUAY
 			"o": return Tiles.ROCK
@@ -77,7 +87,7 @@ func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 			_: return Tiles.DECK2 if v else Tiles.DECK
 	if theme == Tiles.Look.DEEP:
 		match ch:
-			"#": return Tiles.HALLWALL2 if v else Tiles.HALLWALL
+			"#": return Tiles.HALLWALL if face else Tiles.HALLWALL2
 			"_", "X": return Tiles.CHANNEL
 			"=", "h": return Tiles.DAIS
 			"o": return Tiles.ROCK
@@ -85,14 +95,14 @@ func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 			_: return Tiles.BASALT2 if v else Tiles.BASALT
 	if theme == Tiles.Look.STREETS:
 		match ch:
-			"#": return Tiles.RUIN2 if v else Tiles.RUIN
+			"#": return Tiles.RUIN if face else Tiles.RUIN2
 			"_", "X": return Tiles.MOSS
 			"=", "h": return Tiles.FLAG
 			"o": return Tiles.ROCK
 			"D": return Tiles.DOOR
 			_: return Tiles.COBBLE2 if v else Tiles.COBBLE
 	match ch:
-		"#": return Tiles.WALL2 if v else Tiles.WALL
+		"#": return Tiles.WALL if face else Tiles.WALL2
 		"_", "X": return Tiles.LOW
 		"=", "h": return Tiles.RAISED
 		"o": return Tiles.ROCK

@@ -33,14 +33,13 @@ var _chase_limit: float = 1.2
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
+	sprite.sprite_frames = SheetFrames.build(SHEET, 72, {
 		"idle": {"frames": [0, 1], "fps": 2},
 		"walk": {"frames": [2, 3], "fps": 4},
 		"windup": {"frames": [4], "fps": 1},
 		"cast": {"frames": [5], "fps": 1},
 		"hurt": {"frames": [6], "fps": 1},
-	})
-	sprite.modulate = Color(0.85, 0.92, 1.0)
+	}, 72)
 	var l := Atmosphere.light(self, Color(0.6, 0.85, 1.0), 6.0, 1.4, Vector2(0, -10))
 	Atmosphere.breathe(l, 1.0, 1.8, 2.6)
 
@@ -107,11 +106,11 @@ func _tick(delta: float) -> void:
 			velocity = Vector2.ZERO
 			if d != Vector2.ZERO:
 				face(d.x)
-			sprite.position.y = -8.0 - 3.0 * sin(state_t / WAVE_WINDUP[p] * PI)
+			sprite.position.y = -33.0 - 3.0 * sin(state_t / WAVE_WINDUP[p] * PI)
 			if state_t >= WAVE_WINDUP[p] - STRIKE_CUE_LEAD:
 				strike_cue()
 			if state_t >= WAVE_WINDUP[p]:
-				sprite.position.y = -8.0
+				sprite.position.y = -33.0
 				change_state(&"wave")
 		&"wave":
 			velocity = Vector2.ZERO

@@ -5,7 +5,7 @@ extends Enemy
 
 signal phase_changed(phase: int)
 
-const SHEET := preload("res://assets/sprites/shellback.png")
+const SHEET := preload("res://assets/sprites/wreck.png")  # 72x48 native (art Stage 08)
 const DEBRIS := preload("res://assets/sprites/debris.png")
 const GULL := preload("res://src/enemies/gull.tscn")
 const CRAB := preload("res://src/enemies/wrack_crab.tscn")
@@ -31,14 +31,13 @@ var _chase_limit: float = 1.6
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
+	sprite.sprite_frames = SheetFrames.build(SHEET, 72, {
 		"idle": {"frames": [0, 1], "fps": 2},
 		"walk": {"frames": [2, 3], "fps": 4},
 		"windup": {"frames": [4], "fps": 1},
 		"slam": {"frames": [5], "fps": 1},
 		"hurt": {"frames": [6], "fps": 1},
-	})
-	sprite.modulate = Color(0.78, 0.88, 0.92)
+	}, 48)
 	charge_box.source = self
 	charge_box.landed.connect(_on_hit_landed)
 

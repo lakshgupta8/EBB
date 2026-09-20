@@ -6,6 +6,17 @@ extends CharacterBody2D
 
 const FLASH_SHADER := preload("res://src/combat/hit_flash.gdshader")
 const SHEET := preload("res://assets/sprites/player.png")
+const WET_EDGE := preload("res://assets/sprites/fx_wet.png")
+const RIPPLE_EVERY := 0.35  # seconds between rings while wading
+## Frame bindings for the 18-frame Tam sheet (STYLE.md 17). Death frames are on the sheet
+## but not played yet; the squash death stays until the animation stage.
+const ANIMS := {
+	"idle": {"frames": [0, 1, 2, 3], "fps": 3},
+	"walk": {"frames": [4, 5, 6, 7, 8, 9], "fps": 10},
+	"hurt": {"frames": [10, 11], "fps": 8},
+	"dash": {"frames": [12, 13], "fps": 12},
+	"death": {"frames": [14, 15, 16, 17], "fps": 6, "loop": false},
+}
 
 const TILE := 16.0
 const SPEED := 6.0 * TILE          # 6 tiles/sec
@@ -67,6 +78,13 @@ var parry_t: float = 0.0    # the bell's toll: nothing lands while > 0
 var first_ready: bool = true  # First Blood: the room's first swing is still to come
 var rooted_t: float = 0.0     # under a net: you cannot walk until it tears, or you dash
 var _dash_wet: bool = false   # the dash began in water (Otter)
+## The water language on the body (art Stage 10, STYLE.md 12): a 2 px Sea band across the
+## feet while wading, a splash on the way in, a ripple ring every few steps, the shadow at a
+## quarter in shallow water and gone in deep.
+var _wet_edge: Sprite2D
+var _wading: bool = false
+var _ripple_t: float = 0.0
+var _shadow_alpha: float = 1.0
 var attack_held: bool = false
 var aim_dist: float = 64.0  # distance to the cursor (bots: a fixed reach)
 var rally: float = 0.0      # Rally tidemark: damage bonus built up in this room
@@ -100,12 +118,7 @@ func _ready() -> void:
 	_equip(Game.weapon_id())
 	# The coat is a cosmetic from the Log: a recoloured sheet with the same frames.
 	var sheet: Texture2D = load(KeeperLog.coat_sheet())
-	sprite.sprite_frames = SheetFrames.build(sheet if sheet else SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 3},
-		"walk": {"frames": [2, 3, 4, 5], "fps": 9},
-		"hurt": {"frames": [6], "fps": 1},
-		"dash": {"frames": [7], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(sheet if sheet else SHEET, 24, ANIMS)
 	sprite.material = ShaderMaterial.new()
 	sprite.material.shader = FLASH_SHADER
 	sprite.play("idle")
@@ -118,6 +131,11 @@ func _ready() -> void:
 	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	_build_wake()
+	_wet_edge = Sprite2D.new()
+	_wet_edge.texture = WET_EDGE
+	_wet_edge.visible = false
+	add_child(_wet_edge)
+	_shadow_alpha = $Shadow.modulate.a
 	# The keeper's lantern: the pool of light you carry through the night (its colour is
 	# a cosmetic from the Log).
 	lantern_color = KeeperLog.lantern_color()
@@ -143,6 +161,26 @@ func aim_distance() -> float:
 
 
 ## Dash wake hitbox (used only with the Wake tidemark).
+## Wading reads on the body, not only in the overlay: the wet edge, a splash going in, rings
+## while walking, a fainter shadow. From the room's water, whatever the tidemarks say.
+func _water_visuals(delta: float) -> void:
+	var room := get_tree().get_first_node_in_group("room") as Room
+	var wet := room != null and room.is_flooded_at(global_position)
+	var deep := wet and room.is_deep_at(global_position)
+	_wet_edge.visible = wet
+	$Shadow.modulate.a = 0.0 if deep else (_shadow_alpha * 0.55 if wet else _shadow_alpha)
+	if wet and not _wading:
+		FX.splash(global_position)
+	_wading = wet
+	if wet and velocity.length() > 10.0:
+		_ripple_t += delta
+		if _ripple_t >= RIPPLE_EVERY:
+			_ripple_t = 0.0
+			FX.ripple(global_position, room)
+	else:
+		_ripple_t = RIPPLE_EVERY
+
+
 func _build_wake() -> void:
 	_wake = Hitbox.new()
 	_wake.collision_layer = 0
@@ -260,6 +298,7 @@ func _physics_process(delta: float) -> void:
 			_start_dash(input.normalized() if input != Vector2.ZERO else facing)
 
 	_since_dash = 0.0 if is_dashing() else _since_dash + delta
+	_water_visuals(delta)
 	_knockback = _knockback.lerp(Vector2.ZERO, HURT_KNOCKBACK_DECAY * delta)
 	_lunge_vel = _lunge_vel.lerp(Vector2.ZERO, 14.0 * delta)
 	_hurt_timer = maxf(0.0, _hurt_timer - delta)
@@ -309,6 +348,8 @@ func _start_dash(dir: Vector2) -> void:
 	_dash_dir = dir
 	_dash_wet = in_water
 	weapon.cancel()
+	if _wading:
+		FX.splash(global_position)
 	FX.burst(global_position + Vector2(0, 4), Color(0.9, 0.85, 0.7, 0.8), 6, 30.0)
 	Audio.play("splash" if in_water else "dash", 0.12, -4.0)
 	if mods.dash_wake:

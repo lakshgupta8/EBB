@@ -7,20 +7,19 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/shadow.png" id="5_shadow"]
 
 [sub_resource type="CapsuleShape2D" id="body_shape"]
-radius = 6.0
-height = 20.0
+radius = 12.0
+height = 40.0
 
 [sub_resource type="RectangleShape2D" id="hurt_shape"]
-size = Vector2(20, 14)
+size = Vector2(34, 44)
 
 [sub_resource type="CircleShape2D" id="swing_shape"]
-radius = 13.0
+radius = 26.0
 
 [sub_resource type="CircleShape2D" id="slam_shape"]
-radius = 24.0
+radius = 48.0
 
 [node name="Bell" type="CharacterBody2D"]
-scale = Vector2(2, 2)
 collision_layer = 4
 collision_mask = 5
 motion_mode = 1
@@ -33,12 +32,12 @@ salt_drop = 14
 pearl_drop = 7
 
 [node name="Shadow" type="Sprite2D" parent="."]
-position = Vector2(0, 2)
-scale = Vector2(1.5, 1.2)
+position = Vector2(0, 4)
+scale = Vector2(3.0, 2.4)
 texture = ExtResource("5_shadow")
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, -8)
+position = Vector2(0, -33)
 
 [node name="Collision" type="CollisionShape2D" parent="."]
 rotation = 1.5708
@@ -54,7 +53,7 @@ collision_mask = 0
 script = ExtResource("3_hurtbox")
 
 [node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
-position = Vector2(0, -6)
+position = Vector2(0, -30)
 shape = SubResource("hurt_shape")
 
 [node name="Hitbox" type="Area2D" parent="."]
@@ -66,7 +65,7 @@ knockback = 200.0
 hitstop = 0.06
 
 [node name="Shape" type="CollisionShape2D" parent="Hitbox"]
-position = Vector2(0, -2)
+position = Vector2(0, -4)
 shape = SubResource("slam_shape")
 
 [node name="SwingBox" type="Area2D" parent="."]
@@ -78,5 +77,5 @@ knockback = 180.0
 hitstop = 0.08
 
 [node name="Shape" type="CollisionShape2D" parent="SwingBox"]
-position = Vector2(8, 0)
+position = Vector2(16, 0)
 shape = SubResource("swing_shape")

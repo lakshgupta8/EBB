@@ -33,7 +33,7 @@ func _ready() -> void:
 		SaveManager.use_path("user://sim_save.json")
 	room = Room.new()
 	room_holder.add_child(room)
-	room.build(RoomTemplate.load_file(HUB_TEMPLATE))
+	room.build(RoomTemplate.load_file(HUB_TEMPLATE), 0, Tiles.Look.HUB)
 	var epilogue := Story.epilogue()
 	# The sea laps at the foot of the rock, always; up to the sand's edge since Break (the
 	# lower shore is the Drowned's now, with their dock on it), out and staying out since Walk.
@@ -480,9 +480,7 @@ func open_cosmetics() -> void:
 		SaveManager.data["cosmetics"] = cos
 		SaveManager.save_profile()
 		if i >= lanterns.size():
-			player.sprite.sprite_frames = SheetFrames.build(load(KeeperLog.coat_sheet()), 24, {
-				"idle": {"frames": [0, 1], "fps": 3}, "walk": {"frames": [2, 3, 4, 5], "fps": 9},
-				"hurt": {"frames": [6], "fps": 1}, "dash": {"frames": [7], "fps": 1}})
+			player.sprite.sprite_frames = SheetFrames.build(load(KeeperLog.coat_sheet()), 24, Player.ANIMS)
 			player.sprite.play("idle")
 			return "the %s, then" % str(KeeperLog.COATS[id].name).to_lower()
 		player.lantern_color = KeeperLog.lantern_color()

@@ -18,6 +18,8 @@ const WATER_SPEED_MULT := 0.7
 const LAND_SPEED_MULT := 0.45   # amphibious things out of the water
 const KINDLE_SPEED_MULT := 1.35
 const NET_TEX := preload("res://assets/sprites/net.png")
+const WET_EDGE := preload("res://assets/sprites/fx_wet.png")
+const RIPPLE_EVERY := 0.5
 
 var is_elite: bool = false
 var is_boss: bool = false
@@ -44,6 +46,31 @@ var tethered_t: float = 0.0      # on the harpoon line
 var _lit_light: PointLight2D
 var kindled_t: float = 0.0       # sped up by a lamplighter
 var _net_sprite: Sprite2D
+var _wet_edge: Sprite2D          # the 2 px Sea band across the feet while wading (art Stage 10)
+var _ripple_t: float = 0.0
+var _shadow_alpha: float = 1.0
+
+
+## Wading reads on the body: the wet edge, rings while moving, the shadow at a quarter in
+## shallow water and gone in deep (STYLE.md 4, 12). Flying things skip all of it.
+func _water_visuals(delta: float) -> void:
+	if _wet_edge == null or room == null:
+		return
+	var wet := room.is_flooded_at(global_position)
+	var deep := wet and room.is_deep_at(global_position)
+	_wet_edge.visible = wet
+	if is_boss:
+		_wet_edge.scale = Vector2(2.0, 1.0)
+	var sh := get_node_or_null("Shadow")
+	if sh:
+		sh.modulate.a = 0.0 if deep else (_shadow_alpha * 0.55 if wet else _shadow_alpha)
+	if wet and velocity.length() > 10.0:
+		_ripple_t += delta
+		if _ripple_t >= RIPPLE_EVERY:
+			_ripple_t = 0.0
+			FX.ripple(global_position, room)
+	else:
+		_ripple_t = RIPPLE_EVERY
 
 
 ## Rooted under the net for `duration`. Bosses get the short version from the weapon.
@@ -151,6 +178,14 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player") as Player
 	room = get_tree().get_first_node_in_group("room") as Room
 	health.changed.connect(func(_c, _m): _refresh_mult())
+	if not flying:
+		_wet_edge = Sprite2D.new()
+		_wet_edge.texture = WET_EDGE
+		_wet_edge.visible = false
+		add_child(_wet_edge)
+		var sh := get_node_or_null("Shadow")
+		if sh:
+			_shadow_alpha = sh.modulate.a
 	if hollow_child:
 		health.max_hp = maxi(1, health.max_hp * 2 / 5)
 		health.hp = health.max_hp
@@ -165,7 +200,7 @@ func make_elite(p_affix: String = "") -> void:
 	is_elite = true
 	affix = p_affix if p_affix in AFFIXES else ""
 	display_name = (str(AFFIX_NAMES[affix]) + " " if affix != "" else "Elite ") + display_name
-	scale = Vector2(1.25, 1.25)
+	call_deferred("_apply_elite_sheet")
 	call_deferred("_apply_stat_mult", 2.5, 1.15)
 	if affix != "":
 		call_deferred("_apply_affix")
@@ -183,6 +218,37 @@ func make_boss(p_name: String) -> void:
 	pearl_drop += 4
 	salt_drop += 10
 	death_color = Color(0.95, 0.8, 0.4)
+
+
+## An elite is a costume, not a scale (STYLE.md 1, art Stage 07): enemies with a
+## `<sheet>_elite.png` beside their sheet swap to it at scale 1. The rest still grow by a
+## quarter until their elite costume is drawn.
+func _apply_elite_sheet() -> void:
+	var tex := _elite_texture()
+	if tex == null:
+		scale = Vector2(1.25, 1.25)
+		return
+	var sf := sprite.sprite_frames
+	for anim in sf.get_animation_names():
+		for i in sf.get_frame_count(anim):
+			var at := sf.get_frame_texture(anim, i)
+			if at is AtlasTexture:
+				(at as AtlasTexture).atlas = tex
+
+
+func _elite_texture() -> Texture2D:
+	if sprite == null or sprite.sprite_frames == null:
+		return null
+	var names := sprite.sprite_frames.get_animation_names()
+	if names.is_empty():
+		return null
+	var first := sprite.sprite_frames.get_frame_texture(names[0], 0)
+	if not (first is AtlasTexture) or (first as AtlasTexture).atlas == null:
+		return null
+	var path := (first as AtlasTexture).atlas.resource_path.replace(".png", "_elite.png")
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	return load(path)
 
 
 func _apply_stat_mult(hp_mult: float, speed_mult: float) -> void:
@@ -327,6 +393,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_stay_inside()
 	_wall_slam()
+	_water_visuals(delta)
 	if cracked_t > 0.0:
 		cracked_t -= delta
 		if cracked_t <= 0.0:

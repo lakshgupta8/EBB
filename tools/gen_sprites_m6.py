@@ -706,14 +706,14 @@ def build_weapons_m6():
 
 def build_all(built):
     built.update(build_weapons_m6())
-    built["tiles"] = build_tiles_m6(built["tiles"])
+    built["tiles"] = Image.open(os.path.join(OUT, "tiles.png")).convert("RGBA")  # art Stage 09 sheet
     built["decor4"] = build_decor4()
     built["mooring"] = build_mooring()
     built["barnacle"] = build_barnacle()
     built["deckhand"] = build_deckhand()
     built["chainmother"] = build_chainmother()
     built["anchor_drop"] = build_anchor_drop()
-    built["icons"] = build_icons_m6(built["icons"])
-    built["props"] = build_props_m6(built["props"])
+    built["icons"] = Image.open(os.path.join(OUT, "icons.png")).convert("RGBA")  # art Stage 09 sheet
+    built["props"] = Image.open(os.path.join(OUT, "props.png")).convert("RGBA")  # art Stage 09 sheet
     built["pickups"] = build_pickups_m6(built["pickups"])
     return built
