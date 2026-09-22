@@ -15,6 +15,13 @@ const HAZE := preload("res://assets/sprites/haze.png")
 const NIGHT := Palette.NIGHT_TINT_HUB
 ## The three light colours (STYLE.md 11). Warm sources: Tam plus at most three on screen.
 const WARM := Color(0.9702, 0.8690, 0.6220)   # Warm yellow, 60 % toward Pale cream
+# Tam's lantern (art Stage 23): Warm yellow pulled a third toward Amber. WARM is nearly
+# white, and a near-white light on a cold floor multiplies to grey: measured on the
+# keyframes, the pool on cobbles was no warmer than the stone around it (R-B -20 against
+# -19). This colour, at energy 0.9, puts the pool 20 points warmer than the cobbles, 30
+# than the basalt, 47 than the sand, and the sand's core stays under Bone light. It is
+# Tam's alone: the world's warm lights keep WARM, open flames FLAME (STYLE.md 20, rule 10).
+const LANTERN := Color(0.9350, 0.7470, 0.3410)
 const FLAME := Color(0.9059, 0.6725, 0.2980)  # Amber, halfway to Warm yellow: open flames
 const COLD := Palette.SEA_PALE                # doors, fountains, altars, cages, the drowned
 
