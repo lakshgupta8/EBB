@@ -4,6 +4,23 @@ extends CharacterBody2D
 ## Subclasses implement _setup_animations() and _tick(delta) and drive `state`.
 
 const FLASH_SHADER := preload("res://src/combat/hit_flash.gdshader")
+## The production sheet layout (art Stage 13, STYLE.md 17): idle 4, walk 4, windup 2 (the
+## anticipation, then the held pose the strike cue flashes), attack 2 (the strike, then the
+## follow-through), hurt 1, death 3 (drawn, played by the body left behind). Bosses add a
+## phase-change frame (13) and an intro frame (14) before their death (15-17).
+const LAYOUT := {"idle": [0, 1, 2, 3], "walk": [4, 5, 6, 7], "windup": [8, 9], "attack": [10, 11], "hurt": [12],
+	"death": [13, 14, 15], "phase": [13], "intro": [14]}
+const BOSS_DEATH := [15, 16, 17]
+const LAYOUT_FRAMES := 16
+const BOSS_FRAMES := 18
+const LAYOUT_FPS := {"idle": 3, "walk": 8, "windup": 6, "attack": 12, "hurt": 1, "death": 6, "phase": 1, "intro": 1}
+## Status and phase tints, from the palette (art Stage 15, STYLE.md 14): white pushed a
+## quarter toward Amber for a boss's second phase (half for the Ebb's third), toward Salt
+## red (by 0.4, it has to read for 3 s) for a cracked shell, toward Warm yellow for a kindled body.
+const PHASE_TINT := Color(0.966, 0.890, 0.809)
+const PHASE_TINT_2 := Color(0.931, 0.780, 0.618)
+const CRACK_TINT := Color(0.884, 0.708, 0.674)
+const KINDLE_TINT := Color(0.987, 0.946, 0.840)
 
 @export var display_name: String = "Enemy"
 @export var speed: float = 32.0
@@ -46,6 +63,8 @@ var tethered_t: float = 0.0      # on the harpoon line
 var _lit_light: PointLight2D
 var kindled_t: float = 0.0       # sped up by a lamplighter
 var _net_sprite: Sprite2D
+var _lit_fx: AnimatedSprite2D   # four small flames at the edge (STYLE.md 14, LIT)
+var _stun_fx: AnimatedSprite2D  # three spray dots above the head (STUN)
 var _wet_edge: Sprite2D          # the 2 px Sea band across the feet while wading (art Stage 10)
 var _ripple_t: float = 0.0
 var _shadow_alpha: float = 1.0
@@ -87,7 +106,7 @@ func net(duration: float) -> void:
 		_net_sprite.modulate = Color(1, 1, 1, 0.9)
 		add_child(_net_sprite)
 	_net_sprite.visible = true
-	_net_sprite.rotation = randf() * TAU
+	_net_sprite.rotation = 0.0  # pixel art is never turned (STYLE.md 14)
 	_refresh_mult()
 
 
@@ -99,8 +118,13 @@ func kindle(duration: float) -> void:
 func lit(duration: float) -> void:
 	lit_t = maxf(lit_t, duration)
 	if _lit_light == null:
-		_lit_light = Atmosphere.light(self, Color(1.0, 0.9, 0.6), 2.4, 0.9, Vector2(0, -8))
+		# A boss is pale and large: under the lantern as well, 0.5 more clipped the whole
+		# body to white (art Stage 20). Half that keeps the form.
+		_lit_light = Atmosphere.light(self, Atmosphere.WARM, 1.0, 0.25 if is_boss else 0.5, Vector2(0, -8), true)
 	_lit_light.visible = true
+	if _lit_fx == null:
+		_lit_fx = FX.overlay(&"lit", self, body_centre())
+	_lit_fx.visible = true
 	_refresh_mult()
 
 
@@ -155,6 +179,7 @@ func apply_bleed(ticks: int = 3) -> void:
 
 var state: StringName = &"idle"
 var state_t: float = 0.0  # seconds in current state
+var _state_anim: StringName = &"idle"  # what the state asked to play (a held frame goes back to it)
 var player: Player
 var stunned: float = 0.0
 var _knockback: Vector2 = Vector2.ZERO
@@ -265,8 +290,8 @@ func _apply_affix() -> void:
 			_refresh_mult()
 		"lit":
 			speed *= 1.35
-			var l := Atmosphere.light(self, Color(1.0, 0.85, 0.5), 2.2, 0.8, Vector2(0, -8))
-			Atmosphere.breathe(l, 0.6, 1.0, 1.0)
+			var l := Atmosphere.light(self, Atmosphere.WARM, 1.6, 0.5, Vector2(0, -8))
+			Atmosphere.breathe(l, 0.42, 0.58, 1.0)
 		"anchored":
 			knockback_resist = 1.0
 			if hitbox:
@@ -299,6 +324,23 @@ func _hollow_split() -> void:
 
 func _setup_animations() -> void:
 	pass
+
+
+## Animations for a sheet in the standard layout: `names` maps the script's animation names
+## to layout parts ({"slam": "attack"}), `fps` overrides by script name. Idle and walk loop;
+## everything else plays once and holds its last frame. Bosses get "phase" and "intro" too.
+static func anims(names: Dictionary, fps: Dictionary = {}, boss: bool = false) -> Dictionary:
+	var out := {}
+	var table := names.duplicate()
+	table["death"] = "death"
+	if boss:
+		table["phase"] = "phase"
+		table["intro"] = "intro"
+	for n in table:
+		var part: String = table[n]
+		var frames: Array = BOSS_DEATH if boss and part == "death" else LAYOUT[part]
+		out[n] = {"frames": frames, "fps": fps.get(n, LAYOUT_FPS[part]), "loop": part == "idle" or part == "walk"}
+	return out
 
 
 func _tick(_delta: float) -> void:
@@ -346,15 +388,29 @@ func strike_cue() -> void:
 	if _cued:
 		return
 	_cued = true
-	sprite.material.set_shader_parameter("flash", 1.0)
+	sprite.material.set_shader_parameter("flash", flash_peak())
 	var tw := create_tween()
 	tw.tween_property(sprite.material, "shader_parameter/flash", 0.0, 0.2)
-	FX.ring(global_position + Vector2(0, -6), Color(1.0, 0.9, 0.7), 0.7)
+	# The Salt red cue ring, 16 px (32 on a boss): the one red on screen apart from claws
+	# (STYLE.md 14).
+	FX.ring(global_position + body_centre(), Palette.SALT_RED, 1.0 if is_big() else 0.5)
 
 
+## The state's animation. A finished one-shot (a windup, an attack) restarts when asked again.
 func play(anim: StringName) -> void:
-	if sprite.animation != anim:
+	_state_anim = anim
+	if sprite.animation != anim or not sprite.is_playing():
 		sprite.play(anim)
+
+
+## One frame held over the state's animation (a boss's intro, its phase change), then back.
+func hold_frame(anim: StringName, secs: float) -> void:
+	if sprite == null or sprite.sprite_frames == null or not sprite.sprite_frames.has_animation(anim):
+		return
+	sprite.play(anim)
+	await get_tree().create_timer(secs, false).timeout
+	if is_instance_valid(self) and sprite != null and sprite.animation == anim:
+		sprite.play(_state_anim)
 
 
 func _physics_process(delta: float) -> void:
@@ -389,6 +445,7 @@ func _physics_process(delta: float) -> void:
 		if slowed_t > 0.0:
 			velocity *= 0.6
 		velocity += _knockback
+	_show_stun(stunned > 0.25)
 	_knockback = _knockback.lerp(Vector2.ZERO, 12.0 * delta)
 	move_and_slide()
 	_stay_inside()
@@ -415,13 +472,47 @@ func _physics_process(delta: float) -> void:
 		if lit_t <= 0.0:
 			if _lit_light:
 				_lit_light.visible = false
+			if _lit_fx:
+				_lit_fx.visible = false
 			_refresh_mult()
 	if kindled_t > 0.0:
 		kindled_t -= delta
 		if kindled_t <= 0.0:
 			sprite.modulate = Color.WHITE if not is_boss else sprite.modulate
 		elif cracked_t <= 0.0 and not is_boss:
-			sprite.modulate = Color(1.0, 0.9, 0.75)
+			sprite.modulate = KINDLE_TINT
+
+
+## Where an effect sits on this body: the drawn frame's centre (a 24 px enemy's chest, a
+## boss's hull). Read from the sprite, since the three bosses carry no flag.
+func body_centre() -> Vector2:
+	if sprite == null:
+		return Vector2(0, -6)
+	return Vector2(0, roundf(sprite.position.y + sprite.offset.y))
+
+
+## A body drawn taller than a 24 px cell: the bosses.
+func is_big() -> bool:
+	if sprite == null or sprite.sprite_frames == null:
+		return false
+	var tex := sprite.sprite_frames.get_frame_texture(sprite.animation, 0)
+	return tex != null and tex.get_height() > 24
+
+
+## The STUN overlay: three drifting spray dots above the head while a real stun lasts (the
+## hit stagger is too short to show).
+func _show_stun(on: bool) -> void:
+	if not on:
+		if _stun_fx:
+			_stun_fx.visible = false
+		return
+	if _stun_fx == null:
+		var top := sprite.position.y
+		var tex := sprite.sprite_frames.get_frame_texture(sprite.animation, 0) if sprite.sprite_frames else null
+		if tex:
+			top -= float(tex.get_height()) * 0.5
+		_stun_fx = FX.overlay(&"stun", self, Vector2(0, top - 3.0))
+	_stun_fx.visible = true
 
 
 func _tick_bleed(delta: float) -> void:
@@ -435,7 +526,7 @@ func _tick_bleed(delta: float) -> void:
 		info.tags = PackedStringArray(["bleed"])
 		info.hitstop = 0.0
 		if health.take(info, true):
-			FX.burst(global_position + Vector2(0, -6), Color(0.8, 0.2, 0.2), 3, 25.0)
+			FX.bleed(global_position + body_centre())
 			EventBus.damage_dealt.emit(self, info)
 
 
@@ -486,7 +577,7 @@ func _wall_slam() -> void:
 func crack(duration: float) -> void:
 	cracked_t = duration
 	_refresh_mult()
-	sprite.modulate = Color(1.0, 0.75, 0.7)
+	sprite.modulate = CRACK_TINT
 	stunned = maxf(stunned, 0.5)
 
 
@@ -498,12 +589,20 @@ func _on_hurt(info: DamageInfo) -> void:
 		crack(3.0)
 	elif info.tags.has("heavy"):
 		stunned = maxf(stunned, 0.35)
+	if info.tags.has("heavy"):
+		FX.crack(global_position + body_centre())
 	if info.tags.has("crit"):
 		FX.burst(global_position + Vector2(0, -6), Color(1.0, 0.95, 0.6), 10, 70.0)
-	sprite.material.set_shader_parameter("flash", 1.0)
+	sprite.material.set_shader_parameter("flash", flash_peak())
 	var tw := create_tween()
 	tw.tween_property(sprite.material, "shader_parameter/flash", 0.0, 0.15)
 	_on_hurt_extra(info)
+
+
+## How white a hit turns the body. A 24 px enemy goes to Salt white; a boss stops at 55 %,
+## because a 48x72 slab of white on a hit erased the boss from the fight (art Stage 20).
+func flash_peak() -> float:
+	return 0.55 if is_boss else 1.0
 
 
 func _on_hurt_extra(_info: DamageInfo) -> void:
@@ -515,8 +614,7 @@ func _on_hit_landed(_target: Hurtbox, _info: DamageInfo) -> void:
 
 
 func _on_died() -> void:
-	FX.burst(global_position, death_color, 16, 90.0)
-	FX.burst(global_position, Color.WHITE, 6, 50.0)
+	FX.burst(global_position, death_color, 8, 60.0)
 	Audio.play("death", 0.2, 0.0 if not is_boss else 4.0)
 	EventBus.request_hitstop.emit(0.1)
 	EventBus.request_shake.emit(0.3)
@@ -526,9 +624,28 @@ func _on_died() -> void:
 	queue_free()
 
 
-## The last frame, left behind: it squashes flat, tints to the death colour and fades.
+## The body left behind. With drawn death frames (art Stage 13) it plays them where it stood
+## and fades; a sheet without them squashes its last frame flat, tints and fades.
 func _leave_body() -> void:
 	if sprite == null or sprite.sprite_frames == null or get_parent() == null:
+		return
+	if sprite.sprite_frames.has_animation(&"death"):
+		var fall := AnimatedSprite2D.new()
+		fall.sprite_frames = sprite.sprite_frames
+		fall.flip_h = sprite.flip_h
+		fall.flip_v = sprite.flip_v
+		fall.offset = sprite.offset
+		fall.centered = sprite.centered
+		fall.z_index = z_index
+		get_parent().add_child(fall)
+		fall.global_transform = sprite.global_transform
+		fall.modulate = sprite.modulate
+		fall.play(&"death")
+		var gone := death_color
+		gone.a = 0.0
+		var tw2 := fall.create_tween()
+		tw2.tween_property(fall, "modulate", gone, 0.6 if not is_boss else 1.2).set_delay(0.6 if not is_boss else 1.2)
+		tw2.tween_callback(fall.queue_free)
 		return
 	var tex := sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
 	if tex == null:

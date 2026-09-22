@@ -64,7 +64,7 @@ func _ready() -> void:
 	hitbox.landed.connect(_on_hit_landed)
 	_shape_home = hit_shape.position
 	beacon.visible = false
-	_beacon_light = Atmosphere.light(beacon, Color(1.0, 0.9, 0.6), 4.0, 1.4)
+	_beacon_light = Atmosphere.light(beacon, Atmosphere.WARM, 3.2, 0.6)
 	_beacon_light.visible = false
 	_load_aspect()
 	match aspect:
@@ -218,7 +218,7 @@ func _arm_and_activate(lunge: bool) -> void:
 	pivot.rotation = _sweep_from
 	var tw := create_tween()
 	tw.tween_property(pivot, "rotation", _sweep_to, ACTIVE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	FX.slash(global_position, (_sweep_from + _sweep_to) * 0.5, _swing_sign < 0.0, 1.25)
+	FX.slash(global_position, (_sweep_from + _sweep_to) * 0.5, _swing_sign < 0.0, true)
 	Audio.play("lantern", 0.15, -3.0)
 
 
@@ -251,12 +251,14 @@ func _throw_beacon() -> void:
 	beacon.visible = true
 	beacon.modulate = Color(1, 1, 1, 1)
 	beacon.global_position = origin
-	beacon.scale = Vector2(0.3, 0.3)
+	# The beacon is the lantern itself, set down where it lands (art Stage 14): drawn at 1x, its
+	# reach shown by the light and the ring, never by scaling the sprite.
+	beacon.scale = Vector2.ONE
+	beacon.region_rect = Rect2(0, 0, 16, 16)
 	_beacon_light.visible = true
 	var fly := clampf(origin.distance_to(target) / 480.0, 0.06, 0.2)
 	var tw := create_tween()
 	tw.tween_property(beacon, "global_position", target, fly)
-	tw.parallel().tween_property(beacon, "scale", Vector2(_beacon_radius / 11.0, _beacon_radius / 11.0), fly)
 	tw.tween_callback(func():
 		_beacon_t = _beacon_time
 		FX.ring(target, Color(1.0, 0.9, 0.6), 2.0)
@@ -277,7 +279,8 @@ func _tick_beacon(delta: float) -> void:
 		return
 	_beacon_t -= delta
 	_beacon_tick += delta
-	beacon.modulate.a = 0.6 + 0.4 * sin(_beacon_t * 9.0)
+	# the flame's two frames
+	beacon.region_rect = Rect2(16.0 * float(int(_beacon_t * 6.0) % 2), 0, 16, 16)
 	if _beacon_tick >= 0.2:
 		_beacon_tick = 0.0
 		for e in get_tree().get_nodes_in_group("enemies"):

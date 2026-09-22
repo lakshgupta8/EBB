@@ -84,12 +84,12 @@ func _buy(i: int) -> void:
 	var u: Dictionary = _branch_nodes()[i]
 	if Ledger.buy(u.id):
 		_hint.text = "%s  tier %d" % [u.name.to_lower(), Ledger.tier(u.id)]
-		_hint.modulate = Color(0.75, 0.95, 0.8)
+		UI.hint_kind(_hint, "ok")
 		Audio.play("buy")
 	else:
 		var why := Ledger.locked_reason(u.id)
 		_hint.text = "already complete" if Ledger.next_cost(u.id) < 0 else (why if why != "" else "not enough pearls")
-		_hint.modulate = Color(1.0, 0.6, 0.55)
+		UI.hint_kind(_hint, "bad")
 	_refresh()
 
 
@@ -104,7 +104,7 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 	var center := CenterContainer.new()
@@ -118,8 +118,8 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(470, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("ORLA'S LEDGER", 16, Color(0.95, 0.85, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
-	var line := UI.label("\"%s\"" % orla_line(), 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+	box.add_child(UI.header("ORLA'S LEDGER"))
+	var line := UI.label("\"%s\"" % orla_line(), 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.custom_minimum_size = Vector2(470, 0)
 	box.add_child(line)
@@ -128,7 +128,7 @@ func _build() -> void:
 	tabs.add_theme_constant_override("separation", 4)
 	_tab_buttons = []
 	for i in Ledger.BRANCHES.size():
-		var b := UI.text_button("", 8)
+		var b := UI.tab_button("", false)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_set_branch.bind(i))
 		tabs.add_child(b)
@@ -143,7 +143,7 @@ func _build() -> void:
 		_tide_btn = UI.row_button()
 		var th := HBoxContainer.new()
 		th.add_theme_constant_override("separation", 8)
-		_tide_label = UI.label("", 8, Color(0.75, 0.9, 1.0))
+		_tide_label = UI.label("", 8, UI.PRIMARY)
 		_tide_label.custom_minimum_size = Vector2(130, 0)
 		_tide_desc = UI.flex_label("")
 		th.add_child(_tide_label)
@@ -159,9 +159,9 @@ func _build() -> void:
 		_gift_btn.pressed.connect(_gift)
 		box.add_child(_gift_btn)
 	box.add_child(UI.spacer(2))
-	_pearls_label = UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_CENTER)
+	_pearls_label = UI.label("", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_pearls_label)
-	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_hint = UI.label(" ", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
 	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -176,7 +176,9 @@ func _set_branch(i: int) -> void:
 		var b: Button = _tab_buttons[j]
 		var open := Ledger.branch_open(id)
 		b.text = ("%s" if open else "%s (locked)") % Ledger.BRANCH_NAME[id]
-		b.add_theme_color_override("font_color", Color(1, 1, 1) if j == i else (Color(0.7, 0.75, 0.85) if open else Color(0.45, 0.47, 0.55)))
+		UI.set_tab_active(b, j == i)
+		if not open and j != i:
+			b.add_theme_color_override("font_color", UI.MUTED)
 	for c in _rows_box.get_children():
 		c.queue_free()
 	_rows = []
@@ -189,7 +191,7 @@ func _set_branch(i: int) -> void:
 		var a := UI.label("[%d] %s" % [k + 1, u.name], 8)
 		a.custom_minimum_size = Vector2(140, 0)
 		var d := UI.flex_label(u.desc)
-		var c := UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_RIGHT)
+		var c := UI.label("", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_RIGHT)
 		c.custom_minimum_size = Vector2(96, 0)
 		h.add_child(a)
 		h.add_child(d)
@@ -217,7 +219,7 @@ func _cycle_tide() -> void:
 	SaveManager.save_profile()
 	Audio.play("ui", 0.0, -8.0)
 	_hint.text = "calm water tonight" if t == 0 else "spring tide %d: %s" % [t, str(Run.TIERS[t - 1].name).to_lower()]
-	_hint.modulate = Color(0.75, 0.9, 1.0)
+	UI.hint_kind(_hint, "accent")
 	_refresh()
 
 
@@ -237,11 +239,11 @@ func _refresh() -> void:
 		var why := Ledger.locked_reason(u.id)
 		if cost < 0:
 			right.text = "%d/%d  done" % [t, Ledger.max_tier(u.id)]
-			right.add_theme_color_override("font_color", Color(0.55, 0.75, 0.6))
+			right.add_theme_color_override("font_color", Palette.SEA_PALE)
 		elif why != "":
 			right.text = why
-			right.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			right.add_theme_color_override("font_color", UI.MUTED)
 		else:
 			right.text = "%d/%d  %d pearls" % [t, Ledger.max_tier(u.id), cost]
-			right.add_theme_color_override("font_color", Color(0.92, 0.92, 0.98) if Ledger.can_buy(u.id) else Color(0.5, 0.5, 0.55))
-		_rows[i][0].add_theme_color_override("font_color", Color(0.95, 0.93, 0.9) if Ledger.can_buy(u.id) else Color(0.6, 0.6, 0.65))
+			right.add_theme_color_override("font_color", UI.PRIMARY if Ledger.can_buy(u.id) else UI.MUTED)
+		_rows[i][0].add_theme_color_override("font_color", UI.PRIMARY if Ledger.can_buy(u.id) else UI.SECONDARY)

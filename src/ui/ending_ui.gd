@@ -15,7 +15,7 @@ var can_advance: bool = false
 var _cards: Array = []
 var _root: Control
 var _black: ColorRect
-var _glow: ColorRect
+var _glow: TextureRect
 var _title: Label
 var _text: Label
 var _sub: Label
@@ -55,13 +55,22 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	_black = ColorRect.new()
-	_black.color = Color(0.03, 0.03, 0.06, 0.0)
+	_black.color = Color(Palette.ABYSS, 0.0)
 	_black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_black)
-	_glow = ColorRect.new()
-	_glow.color = Color(1.0, 0.85, 0.55, 0.0)
-	_glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# The lantern's warmth: a small light texture at the centre, not a warm rectangle
+	# (STYLE.md 15). A light falloff, not pixel art, so it may be drawn large.
+	_glow = TextureRect.new()
+	_glow.texture = Atmosphere.GLOW
+	_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_glow.stretch_mode = TextureRect.STRETCH_SCALE
+	_glow.modulate = Color(Atmosphere.WARM, 0.0)
+	_glow.set_anchors_preset(Control.PRESET_CENTER)
+	_glow.offset_left = -96
+	_glow.offset_top = -96
+	_glow.offset_right = 96
+	_glow.offset_bottom = 96
 	_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_glow)
 	var center := CenterContainer.new()
@@ -72,19 +81,19 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 8)
 	box.custom_minimum_size = Vector2(400, 0)
 	center.add_child(box)
-	_title = UI.label("", 20, Color(0.95, 0.9, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_title = UI.label("", 16, Palette.PALE_CREAM, HORIZONTAL_ALIGNMENT_CENTER)
 	_title.modulate.a = 0.0
 	box.add_child(_title)
-	_text = UI.label("", 8, Color(0.9, 0.9, 0.95), HORIZONTAL_ALIGNMENT_CENTER)
+	_text = UI.label("", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.custom_minimum_size = Vector2(400, 0)
 	_text.modulate.a = 0.0
 	box.add_child(_text)
-	_sub = UI.label("", 8, Color(0.65, 0.7, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_sub = UI.label("", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	_sub.modulate.a = 0.0
 	box.add_child(_sub)
 	box.add_child(UI.spacer(16))
-	_hint = UI.label("", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER)
+	_hint = UI.label("", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
 
 
@@ -123,9 +132,9 @@ func _effect() -> void:
 				_reveal(1.0)
 		"keep":
 			if card == 1:
-				create_tween().tween_property(_glow, "color:a", 0.18, 3.0)
+				create_tween().tween_property(_glow, "modulate:a", 0.9, 3.0)
 			elif card == 3:
-				create_tween().tween_property(_glow, "color:a", 0.0, 3.0)
+				create_tween().tween_property(_glow, "modulate:a", 0.0, 3.0)
 
 
 func _reveal(darkness: float) -> void:

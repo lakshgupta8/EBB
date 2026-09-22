@@ -8,8 +8,10 @@ const FLASH_SHADER := preload("res://src/combat/hit_flash.gdshader")
 const SHEET := preload("res://assets/sprites/player.png")
 const WET_EDGE := preload("res://assets/sprites/fx_wet.png")
 const RIPPLE_EVERY := 0.35  # seconds between rings while wading
+const LANTERN_SCALE := 3.2
+const LANTERN_ENERGY := 0.7
 ## Frame bindings for the 18-frame Tam sheet (STYLE.md 17). Death frames are on the sheet
-## but not played yet; the squash death stays until the animation stage.
+## the death is drawn (art Stage 13), so the sprite is never rotated.
 const ANIMS := {
 	"idle": {"frames": [0, 1, 2, 3], "fps": 3},
 	"walk": {"frames": [4, 5, 6, 7, 8, 9], "fps": 10},
@@ -105,7 +107,8 @@ var _dodge_cd: float = 0.0
 var _second_chance_used: bool = false
 var _wake: Hitbox
 var _lantern: PointLight2D
-var lantern_color: Color = Color(1.0, 0.9, 0.72)
+var _motes: CPUParticles2D  # warm specks drifting up inside the pool (STYLE.md 14)
+var lantern_color: Color = Atmosphere.WARM
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var health: Health = $Health
@@ -139,8 +142,29 @@ func _ready() -> void:
 	# The keeper's lantern: the pool of light you carry through the night (its colour is
 	# a cosmetic from the Log).
 	lantern_color = KeeperLog.lantern_color()
-	_lantern = Atmosphere.light(self, lantern_color, 5.0, 1.15, Vector2(-4, -6))
-	Atmosphere.breathe(_lantern, 1.05, 1.25, 2.4)
+	# STYLE.md 11: a 150 px pool with a 60 px core, breathing 8 %; the floor under Tam never
+	# passes Bone light (tools/gen_light.py checks).
+	_lantern = Atmosphere.light(self, lantern_color, LANTERN_SCALE, LANTERN_ENERGY, Vector2(-4, -6))
+	Atmosphere.breathe(_lantern, LANTERN_ENERGY * 0.92, LANTERN_ENERGY * 1.08, 2.4)
+	# Lantern motes (art Stage 15): eight 1 px Warm yellow specks at 40 % rising 4 px over
+	# 2 s inside the pool's core.
+	_motes = CPUParticles2D.new()
+	_motes.amount = 8
+	_motes.lifetime = 2.0
+	_motes.preprocess = 2.0
+	_motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_motes.emission_sphere_radius = 28.0
+	_motes.position = Vector2(-4, -6)
+	_motes.direction = Vector2(0, -1)
+	_motes.spread = 10.0
+	_motes.gravity = Vector2.ZERO
+	_motes.initial_velocity_min = 1.5
+	_motes.initial_velocity_max = 2.5
+	_motes.scale_amount_min = 1.0
+	_motes.scale_amount_max = 1.0
+	_motes.color = Color(Palette.WARM_YELLOW, 0.4)
+	_motes.z_index = 5
+	add_child(_motes)
 
 
 ## Swap the weapon child for the chosen one. The scene ships with the gaff as a placeholder.
@@ -382,6 +406,12 @@ func _recharge(delta: float) -> void:
 
 func _animate(input: Vector2) -> void:
 	sprite.flip_h = aim.x < 0.0
+	# The held weapon turns to the aim, so past the vertical it is mirrored across its shaft:
+	# a hook never hangs upside down (art Stage 14).
+	if weapon != null:
+		var held := weapon.get_node_or_null("Pivot/Sprite") as Sprite2D
+		if held != null:
+			held.flip_v = aim.x < 0.0
 	var anim := "idle"
 	if _hurt_timer > 0.0:
 		anim = "hurt"
@@ -441,7 +471,7 @@ func add_glow(amount: float) -> void:
 		FX.text(global_position, "LANTERN READY", Color(1.0, 0.9, 0.55))
 		Audio.play("pearl", 0.0, -6.0)
 	if _lantern:
-		_lantern.color = lantern_color.lerp(Color(1.0, 0.97, 0.85), glow / GLOW_MAX)
+		_lantern.color = lantern_color.lerp(Palette.PALE_CREAM, glow / GLOW_MAX)
 
 
 func flare() -> void:
@@ -551,15 +581,12 @@ func _on_died() -> void:
 		Audio.play("altar")
 		return
 	dead = true
-	sprite.play("hurt")
+	# The fall is drawn (STYLE.md 17): knee, fall, lie, still; the lantern stays lit beside her.
+	sprite.play("death")
 	sprite.modulate = Color(0.6, 0.6, 0.7)
 	weapon.cancel()
 	weapon.visible = false
-	# Fall over, away from the last hit, and go still.
-	var side := -1.0 if sprite.flip_h else 1.0
 	var tw := create_tween()
-	tw.tween_property(sprite, "rotation", side * PI * 0.5, 0.45).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-	tw.parallel().tween_property(sprite, "position:y", sprite.position.y + 5.0, 0.45)
-	tw.tween_property(sprite, "modulate", Color(0.45, 0.45, 0.55), 0.8)
+	tw.tween_property(sprite, "modulate", Color(0.45, 0.45, 0.55), 0.8).set_delay(0.7)
 	FX.burst(global_position, Color(0.75, 0.8, 0.95), 14, 60.0)
 	EventBus.player_died.emit()

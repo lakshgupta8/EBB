@@ -4,7 +4,8 @@ extends Enemy
 ## rhythm, then slips away like a dash.
 
 const SHEET := preload("res://assets/sprites/keeper_shade.png")
-const BOLT := preload("res://assets/sprites/harpoon_bolt.png")
+## Tam's bolt in the Night ramp (art Stage 19): the Shade's own, not Tam's colours.
+const BOLT := preload("res://assets/sprites/shade_bolt.png")
 const CIRCLE_DISTANCE := 58.0
 const RANGED_DISTANCE := 96.0
 const STRIKE_EVERY := 1.6
@@ -21,17 +22,12 @@ var _strike_dir: Vector2 = Vector2.RIGHT
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 3},
-		"walk": {"frames": [2, 3], "fps": 9},
-		"windup": {"frames": [4], "fps": 1},
-		"strike": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "strike": "attack", "hurt": "hurt"}, {"idle": 3, "walk": 9}))
 	_mode = Game.weapon_id()
 	_strafe_dir = 1.0 if randf() < 0.5 else -1.0
 	_act_t = randf_range(0.4, 1.0)
-	var eyes := Atmosphere.light(self, Color(0.5, 0.9, 1.0), 1.4, 0.6, Vector2(0, -12))
+	var eyes := Atmosphere.light(self, Atmosphere.COLD, 1.0, 0.4, Vector2(0, -12), true)
 	Atmosphere.breathe(eyes, 0.4, 0.8, 1.2)
 
 
@@ -77,7 +73,7 @@ func _do_hit() -> void:
 		_:
 			hitbox.deactivate()
 			hitbox.activate()
-			FX.slash(global_position + Vector2(0, -6), _strike_dir.angle(), _hits_left % 2 == 0, 0.9 if _mode != "lantern" else 1.2)
+			FX.slash(global_position + Vector2(0, -6), _strike_dir.angle(), _hits_left % 2 == 0, _mode == "lantern")
 			Audio.play("swing", 0.2, -6.0)
 
 

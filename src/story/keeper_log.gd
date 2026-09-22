@@ -54,7 +54,7 @@ const ALL := [
 
 ## Lantern colours the Log can open. "warm" is the keeper's own.
 const LANTERNS := {
-	"warm": {"name": "Warm", "color": Color(1.0, 0.9, 0.72)},
+	"warm": {"name": "Warm", "color": Atmosphere.WARM},
 	"cold": {"name": "Cold", "color": Color(0.75, 0.9, 1.0)},
 	"green": {"name": "Sea green", "color": Color(0.75, 1.0, 0.82)},
 	"violet": {"name": "Violet", "color": Color(0.9, 0.8, 1.0)},

@@ -17,13 +17,8 @@ var _stab_dir: Vector2 = Vector2.RIGHT
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"statue": {"frames": [0], "fps": 1},
-		"run": {"frames": [2, 3], "fps": 10},
-		"windup": {"frames": [4], "fps": 1},
-		"stab": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"statue": "idle", "run": "walk", "windup": "windup", "stab": "attack", "hurt": "hurt"}, {"statue": 1, "run": 10}))
 	sprite.modulate = STATUE_TINT
 
 

@@ -35,13 +35,9 @@ var _chase_limit: float = 1.4
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 48, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 4},
-		"windup": {"frames": [4], "fps": 1},
-		"ring": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	}, 72)
+	sprite.sprite_frames = SheetFrames.build(SHEET, 48, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "ring": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 5}, true), 72)
+	hold_frame.call_deferred(&"intro", INTRO)
 	swing_box.source = self
 	swing_box.landed.connect(_on_hit_landed)
 
@@ -256,7 +252,7 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 	if phase == 0 and health.hp <= health.max_hp / 2:
 		phase = 1
 		speed *= 1.25
-		sprite.modulate = Color(0.95, 0.8, 0.7)
+		sprite.modulate = PHASE_TINT
 		EventBus.request_shake.emit(1.0)
 		EventBus.request_hitstop.emit(0.15)
 		FX.burst(global_position, Color(0.95, 0.85, 0.5), 24, 120.0)
@@ -267,3 +263,4 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 		phase_changed.emit(phase)
 		if state != &"swing":
 			change_state(&"toll_windup")
+		hold_frame(&"phase", 0.7)

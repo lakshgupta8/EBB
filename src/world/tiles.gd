@@ -5,6 +5,8 @@ extends RefCounted
 
 const TEXTURE := preload("res://assets/sprites/tiles.png")
 const WATER_TEXTURE := preload("res://assets/sprites/water.png")
+## The void beyond the walls (tools/gen_scenery.py): 3 rows by look (Scenery.Void), 3 variants.
+const BEYOND_TEXTURE := preload("res://assets/sprites/beyond.png")
 const SIZE := 16
 
 ## The water overlay atlas (tools/gen_water.py), 16 columns by 6 rows, coords (col, row):
@@ -35,6 +37,24 @@ enum Look { FLATS, STREETS, DEEP, HARBOUR, HUB }
 
 static var _tileset: TileSet
 static var _water_tileset: TileSet
+static var _beyond_tileset: TileSet
+
+
+## The void atlas as a TileSet with no physics: the room's Beyond layer (art Stage 12).
+static func beyond_tileset() -> TileSet:
+	if _beyond_tileset:
+		return _beyond_tileset
+	var ts := TileSet.new()
+	ts.tile_size = Vector2i(SIZE, SIZE)
+	var src := TileSetAtlasSource.new()
+	src.texture = BEYOND_TEXTURE
+	src.texture_region_size = Vector2i(SIZE, SIZE)
+	ts.add_source(src, 0)
+	for r in 3:
+		for c in Scenery.VOID_COLS:
+			src.create_tile(Vector2i(c, r))
+	_beyond_tileset = ts
+	return ts
 
 
 ## The overlay atlas as a TileSet with no physics: the room's water, foam and edge layers.

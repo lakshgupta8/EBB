@@ -21,10 +21,10 @@ const WARM := Color("#f2c85c")
 const CREAM := Color("#fbeccb")
 const RED := Color("#b5452f")
 
-const CARD_COLOR := Color(0.8, 0.9, 1.0)
-const BOSS_COLOR := Color(0.95, 0.75, 0.6)
-const STIR_COLOR := Color(0.95, 0.5, 0.45)
-const WON_COLOR := Color(0.95, 0.85, 0.6)
+const CARD_COLOR := SALT
+const BOSS_COLOR := CREAM
+const STIR_COLOR := RED  # display size only, with the 2 px shadow
+const WON_COLOR := WARM
 
 ## What a thing is, in plain words, the first time you meet it. Shown once per profile.
 ## %s in a line is filled with the key that does it, whatever the player has bound (KEYS says which).
@@ -74,6 +74,8 @@ var card_showing: bool = false
 var _toasts: VBoxContainer
 # whispers
 var _strip: PanelContainer
+const STRIP_TOP := 268
+const STRIP_TOP_BOSS := 226   # clear of the boss name at 290 and the bar at 296
 var _strip_tag: Label
 var _strip_text: Label
 var _whispers: Array = []
@@ -92,6 +94,7 @@ var _t: float = 0.0
 
 func _ready() -> void:
 	layer = 1
+	add_to_group("announcer")
 	_root = Control.new()
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -132,8 +135,6 @@ func _build_cards() -> void:
 	_title.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_title.offset_top = 44
 	_title.offset_bottom = 62
-	_title.add_theme_constant_override("shadow_offset_x", 2)
-	_title.add_theme_constant_override("shadow_offset_y", 2)
 	_title.visible = false
 	_root.add_child(_title)
 	_rule = ColorRect.new()
@@ -176,10 +177,11 @@ func _run_cards() -> void:
 		var c: Dictionary = _cards.pop_front()
 		card_showing = true
 		var big: bool = c.big
-		var size := 24 if big else 16
+		# The display face at 16; the one banner at run start at 32 (STYLE.md 16).
+		var size := 32 if big else 16
 		var has_sub: bool = c.sub != ""
 		_title.text = c.title
-		_title.add_theme_font_size_override("font_size", size)
+		UI.set_size(_title, size)
 		_title.add_theme_color_override("font_color", c.color)
 		_title.offset_top = 40
 		_title.offset_bottom = 40 + size + 6
@@ -279,12 +281,18 @@ func _pill(bg: Color, edge: Color = Color(0, 0, 0, 0)) -> PanelContainer:
 
 
 # --- whispers ----------------------------------------------------------------------
+## While a boss bar is on screen the strip sits above the boss's name instead of on it
+## (the HUD calls this; art Stage 20).
+func set_boss_shown(shown: bool) -> void:
+	_strip.offset_top = STRIP_TOP_BOSS if shown else STRIP_TOP
+
+
 func _build_strip() -> void:
 	_strip = _pill(Color(INK, 0.66))
 	_strip.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_strip.offset_left = 96
 	_strip.offset_right = -96
-	_strip.offset_top = 268
+	_strip.offset_top = STRIP_TOP
 	_strip.visible = false
 	_root.add_child(_strip)
 	var box := VBoxContainer.new()
@@ -294,6 +302,7 @@ func _build_strip() -> void:
 	_strip_tag = UI.label("the lantern", 8, WET)
 	box.add_child(_strip_tag)
 	_strip_text = UI.label("", 8, PALE)
+	UI.whisper(_strip_text)
 	_strip_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_strip_text)
 

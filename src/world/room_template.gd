@@ -63,10 +63,24 @@ func is_solid(x: int, y: int) -> bool:
 	return ch == "#" or ch == "o" or ch == "h"
 
 
+## A wall cell with nothing but wall (or the room's edge) round it: the world stops there and
+## the void shows through (art Stage 12). Walls that touch floor are the rim and stay walls.
+func is_beyond(x: int, y: int) -> bool:
+	if char_at(x, y) != "#":
+		return false
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			if char_at(x + dx, y + dy) != "#":
+				return false
+	return true
+
+
 ## Ground tile index for a cell (door cells return DOOR; caller swaps when opened).
 func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
 	var ch := char_at(x, y)
-	var v := (x * 7 + y * 13) % 5 == 0  # cheap variation
+	# One floor cell in five takes the second tile, picked by a hash so the pattern never
+	# lines up into stripes (a lattice showed as diagonal streaks once the night tint was neutral).
+	var v := hash(Vector2i(x, y)) % 5 == 0
 	# A wall shows its face when there is floor to its south, its top otherwise (art Stage 09).
 	var face := y + 1 < height and not (char_at(x, y + 1) in ["#", "o"])
 	if theme == Tiles.Look.HUB:

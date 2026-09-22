@@ -17,13 +17,8 @@ var _chain: Line2D
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 4},
-		"windup": {"frames": [4], "fps": 1},
-		"slam": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "slam": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 5}))
 	_chain = Line2D.new()
 	_chain.width = 1.0
 	_chain.default_color = Color(0.75, 0.8, 0.85)

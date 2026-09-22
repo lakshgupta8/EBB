@@ -12,13 +12,8 @@ var guarding: bool = false
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 5},
-		"windup": {"frames": [4], "fps": 1},
-		"swing": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "swing": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 5}))
 	hurtbox.shielded.connect(_on_shielded)
 
 

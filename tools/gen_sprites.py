@@ -1333,22 +1333,21 @@ def main():
     built = {
         # Stage 06: Tam is drawn by tools/gen_characters.py (18 frames); read the sheet, never rebuild it.
         "player": Image.open(os.path.join(OUT, "player.png")).convert("RGBA"),
-        "gaff": build_gaff(),
+        "gaff": Image.open(os.path.join(OUT, "gaff_hook.png")).convert("RGBA"),  # art Stage 14 sheet
         "shellback": Image.open(os.path.join(OUT, "shellback.png")).convert("RGBA"),  # art Stage 07 sheet
         "gull": Image.open(os.path.join(OUT, "gull.png")).convert("RGBA"),  # art Stage 07 sheet
-        "slash": build_slash(),
-        "spark": build_spark(),
+        "slash": Image.open(os.path.join(OUT, "fx_slash.png")).convert("RGBA"),  # art Stage 15 sheet
+        "spark": Image.open(os.path.join(OUT, "fx_spark.png")).convert("RGBA"),  # art Stage 15 sheet
         "shadow": build_shadow(),
         "tiles": Image.open(os.path.join(OUT, "tiles.png")).convert("RGBA"),  # art Stage 09 sheet
         "icons": Image.open(os.path.join(OUT, "icons.png")).convert("RGBA"),  # art Stage 09 sheet
-        "pickups": build_pickups(),
+        "pickups": Image.open(os.path.join(OUT, "pickups.png")).convert("RGBA"),  # art Stage 16 sheet (tools/gen_ui.py)
         "props": Image.open(os.path.join(OUT, "props.png")).convert("RGBA"),  # art Stage 09 sheet
         "door": Image.open(os.path.join(OUT, "door.png")).convert("RGBA"),  # art Stage 09 sheet
-        "glow": build_glow(),
+        "glow": Image.open(os.path.join(OUT, "glow.png")).convert("RGBA"),  # art Stage 11 texture
         "decor": Image.open(os.path.join(OUT, "decor.png")).convert("RGBA"),  # art Stage 09 sheet
         "wrack_crab": Image.open(os.path.join(OUT, "wrack_crab.png")).convert("RGBA"),  # art Stage 07 sheet
-        "debris": build_debris(),
-        "ring": build_ring(),
+        "debris": Image.open(os.path.join(OUT, "debris.png")).convert("RGBA"),  # art Stage 14 sheet
         "lighthouse": Image.open(os.path.join(OUT, "lighthouse.png")).convert("RGBA"),  # art Stage 09 sheet
     }
     import gen_sprites_m4

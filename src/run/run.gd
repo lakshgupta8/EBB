@@ -33,28 +33,28 @@ const BIOMES := [
 	{"id": "flats", "name": "THE FLATS", "dir": "res://data/rooms/biome1/", "length": 10, "theme": Tiles.Look.FLATS,
 		"boss": WRECK, "boss_name": "THE WRECK", "stir": "THE WRECK STIRS", "won": "THE WRECK IS BROKEN",
 		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
-		"boss_sfx": "roar", "tint": Color(0.6, 0.68, 0.86), "wet": GULL,
+		"boss_sfx": "roar", "tint": Palette.NIGHT_TINT_RUN, "wet": GULL,
 		"elite": NETTED, "elite_name": "The Netted", "boss_music": "music_boss",
 		"intro": "Ten rooms down, then the Wreck. The water follows you in.",
 		"boss_sub": "Slams, charges, calls the flats. Break it and the way down opens."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
 		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
 		"echoes": ["pell"], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
-		"boss_sfx": "creak", "tint": Color(0.58, 0.64, 0.82), "wet": BARNACLE,
+		"boss_sfx": "creak", "tint": Palette.NIGHT_TINT_RUN, "wet": BARNACLE,
 		"elite": DECKHAND, "elite_name": "The Bosun", "boss_music": "music_boss",
 		"intro": "Nine rooms down, then the Chainmother. Every ship that tried to leave is still tied up.",
 		"boss_sub": "Sweeps, drops anchors, hauls you in. Break it and the way down opens."},
 	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
 		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "won": "THE BELL IS SILENCED",
 		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
-		"boss_sfx": "bell", "tint": Color(0.56, 0.6, 0.8), "wet": SWIMMER,
+		"boss_sfx": "bell", "tint": Palette.NIGHT_TINT_RUN, "wet": SWIMMER,
 		"elite": CHOIR, "elite_name": "The Choir", "boss_music": "music_deep",
 		"intro": "Eleven rooms down, then the Bell. Something is still ringing.",
 		"boss_sub": "It called the sea in. Silence it and the way down opens."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
 		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
 		"echoes": ["aldous"], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
-		"boss_sfx": "ebb", "tint": Color(0.56, 0.62, 0.84), "wet": ANCHOR,
+		"boss_sfx": "ebb", "tint": Palette.NIGHT_TINT_RUN, "wet": ANCHOR,
 		"elite": SHADE, "elite_name": "Echo of Maren", "boss_music": "music_deep",
 		"intro": "Nine rooms down, then the Ebb. Every keeper before you is standing in it.",
 		"boss_sub": "Maren is in there with it. Break it, and the night is yours."},
@@ -163,7 +163,7 @@ func _ready() -> void:
 	EventBus.pickup_collected.connect(_hint_pickup)
 	EventBus.riptided.connect(func(): announcer.hint("riptide"); announcer.pulse(Announcer.SEA_PALE, 0.45, 0.6))
 	EventBus.player_health_changed.connect(_watch_health)
-	challenge_label = UI.label("", 14, Color(0.8, 0.92, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	challenge_label = UI.label("", 16, Palette.SEA_PALE, HORIZONTAL_ALIGNMENT_CENTER)
 	challenge_label.position = Vector2(220, 84)
 	challenge_label.size = Vector2(200, 16)
 	challenge_label.visible = false
@@ -185,7 +185,7 @@ func _ready() -> void:
 	state.stats["weapon"] = player.weapon.id
 	EventBus.run_started.emit(state.seed)
 	fade.color.a = 1.0
-	Atmosphere.build(self, Vector2(640, 368))
+	Atmosphere.build(self, Vector2(640, 368), Palette.NIGHT_TINT_RUN)
 	Audio.ambient("ambient_sea", -14.0)
 	Audio.gulls_enabled = true
 	# Dev / playtest aids: `-- --biome=1` starts in the streets, `--boss` at its boss,
@@ -389,6 +389,7 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 	var night := get_node_or_null("Night") as CanvasModulate
 	if night:
 		night.color = b.tint
+	Atmosphere.set_haze(self, b.theme)
 	Audio.gulls_enabled = b.id in ["flats", "harbour"]
 	Audio.layer("amb_" + str(b.id), -15.0)  # what this place sounds like under the sea
 	Audio.music(b.music, -11.0)
@@ -1509,6 +1510,66 @@ func _end_run() -> void:
 	results.show_result(result)
 
 
+## Dev aid for the art review (Stage 15): `--fx` with `--screenshot` fires one of every effect
+## around Tam and puts LIT, STUN, a cue ring and a crack on the first enemies, just before the shot.
+func _fx_demo() -> void:
+	if player == null:
+		return
+	var p := player.global_position
+	FX.slash(p + Vector2(0, -6), 0.0)
+	FX.slash(p + Vector2(-70, -6), PI * 0.75, true, true)
+	FX.stab(p + Vector2(-30, 20), PI * 0.5)
+	FX.spark(p + Vector2(40, -30))
+	FX.crack(p + Vector2(70, -30))
+	FX.ring(p + Vector2(-60, 30), Color(0.6, 0.9, 1.0), 1.2)
+	FX.ring(p, Color(1.0, 0.9, 0.5), 2.6)
+	FX.bleed(p + Vector2(40, 14))
+	FX.burst(p + Vector2(-40, -40), Color(0.8, 0.2, 0.2), 12, 90.0)
+	if room != null:
+		for k in 6:
+			room.call("_tick_drips", 4.0)
+	var i := 0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not (e is Enemy):
+			continue
+		if i == 0:
+			e.lit(3.0)
+			e.strike_cue()
+		elif i == 1:
+			e.stunned = 1.0
+			e.crack(3.0)
+		else:
+			e.apply_bleed(3)
+			e.stunned = 1.0
+		i += 1
+
+
+## Dev aid for the art review (Stage 16): `--menu=<pause|codex|settings|shop|altar|results>`
+## with `--screenshot` opens that menu just before the shot.
+func _menu_demo(which: String) -> void:
+	match which:
+		"pause":
+			var pm := get_node_or_null("Pause")
+			if pm and pm.has_method("toggle"):
+				pm.toggle()
+		"codex":
+			codex_ui.open()
+		"settings":
+			settings_ui.open()
+		"shop":
+			shop.restock()
+			shop.open()
+		"altar":
+			var offers: Array = []
+			for i in 3:
+				offers.append(Tidemarks.ALL[i * 4].id)
+			altar_ui.open(offers, 1)
+		"results":
+			results.show_result({"victory": false, "taken": true, "biome": 0, "tier": 1, "depth": 4, "kills": 12,
+				"new": 0, "pearls": 3, "pearls_from_salt": 5, "salt": 10, "time": 200.0, "data": {},
+				"contracts": [], "echoes": []})
+
+
 ## Dev aid: run with `-- --screenshot` to save .shots/latest.png after a few frames and quit.
 func _handle_screenshot_arg() -> void:
 	if not "--screenshot" in OS.get_cmdline_user_args():
@@ -1519,6 +1580,22 @@ func _handle_screenshot_arg() -> void:
 			frames = int(a.trim_prefix("--wait="))
 	for i in frames:
 		await get_tree().process_frame
+	if "--fx" in OS.get_cmdline_user_args():
+		_fx_demo()
+		for i in 3:
+			await get_tree().process_frame
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--menu="):
+			_menu_demo(a.trim_prefix("--menu="))
+			for i in 3:
+				await get_tree().process_frame
+	if "--whisper" in OS.get_cmdline_user_args():
+		# The lantern's line, typed out: the whisper face (STYLE.md 16).
+		announcer.whisper("The water remembers the shape of the town. So do you.")
+		# Real seconds: the opening card holds 3 s and the strip types after it.
+		await get_tree().create_timer(5.0).timeout
+		FX.text(player.global_position, "RIPTIDE", Palette.SALT_WHITE)
+		await get_tree().create_timer(0.2).timeout
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var img := get_viewport().get_texture().get_image()

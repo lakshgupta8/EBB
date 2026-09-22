@@ -1,10 +1,11 @@
 """Stage 08: the three bosses at native size (STYLE.md 19).  Node scale is 1 from here on.
 
-    wreck.png   72x48 x 7 frames   a hull on its side walking on broken ribs
-    bell.png    48x72 x 7 frames   the town bell in its iron frame, base flooded
-    ebb.png     72x72 x 7 frames   a standing figure of still water holding a keeper's lantern
+    wreck.png   72x48 x 18 frames   a hull on its side walking on broken ribs
+    bell.png    48x72 x 18 frames   the town bell in its iron frame, base flooded
+    ebb.png     72x72 x 18 frames   a standing figure of still water holding a keeper's lantern
 
-Frame layout matches the shipped bindings (idle 0-1, walk 2-3, windup 4, attack 5, hurt 6).
+Frame layout (art Stage 13, STYLE.md 17): idle 0-3, walk 4-7, windup 8-9, attack 10-11,
+hurt 12, phase change 13, intro 14, death 15-17.
 Big curved forms are rasterised from profiles (clean 1-2-3 stepping) and the details are
 hand-placed grids; every colour is a palette key.  Outlines are full 1 px Ink.
 
@@ -252,15 +253,25 @@ def wreck_frame(hull_dy=0, hull_dx=0, legs=LEGS_A, lantern_dy=0, chain_dx=0):
 
 
 def build_wreck():
-    return [
-        wreck_frame(),
-        wreck_frame(hull_dy=1, lantern_dy=1),
-        wreck_frame(legs=LEGS_B),
-        wreck_frame(hull_dy=1, legs=LEGS_A, lantern_dy=1),
-        wreck_frame(hull_dy=-4, hull_dx=-2, legs=LEGS_SPLAY, lantern_dy=-1),
-        wreck_frame(hull_dy=3, hull_dx=1, legs=LEGS_SPLAY, lantern_dy=2),
-        wreck_frame(hull_dx=-2, chain_dx=1),
-    ]
+    # idle: the hull settles and lifts, the lantern swings late, the chain stirs
+    idle = [wreck_frame(), wreck_frame(hull_dy=1, lantern_dy=1), wreck_frame(lantern_dy=1), wreck_frame(hull_dy=1, chain_dx=1)]
+    # walk: the ribs alternate, the hull rocks
+    walk = [wreck_frame(legs=LEGS_B), wreck_frame(hull_dy=1, legs=LEGS_A, lantern_dy=1),
+            wreck_frame(legs=LEGS_B, hull_dx=1), wreck_frame(hull_dy=1, legs=LEGS_A, lantern_dy=2)]
+    # windup: it gathers itself up, then rears on splayed ribs and holds
+    windup = [wreck_frame(hull_dy=-2, hull_dx=-1, lantern_dy=-1),
+              wreck_frame(hull_dy=-4, hull_dx=-2, legs=LEGS_SPLAY, lantern_dy=-1)]
+    # attack: the slam, then the hull bounces up off the sand
+    attack = [wreck_frame(hull_dy=3, hull_dx=1, legs=LEGS_SPLAY, lantern_dy=2),
+              wreck_frame(hull_dy=1, hull_dx=1, legs=LEGS_SPLAY, lantern_dy=3)]
+    hurt = [wreck_frame(hull_dx=-2, chain_dx=1)]
+    # phase: reared, chains swinging; intro: low in the sand, the ribs not yet under it
+    phase = [wreck_frame(hull_dy=-3, hull_dx=-1, legs=LEGS_SPLAY, lantern_dy=-2, chain_dx=1)]
+    intro = [wreck_frame(hull_dy=6, lantern_dy=6)]
+    # death: the ribs give, the hull comes down and sinks into the sand
+    death = [wreck_frame(hull_dy=2, legs=LEGS_SPLAY, lantern_dy=2, chain_dx=1), wreck_frame(hull_dy=5, lantern_dy=5),
+             wreck_frame(hull_dy=7, hull_dx=1, lantern_dy=7)]
+    return idle + walk + windup + attack + hurt + phase + intro + death
 
 
 # =============================================================================
@@ -362,15 +373,24 @@ def bell_frame(bell_dx=0, bell_dy=0, rim=False, post_dy=(0, 0), water_shift=0, c
 
 
 def build_bell():
-    return [
-        bell_frame(),
-        bell_frame(bell_dx=1, clapper_dx=-1, water_shift=3),
-        bell_frame(post_dy=(-1, 0)),
-        bell_frame(post_dy=(0, -1), water_shift=3),
-        bell_frame(bell_dx=-4, bell_dy=-2, clapper_dx=2),
-        bell_frame(bell_dx=4, bell_dy=1, rim=True, clapper_dx=-3, water_shift=5),
-        bell_frame(bell_dx=-1, bell_dy=1, post_dy=(1, 1)),
-    ]
+    # idle: the bell sways a pixel each way, the clapper against it, the water moves
+    idle = [bell_frame(), bell_frame(bell_dx=1, clapper_dx=-1, water_shift=3),
+            bell_frame(water_shift=5), bell_frame(bell_dx=-1, clapper_dx=1, water_shift=2)]
+    # walk: the frame rocks post by post, the bell swinging wider
+    walk = [bell_frame(post_dy=(-1, 0)), bell_frame(post_dy=(0, -1), bell_dx=1, water_shift=3),
+            bell_frame(post_dy=(-1, 0), bell_dx=1, water_shift=5), bell_frame(post_dy=(0, -1), bell_dx=-1, water_shift=2)]
+    # windup: the bell draws back, then further back and holds
+    windup = [bell_frame(bell_dx=-2, bell_dy=-1, clapper_dx=1), bell_frame(bell_dx=-4, bell_dy=-2, clapper_dx=2)]
+    # attack: the ring (the rim flashes), then the bell swings on through
+    attack = [bell_frame(bell_dx=4, bell_dy=1, rim=True, clapper_dx=-3, water_shift=5),
+              bell_frame(bell_dx=2, bell_dy=1, rim=True, clapper_dx=-1, water_shift=1)]
+    hurt = [bell_frame(bell_dx=-1, bell_dy=1, post_dy=(1, 1))]
+    # phase: the bell lifted straight up, ringing; intro: hanging low and still
+    phase = [bell_frame(bell_dy=-3, rim=True, water_shift=4)]
+    intro = [bell_frame(bell_dy=3)]
+    # death: the bell drops off its beam and comes to rest on the step, still ringing
+    death = [bell_frame(bell_dy=2, clapper_dx=1), bell_frame(bell_dy=9, rim=True), bell_frame(bell_dy=16, rim=True, post_dy=(1, 1))]
+    return idle + walk + windup + attack + hurt + phase + intro + death
 
 
 # =============================================================================
@@ -497,15 +517,27 @@ def ebb_frame(fig_dy=(0, 0, 0), arm_y=30, arm_x_end=58, lantern=(56, 26), swell=
 
 
 def build_ebb():
-    return [
-        ebb_frame(),
-        ebb_frame(fig_dy=(1, -1, 1), pool_shift=3, flame=1),
-        ebb_frame(fig_dy=(0, 1, -1), pool_shift=5, body_dx=1),
-        ebb_frame(fig_dy=(-1, 0, 1), pool_shift=7, body_dx=-1, flame=1),
-        ebb_frame(arm_y=26, arm_x_end=56, lantern=(52, 8), swell=2, fig_dy=(-2, -2, -2), pool_shift=2),
-        ebb_frame(arm_y=30, arm_x_end=62, lantern=(60, 26), swell=1, arc=True, pool_shift=4, flame=1),
-        ebb_frame(body_dx=-2, fig_dy=(2, 2, 2), pool_shift=6),
-    ]
+    # idle: the drowned inside it drift, the flame flickers, the pool's rings move
+    idle = [ebb_frame(), ebb_frame(fig_dy=(1, -1, 1), pool_shift=3, flame=1),
+            ebb_frame(fig_dy=(0, 1, -1), pool_shift=5), ebb_frame(fig_dy=(-1, 0, 1), pool_shift=7, flame=1)]
+    # walk: the figure leans a pixel each way as the water carries it
+    walk = [ebb_frame(body_dx=1, pool_shift=2), ebb_frame(fig_dy=(1, -1, 1), pool_shift=4, flame=1),
+            ebb_frame(body_dx=-1, pool_shift=6), ebb_frame(fig_dy=(-1, 1, -1), pool_shift=8, flame=1)]
+    # windup: the arm lifts the lantern, then holds it high as the body swells
+    windup = [ebb_frame(arm_y=28, arm_x_end=57, lantern=(54, 17), swell=1, fig_dy=(-1, -1, -1), pool_shift=1),
+              ebb_frame(arm_y=26, arm_x_end=56, lantern=(52, 8), swell=2, fig_dy=(-2, -2, -2), pool_shift=2)]
+    # attack: the cast reaches out with the arc, then the arm settles back
+    attack = [ebb_frame(arm_y=30, arm_x_end=62, lantern=(60, 26), swell=1, arc=True, pool_shift=4, flame=1),
+              ebb_frame(arm_y=31, arm_x_end=60, lantern=(58, 27), pool_shift=6)]
+    hurt = [ebb_frame(body_dx=-2, fig_dy=(2, 2, 2), pool_shift=6)]
+    # phase: swollen, the drowned risen, the arc up; intro: low and narrow, the lantern down
+    phase = [ebb_frame(swell=3, fig_dy=(-3, -3, -3), pool_shift=3, flame=1, arc=True)]
+    intro = [ebb_frame(swell=-2, fig_dy=(3, 3, 3), arm_y=34, arm_x_end=52, lantern=(50, 34))]
+    # death: the water lets go: the figure narrows, the drowned sink, the lantern is lowered
+    death = [ebb_frame(swell=-2, fig_dy=(3, 3, 3), arm_y=33, arm_x_end=54, lantern=(52, 32)),
+             ebb_frame(swell=-5, fig_dy=(6, 6, 6), arm_y=36, arm_x_end=50, lantern=(48, 36), pool_shift=2),
+             ebb_frame(swell=-8, fig_dy=(9, 9, 9), arm_y=38, arm_x_end=48, lantern=(46, 40), pool_shift=4)]
+    return idle + walk + windup + attack + hurt + phase + intro + death
 
 
 def strip(frames, w, h):
@@ -526,10 +558,10 @@ def main():
         small = ImageFont.load_default(size=9)
     except TypeError:
         font = small = ImageFont.load_default()
-    labels = ["idle", "idle", "walk", "walk", "windup", "attack", "hurt"]
+    labels = ["idle"] * 4 + ["walk"] * 4 + ["windup", "windup", "attack", "attack", "hurt", "phase", "intro", "death", "death", "death"]
     floors = {"wreck": "SAND", "bell": "STONE", "ebb": "BASALT"}
-    Z = 3
-    W = 12 + 7 * (72 * Z + 6) + 12
+    Z = 2
+    W = 12 + 18 * (72 * Z + 6) + 12
     sheet = Image.new("RGBA", (W, 12 + (48 + 72 + 72) * Z + 3 * 40), (30, 33, 42, 255))
     d = ImageDraw.Draw(sheet)
     y = 8

@@ -216,7 +216,7 @@ func _arm_and_activate() -> void:
 	pivot.rotation = _sweep_from
 	var tw := create_tween()
 	tw.tween_property(pivot, "rotation", _sweep_to, ACTIVE[0]).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	FX.slash(global_position, (_sweep_from + _sweep_to) * 0.5, _swing_sign < 0.0, 1.3)
+	FX.slash(global_position, (_sweep_from + _sweep_to) * 0.5, _swing_sign < 0.0)
 	Audio.play("swing", 0.15, 2.0)
 
 

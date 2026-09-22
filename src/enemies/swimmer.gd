@@ -13,13 +13,8 @@ var _dart_dir: Vector2 = Vector2.RIGHT
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"swim": {"frames": [0, 1], "fps": 6},
-		"crawl": {"frames": [2, 3], "fps": 4},
-		"windup": {"frames": [4], "fps": 1},
-		"bite": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"swim": "idle", "crawl": "walk", "windup": "windup", "bite": "attack", "hurt": "hurt"}, {"swim": 6, "crawl": 5}))
 
 
 func _enter_state(s: StringName) -> void:

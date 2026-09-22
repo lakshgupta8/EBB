@@ -177,6 +177,11 @@ static func enemy_id(e: Node) -> String:
 
 
 ## Rows for a tab: [{name, desc, lore, found}], in a fixed order.
+## The held sprite each weapon shows in its codex slot (art Stage 16).
+const WEAPON_SHEET := {"gaff": "gaff_hook", "net": "knife", "harpoon": "harpoon_gun", "lantern": "storm_lantern",
+	"bell": "keepers_bell", "line": "line_handle"}
+
+
 static func entries(kind: String) -> Array:
 	var out: Array = []
 	match kind:
@@ -188,14 +193,16 @@ static func entries(kind: String) -> Array:
 					lore += "  " + str(ENEMY_MORE[e.id])
 				elif found(kind, e.id):
 					lore += "  (%d of %d killed for more)" % [n, MORE_KILLS]
-				out.append({"name": e.name, "desc": e.desc, "lore": lore, "found": found(kind, e.id)})
+				out.append({"name": e.name, "desc": e.desc, "lore": lore, "found": found(kind, e.id),
+					"sprite": "res://assets/sprites/%s.png" % e.id})
 		"weapon":
 			for id in Weapon.ALL:
 				var w: Dictionary = Weapon.ALL[id]
 				var lore := ""
 				for a in Weapon.ASPECTS.get(id, []):
 					lore += "%s: %s.  " % [a.name, a.desc]
-				out.append({"name": w.name, "desc": w.desc, "lore": lore.strip_edges(), "found": found(kind, id)})
+				out.append({"name": w.name, "desc": w.desc, "lore": lore.strip_edges(), "found": found(kind, id),
+					"sprite": "res://assets/sprites/%s.png" % WEAPON_SHEET.get(id, id)})
 		"journal":
 			for i in Story.JOURNAL.size():
 				var id := str(i + 1)
@@ -206,10 +213,11 @@ static func entries(kind: String) -> Array:
 		"mark":
 			for m in Tidemarks.ALL:
 				out.append({"name": m.name, "desc": m.desc, "lore": FAMILY_LORE[m.family], "found": found(kind, m.id),
-					"color": Tidemarks.FAMILY_COLOR[m.family]})
+					"color": Tidemarks.FAMILY_COLOR[m.family], "family": m.family})
 		"people":
 			for p in PEOPLE:
-				out.append({"name": p.name, "desc": p.desc, "lore": p.lore, "found": found(kind, p.id)})
+				out.append({"name": p.name, "desc": p.desc, "lore": p.lore, "found": found(kind, p.id),
+					"sprite": "res://assets/sprites/npc_%s.png" % p.id})
 		"place":
 			for p in PLACES:
 				out.append({"name": p.name, "desc": p.desc, "lore": p.lore, "found": found(kind, p.id)})

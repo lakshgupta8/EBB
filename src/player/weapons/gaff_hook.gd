@@ -68,7 +68,6 @@ var _shape_home: Vector2
 var _sweep_from: float = 0.0
 var _sweep_to: float = 0.0
 var _sweep_time: float = 0.1
-var _sweep_fx_scale: float = 1.0
 var _sweep_double: bool = false
 
 @onready var pivot: Node2D = $Pivot
@@ -209,7 +208,6 @@ func _start_swing() -> void:
 	_sweep_from = aim_angle - _swing_sign * SWING_ARC * 0.5
 	_sweep_to = aim_angle + _swing_sign * SWING_ARC * 0.5
 	_sweep_time = ACTIVE[i]
-	_sweep_fx_scale = 1.15 if hitbox.pull else 1.0
 	_sweep_double = false
 	pivot.rotation = _sweep_from
 
@@ -298,7 +296,6 @@ func _start_heavy() -> void:
 	_sweep_from = aim_angle - HEAVY_ARC * 0.5
 	_sweep_to = aim_angle + HEAVY_ARC * 0.5
 	_sweep_time = HEAVY_ACTIVE
-	_sweep_fx_scale = 1.7
 	_sweep_double = true
 	pivot.rotation = _sweep_from
 	EventBus.request_shake.emit(0.6)
@@ -354,9 +351,9 @@ func _arm_and_activate(heavy: bool) -> void:
 	pivot.rotation = _sweep_from
 	var tw := create_tween()
 	tw.tween_property(pivot, "rotation", _sweep_to, _sweep_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	FX.slash(global_position, aim_angle, _swing_sign < 0.0, _sweep_fx_scale)
+	FX.slash(global_position, aim_angle, _swing_sign < 0.0)
 	if _sweep_double:
-		FX.slash(global_position, aim_angle, _swing_sign >= 0.0, _sweep_fx_scale)
+		FX.slash(global_position, aim_angle, _swing_sign >= 0.0)
 	Audio.play("heavy" if heavy else "swing", 0.15)
 
 

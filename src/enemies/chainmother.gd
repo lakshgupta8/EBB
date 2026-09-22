@@ -6,7 +6,7 @@ extends Enemy
 
 signal phase_changed(phase: int)
 
-const SHEET := preload("res://assets/sprites/chainmother.png")
+const SHEET := preload("res://assets/sprites/chainmother.png")  # 48x48 native (art Stage 19)
 const ANCHOR_TEX := preload("res://assets/sprites/anchor_drop.png")
 const BARNACLE := preload("res://src/enemies/barnacle.tscn")
 
@@ -39,13 +39,8 @@ var _chain: Line2D
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 3},
-		"windup": {"frames": [4], "fps": 1},
-		"attack": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 48, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "attack": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 3}, true), 48)
 	sweep_box.source = self
 	sweep_box.landed.connect(_on_hit_landed)
 	drop_box.source = self
@@ -57,7 +52,8 @@ func _setup_animations() -> void:
 	_chain.z_index = 3
 	_chain.visible = false
 	add_child(_chain)
-	var eye := Atmosphere.light(self, Color(1.0, 0.6, 0.25), 1.6, 0.9, Vector2(0, -8))
+	# Her cab windows: the one warm lamp the Harbour allows (STYLE.md 19).
+	var eye := Atmosphere.light(self, Atmosphere.FLAME, 1.2, 0.5, Vector2(0, -20), true)
 	Atmosphere.breathe(eye, 0.7, 1.1, 1.3)
 
 
@@ -155,8 +151,8 @@ func _tick(_delta: float) -> void:
 			# The chain is shown resting where the sweep will start.
 			_chain.visible = true
 			_chain.clear_points()
-			_chain.add_point(Vector2(0, -6))
-			_chain.add_point(Vector2.from_angle(_sweep_from) * SWEEP_REACH * 0.5 + Vector2(0, -6))
+			_chain.add_point(Vector2(0, -12))
+			_chain.add_point(Vector2.from_angle(_sweep_from) * SWEEP_REACH + Vector2(0, -12))
 			_chain.default_color = Color(0.8, 0.82, 0.9, 0.4)
 			if state_t >= SWEEP_WINDUP[p] - STRIKE_CUE_LEAD:
 				strike_cue()
@@ -168,8 +164,8 @@ func _tick(_delta: float) -> void:
 			var ang := _sweep_from + TAU * minf(1.0, state_t / SWEEP)
 			sweep_box.rotation = ang
 			_chain.clear_points()
-			_chain.add_point(Vector2(0, -6))
-			_chain.add_point(Vector2.from_angle(ang) * SWEEP_REACH / scale.x + Vector2(0, -6))
+			_chain.add_point(Vector2(0, -12))
+			_chain.add_point(Vector2.from_angle(ang) * SWEEP_REACH + Vector2(0, -12))
 			if state_t >= SWEEP:
 				change_state(&"recover")
 		&"drop_windup":
@@ -285,7 +281,7 @@ func _throw_chain() -> void:
 	face(d.x)
 	_chain.default_color = Color(0.85, 0.88, 0.95, 1.0)
 	_chain.clear_points()
-	_chain.add_point(Vector2(0, -6))
+	_chain.add_point(Vector2(0, -12))
 	_chain.add_point(to_local(player.global_position))
 	_chain.visible = true
 	Audio.play("chain", 0.1, -2.0)
@@ -323,7 +319,7 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 	if phase == 0 and health.hp <= health.max_hp / 2:
 		phase = 1
 		speed *= 1.25
-		sprite.modulate = Color(1.0, 0.8, 0.7)
+		sprite.modulate = PHASE_TINT
 		EventBus.request_shake.emit(1.0)
 		EventBus.request_hitstop.emit(0.15)
 		FX.burst(global_position, Color(1.0, 0.6, 0.3), 24, 120.0)

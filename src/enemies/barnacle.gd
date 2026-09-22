@@ -3,6 +3,8 @@ extends Enemy
 ## bursts, lunges to bite, and when you break it up it is two smaller swarms.
 
 const SHEET := preload("res://assets/sprites/barnacle.png")
+## A broken swarm's half is its own sheet, not a scaled node (STYLE.md 1).
+const SHEET_SMALL := preload("res://assets/sprites/barnacle_small.png")
 const SCENE_PATH := "res://src/enemies/barnacle.tscn"
 const BURST := 0.4
 const PAUSE := 0.3
@@ -18,15 +20,9 @@ var _burst_dir: Vector2 = Vector2.RIGHT
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 8},
-		"windup": {"frames": [4], "fps": 1},
-		"bite": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET_SMALL if small else SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "bite": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 8}))
 	if small:
-		scale = Vector2(0.7, 0.7)
 		health.max_hp = 3
 		health.hp = 3
 		salt_drop = 1

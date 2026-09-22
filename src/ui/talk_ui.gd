@@ -49,26 +49,34 @@ func _build(who: String, name: String) -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_root)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UI.panel_style())
+	# Paper in an iron frame at the bottom third (STYLE.md 15).
+	panel.add_theme_stylebox_override("panel", UI.panel_style(6))
 	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	panel.offset_left = 60
 	panel.offset_right = -60
 	panel.offset_top = -78
 	panel.offset_bottom = -10
 	_root.add_child(panel)
+	var paper := PanelContainer.new()
+	paper.add_theme_stylebox_override("panel", UI.paper_style(6))
+	panel.add_child(paper)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 10)
-	panel.add_child(h)
+	paper.add_child(h)
 	_portrait = TextureRect.new()
 	var at := AtlasTexture.new()
 	at.atlas = PROPS
-	at.region = Rect2(int(Prop.PORTRAIT.get(who, 6)) * 16, 0, 16, 16)
+	at.atlas = Prop.PORTRAITS
+	at.region = Rect2(int(Prop.PORTRAIT.get(who, 0)) * 16, 0, 16, 16)
 	_portrait.texture = at
-	_portrait.stretch_mode = TextureRect.STRETCH_KEEP
-	_portrait.scale = Vector2(3, 3)
+	# A 16x16 portrait slot at 1x (pixel art is never scaled); portraits arrive with the
+	# character sheets.
+	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	_portrait.custom_minimum_size = Vector2(16, 16)
-	var pbox := Control.new()
-	pbox.custom_minimum_size = Vector2(48, 48)
+	var pbox := PanelContainer.new()
+	pbox.add_theme_stylebox_override("panel", UI._row_style(0))
+	pbox.custom_minimum_size = Vector2(22, 22)
+	pbox.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	pbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pbox.add_child(_portrait)
 	h.add_child(pbox)
@@ -76,14 +84,14 @@ func _build(who: String, name: String) -> void:
 	v.add_theme_constant_override("separation", 3)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
-	_name = UI.label(name.to_upper(), 8, Color(0.95, 0.85, 0.6))
+	_name = UI.label(name.to_upper(), 8, UI.ACCENT)
 	v.add_child(_name)
-	_text = UI.label("", 8, Color(0.92, 0.92, 0.96))
+	_text = UI.label("", 8, UI.PRIMARY)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.custom_minimum_size = Vector2(440, 30)
 	_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(_text)
-	_hint = UI.label("", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_RIGHT)
+	_hint = UI.label("", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_RIGHT)
 	v.add_child(_hint)
 
 
