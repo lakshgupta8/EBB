@@ -6,8 +6,7 @@ Rule: one stage per approval. The next stage starts only on an explicit "Proceed
 
 ## Current stage
 
-**Stage 23 — Final polish: COMPLETE. The roadmap's 23 stages are done and committed.**
-Open for your decision: the stretch mode, the 1.5 HUD size, the Windows icon, the logo's size (see Decisions still pending).
+**Stage 23 — Final polish: COMPLETE. The roadmap's 23 stages are done and committed, and the four open decisions are taken (2026-09-22): canvas_items stays, the 1.5 HUD stays, the logo stays at 30 rows, the icon is redrawn.**
 
 ## Stage log
 
@@ -152,17 +151,14 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 - The Harbour is Wood, Tar, Iron and Stone, as 10 says; the lighthouse is a beam, not a pool.
 - Everything from v1.0-1.15.
 
-## Decisions still pending the user
+## Decisions taken by the user (2026-09-22, after Stage 23)
 
-- Stretch mode. `canvas_items` renders lights, the haze and the water glints per screen pixel (smooth at 3x); `viewport` would step them to the game pixel like everything else. A Stage 22 audit item under pixel density; it changes how every glow looks, so it is your call.
+- **Stretch mode: keep `canvas_items`.** Lights, the haze and the water glints render per screen pixel; every sprite, tile and letter stays on the game pixel. The keyframes show this.
+- **HUD size: keep the 1.5 scale.** The same trade the spec makes for text size: an accessibility setting, off the grid by one step.
+- **Icon: redrawn.** `tools/gen_icon.py` draws the logo's tower on the tide line at 16 and 24 on the palette; `installer/ebb.ico` and `icon.png` come from it; `icon.svg` is gone. The next setup exe carries it.
+- **Logo: keep 30-row capitals.**
 
-- The logo's size. It is 30-row capitals (108x58 on a 640x360 screen, 1x). The old one showed 60-row letters (2x). The generator can grow the letters to 40 rows if the title wants more weight; say so and it is one number.
-- The Windows icon (`icon.svg`, `installer/ebb.ico`) is still the smooth red-capped lighthouse from before the art stages, off the palette. It can be redrawn from the logo's tower on the tide line; it touches the installer build, so it waits for your word.
-- Whether the Harbour's hull top should step down from Iron light to Iron (a STYLE.md 10 change).
-- Whether "large" text should get a hand-drawn Ledger at 10 or 12 px.
-- Whether to flag the bosses `is_boss` (a gameplay change).
-- The 3 % void shift; the hub's unlit village; hub floor warmth; tide line strength; foam at walls; Streets cobbles read; Hall floor flatness.
-- Ebb ghost-or-figure; Wreck deck; Bell Ringer bear-or-person; Wrack Crab roundness; Violet light.
+No decision is pending.
 
 ## Visual QA findings
 

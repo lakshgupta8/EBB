@@ -333,7 +333,7 @@ Stage 17 replaced the 5x7 font (88 glyphs, 6x8 cells, line 9, no descenders, use
 ## 13. Title and logo
 
 - `title.gd` builds the hub room at tide 0.62-0.78, the lighthouse prop, the atmosphere, a dim rect (0.35), the logo `TextureRect` at scale 2 at (320 - 88, 92), tagline "keep the tide", four text buttons, an info line and a version label.
-- `logo.png` 88x30: block letters "EBB" with a water line and foam. Done in Stage 18: `tools/gen_logo.py` draws it at 108x58 and 1x (slab capitals in the Bone ramp, the lighthouse at their left, a tide mark, foam, a reflection); the title's 2x scale is gone. The old file is `assets/reference/anchors/logo_old.png`.
+- `logo.png` 88x30: block letters "EBB" with a water line and foam. Done in Stage 18: `tools/gen_logo.py` draws it at 108x58 and 1x (slab capitals in the Bone ramp, the lighthouse at their left, a tide mark, foam, a reflection); the title's 2x scale is gone. The old file is `assets/reference/anchors/logo_old.png`. The icon followed after Stage 23: `tools/gen_icon.py` draws the tower on the tide line at 16 and 24 for `installer/ebb.ico` and `icon.png`; the smooth `icon.svg` is gone.
 - The title's composition (the sea, Marrow Rock and its tower, Tam on the shore, the sweeping beam) was rebuilt in M8, before the art stages; the logo sits over its sky at (266, 24).
 
 ---
