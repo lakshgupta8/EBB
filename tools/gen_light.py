@@ -30,8 +30,10 @@ REF = os.path.join(P.ROOT, "assets", "reference", "anchors")
 CORE = 0.4        # of the radius
 CORE_ALPHA = 0.7  # the flat core (0.4 read as fog on dark floors: cobbles and basalt got no pool)
 LANTERN_SCALE = 3.2
-LANTERN_ENERGY = 0.7
+LANTERN_ENERGY = 0.9   # art Stage 23 (was 0.7)
 WARM = tuple(int(round(a + (b - a) * 0.6)) for a, b in zip(P.rgb("WARM_YELLOW"), P.rgb("PALE_CREAM")))
+# Tam's lantern since art Stage 23: Warm yellow a third toward Amber (Atmosphere.LANTERN).
+LANTERN = tuple(int(round(a + (b - a) * (1.0 / 3.0))) for a, b in zip(P.rgb("WARM_YELLOW"), P.rgb("AMBER")))
 
 
 def two_zone(d):
@@ -130,8 +132,8 @@ def main():
 
     # the lantern over the four floors
     radius = 24 * LANTERN_SCALE
-    d.text((12, y), "Tam's lantern: scale %.1f (pool %d px, core %d px), energy %.2f, colour %s (Warm yellow 60 %% toward Pale cream), over Flats sand, cobbles, basalt, hub sand  (2x)"
-           % (LANTERN_SCALE, radius * 2, radius * 2 * CORE, LANTERN_ENERGY, WARM), fill=P.rgb("PALE_SLATE"), font=small)
+    d.text((12, y), "Tam's lantern: scale %.1f (pool %d px, core %d px), energy %.2f, colour %s (Warm yellow a third toward Amber, Stage 23), over Flats sand, cobbles, basalt, hub sand  (2x)"
+           % (LANTERN_SCALE, radius * 2, radius * 2 * CORE, LANTERN_ENERGY, LANTERN), fill=P.rgb("PALE_SLATE"), font=small)
     y += 14
     bone = P.luminance(P.rgb("BONE_LIGHT"))
     x = 12
@@ -142,12 +144,12 @@ def main():
             for tx in range(11):
                 i = idx2 if (tx * 7 + ty * 13) % 5 == 0 else idx
                 floor.alpha_composite(tiles.crop((i * 16, 0, i * 16 + 16, 16)), (tx * 16, ty * 16))
-        out = lit(floor, 88, 88, radius, WARM, LANTERN_ENERGY, P.NIGHT_TINT_RUN)
+        out = lit(floor, 88, 88, radius, LANTERN, LANTERN_ENERGY, P.NIGHT_TINT_RUN)
         tam = GA.build_assets()["tam_a"] if name == "sand" else None
         if tam is not None:
             out.alpha_composite(tam, (76, 66))
         # brightest floor pixel inside the core (sample the plain floor before Tam is drawn)
-        plain = lit(floor, 88, 88, radius, WARM, LANTERN_ENERGY, P.NIGHT_TINT_RUN)
+        plain = lit(floor, 88, 88, radius, LANTERN, LANTERN_ENERGY, P.NIGHT_TINT_RUN)
         px = plain.load()
         ls = sorted(P.luminance(px[xx, yy][:3]) for yy in range(176) for xx in range(176) if math.hypot(xx - 88, yy - 88) < radius * CORE)
         med = ls[len(ls) // 2]   # the floor body; 1 px salt grains and Bone ripples sit above it by design

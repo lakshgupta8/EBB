@@ -6,8 +6,8 @@ Rule: one stage per approval. The next stage starts only on an explicit "Proceed
 
 ## Current stage
 
-**Stage 22 — Full consistency audit: COMPLETE, awaiting review.** (Stages 01-21 are committed; Stage 22 is committed as its own commit.)
-Next stage on approval: **Stage 23.**
+**Stage 23 — Final polish: COMPLETE. The roadmap's 23 stages are done and committed.**
+Open for your decision: the stretch mode, the 1.5 HUD size, the Windows icon, the logo's size (see Decisions still pending).
 
 ## Stage log
 
@@ -35,7 +35,7 @@ Next stage on approval: **Stage 23.**
 | 20 Composition pass | done 2026-09-22 | eight bot-played gameplay shots read against STYLE.md 20; fixed: water rings as translucent steps (`tools/gen_water.py`), plain Harbour silt (`tools/gen_harbour.py`), HUD plates and the whisper strip over the boss bar (`hud.gd`, `announcer.gd`), the drowned crown rim (`tools/gen_rim.py`, both enemy generators), bosses at 55 % flash and a 0.25 lit light (`enemy_base.gd`); the light knee in `hit_flash.gdshader` for every pale body under stacked lights; STYLE.md v1.18 |
 | 21 Keyframes | done 2026-09-22 | `assets/reference/keyframes/` (marrow_rock, flats, streets flooded, hall) at 640x360 from the real game via the run scene's `--keyframe` dev aid and `tools/keyframes.py`; `keyframes_sheet.png`; STYLE.md v1.19 |
 | 22 Consistency audit | done 2026-09-22 | machine checks over every sprite, scale and colour literal, plus the screens; the ten below, fixed in order of impact: shadows by cell (`tools/gen_shadow.py`, `tools/patch_shadows.py`), seven more elite costumes, the Netted's net at 1x, text snapped, the door hop, dead scales, dead cells; STYLE.md v1.20 |
-| 23 | not started | |
+| 23 Final polish | done 2026-09-22 | the brief's criteria judged on the keyframes and measured where a number exists; one change: Tam's lantern is its own warm colour at 0.9 (`Atmosphere.LANTERN`), so the pool is warmer than every floor (it was grey on cobbles and basalt); the keyframes retaken; STYLE.md v1.21 |
 
 ## Stage 19, category by category
 
@@ -102,6 +102,24 @@ How they were found: a palette scan of every sprite pixel, a scan of every node 
 
 Checked and clean: sheet layouts (16 frames at 24, 18 at 48 or 72); top-down key light on every sheet (the top third is the lightest on all of them; the left/right differences are lanterns and lamps); character proportions (every person on Tam's skeleton); boss hierarchy (48 and 72 at scale 1); UI (one kit, three sizes); water (the Stage 20 steps); biome identity (the four keyframes).
 
+## Stage 23, the polish pass
+
+The brief: improve only what materially raises readability, atmosphere, cohesion, responsiveness, hierarchy, tone and place; no random detail. Each criterion was put against the keyframes and, where a number exists, measured.
+
+| Criterion | Evidence | Verdict |
+|---|---|---|
+| The lantern felt warm because the world is cold | Red minus blue of the pool against the floor around it, on the Stage 21 keyframes: sand +12, cobbles -1 (grey), basalt none. The one thing the brief names was absent on two floors of three. | **Changed.** Six lantern colours shot in every biome with `--lantern=`; Warm yellow a third toward Amber at 0.9 wins: sand +29, cobbles +27, basalt +40, hub +69, and the sand's core stays under Bone light. The keyframes are retaken with it. |
+| Readability | Tam found in under half a second on all four; enemies carry the crown; the HUD on plates | Left. |
+| Atmosphere (cold, wet, quiet) | The night tint and the biome casts read cold on every keyframe (floor red minus blue -27 to -41); foam, wet bands and drips read wet; one whisper at a time, no music-hall effects | Left. |
+| Cohesion | One palette (the Stage 22 scan), one outline rule, one face family, one light language; the logo's tower is the hub's tower | Left. |
+| Responsiveness | Hit flash 0.15 s, hitstop, the Salt red cue before every strike, the lantern's breathing | Left: nothing measured weak. |
+| Visual hierarchy | Tam > boss > enemies > doors > water edges holds on the keyframes (Stage 20 rule 12) | Left. |
+| Emotional tone (melancholic, slightly uncanny) | The drowned stand still and wait; the whisper face; the people of the hub under one beam | Left. |
+| Sense of place | Four keyframes, each its own place at a glance | Left. |
+| Warm in small places | After the change the warm things on screen are Tam's lantern, the lit status, a lamplighter's flame, the lighthouse and the posts, each a step paler than Tam's | Left. |
+
+Not done, on purpose: no new decor, no extra effects, no brighter floors. The Tallow's wax pool reads as a flat cream disc under its flame; it is a hazard that must be seen, and it was left.
+
 ## Completed assets
 
 Shipped (`assets/sprites/`, wired into the game):
@@ -155,6 +173,11 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 3. **The letter ramp was chosen, not assumed.** Bone, Stone and Salt white were all drawn. Stone sinks into the sky; Salt is as cold as the moon and flattens the tide line; Bone reads at 1x and stays under the lamp. The sheet keeps the comparison.
 4. **The lamp ray was drawn and cut.** A solid ray from the lamp over the letters reads as a stick, and the title's own turning beam is three metres to the right of it.
 
+### Stage 23 (the polish)
+
+- Measured before: pool warmth over the floor, sand +12, cobbles -1, basalt not measurable (Tam was in water). After: +29, +27, +40, hub +69. Brightness ratio of the pool to the floor around it 1.27-1.34 in the runs, unchanged in kind.
+- In play: the four keyframes retaken; the pool reads amber on sand, warm grey on cobbles, a warm patch on basalt; the hub sand under Tam is gold. No script errors; 96 tests pass.
+
 ### Stage 22 (the audit)
 
 - In play after the fixes: the Netted's corks and its net landing spread in the Flats, the Choir card and the Bell in the Streets, every shadow a dark ellipse under the feet with the lantern on it (the lit gull's shadow on the sand is the clearest proof). No script errors; 96 tests pass.
@@ -176,4 +199,4 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 
 ## Next visual task
 
-On approval: Stage 23.
+The roadmap is complete. Open decisions are listed above; any of them is a small follow-up.

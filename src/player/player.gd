@@ -9,7 +9,7 @@ const SHEET := preload("res://assets/sprites/player.png")
 const WET_EDGE := preload("res://assets/sprites/fx_wet.png")
 const RIPPLE_EVERY := 0.35  # seconds between rings while wading
 const LANTERN_SCALE := 3.2
-const LANTERN_ENERGY := 0.7
+const LANTERN_ENERGY := 0.9   # art Stage 23: was 0.7 with the paler WARM colour
 ## Frame bindings for the 18-frame Tam sheet (STYLE.md 17). Death frames are on the sheet
 ## the death is drawn (art Stage 13), so the sprite is never rotated.
 const ANIMS := {
@@ -108,7 +108,7 @@ var _second_chance_used: bool = false
 var _wake: Hitbox
 var _lantern: PointLight2D
 var _motes: CPUParticles2D  # warm specks drifting up inside the pool (STYLE.md 14)
-var lantern_color: Color = Atmosphere.WARM
+var lantern_color: Color = Atmosphere.LANTERN
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var health: Health = $Health
@@ -144,8 +144,17 @@ func _ready() -> void:
 	lantern_color = KeeperLog.lantern_color()
 	# STYLE.md 11: a 150 px pool with a 60 px core, breathing 8 %; the floor under Tam never
 	# passes Bone light (tools/gen_light.py checks).
-	_lantern = Atmosphere.light(self, lantern_color, LANTERN_SCALE, LANTERN_ENERGY, Vector2(-4, -6))
-	Atmosphere.breathe(_lantern, LANTERN_ENERGY * 0.92, LANTERN_ENERGY * 1.08, 2.4)
+	var energy := LANTERN_ENERGY
+	for a in OS.get_cmdline_user_args():
+		# Dev aid (art Stage 23): `--lantern=r,g,b[,energy]` tries a lantern colour for a shot.
+		if a.begins_with("--lantern="):
+			var v := a.trim_prefix("--lantern=").split(",")
+			if v.size() >= 3:
+				lantern_color = Color(float(v[0]), float(v[1]), float(v[2]))
+			if v.size() >= 4:
+				energy = float(v[3])
+	_lantern = Atmosphere.light(self, lantern_color, LANTERN_SCALE, energy, Vector2(-4, -6))
+	Atmosphere.breathe(_lantern, energy * 0.92, energy * 1.08, 2.4)
 	# Lantern motes (art Stage 15): eight 1 px Warm yellow specks at 40 % rising 4 px over
 	# 2 s inside the pool's core.
 	_motes = CPUParticles2D.new()
