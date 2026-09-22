@@ -19,8 +19,11 @@ motion_mode = 1
 script = ExtResource("1_player")
 
 [node name="Shadow" type="Sprite2D" parent="."]
-position = Vector2(0, 2)
+position = Vector2(0, 3)
 texture = ExtResource("5_shadow")
+light_mask = 0
+region_enabled = true
+region_rect = Rect2(48, 0, 48, 8)
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -9)

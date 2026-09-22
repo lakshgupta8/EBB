@@ -129,13 +129,15 @@ func open() -> void:
 	_refresh_frame()
 	_icon.modulate = Color(0.65, 0.85, 1.0) if wet else Color.WHITE
 	_label.modulate = Color(1, 1, 1, 1)
-	# Pop, then bob forever; glow breathes.
-	_icon.scale = Vector2(1.6, 1.6)
+	# Hop out, then bob forever; glow breathes. (A hop, not a scale: the signboard is pixel
+	# art and stays on the grid, art Stage 22.)
+	var home := _interior * 24.0
+	_icon.position = home - _interior * 6.0
 	var pop := create_tween()
-	pop.tween_property(_icon, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	pop.tween_property(_icon, "position", home, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var bob := create_tween().set_loops()
-	bob.tween_property(_icon, "position", _icon.position - _interior * 3.0, 0.6).set_trans(Tween.TRANS_SINE)
-	bob.tween_property(_icon, "position", _icon.position, 0.6).set_trans(Tween.TRANS_SINE)
+	bob.tween_property(_icon, "position", home - _interior * 3.0, 0.6).set_trans(Tween.TRANS_SINE).set_delay(0.3)
+	bob.tween_property(_icon, "position", home, 0.6).set_trans(Tween.TRANS_SINE)
 	var breathe := create_tween().set_loops()
 	breathe.tween_property(_glow, "modulate:a", 0.75, 0.8).set_trans(Tween.TRANS_SINE)
 	breathe.tween_property(_glow, "modulate:a", 0.35, 0.8).set_trans(Tween.TRANS_SINE)

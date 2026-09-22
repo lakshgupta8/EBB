@@ -94,7 +94,9 @@ func palette_colour(color: Color) -> Color:
 
 ## Floating world text that rises and fades (RIPTIDE, CRACK...).
 func text(pos: Vector2, msg: String, color: Color, size: int = 8) -> void:
-	var l := UI.label(msg, size, color, HORIZONTAL_ALIGNMENT_CENTER)
+	# The colour snaps to the palette like a burst's (art Stage 22: a hundred call sites
+	# pass literals, and the word over the world is a palette colour or it is wrong).
+	var l := UI.label(msg, size, palette_colour(color), HORIZONTAL_ALIGNMENT_CENTER)
 	l.size = Vector2(80, 10)
 	l.position = pos + Vector2(-40, -20)
 	l.z_index = 10

@@ -1515,7 +1515,9 @@ def main():
         # door.png is written by gen_water.py (these two arches plus four water states).
         "icons": build_icons(),
     }
-    props = Image.open(os.path.join(SPRITES, "props.png")).convert("RGBA")
+    # Only cells 1, 2 and 20 are drawn (the chest, the chest open, the lantern post); every
+    # other cell was the old off-palette art and is blank since art Stage 22.
+    props = Image.new("RGBA", (16 * 21, 16), (0, 0, 0, 0))
     for idx, text in ((1, CHEST), (2, CHEST_OPEN), (20, LANTERN_POST)):
         cellim = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         cellim.alpha_composite(g16(text))

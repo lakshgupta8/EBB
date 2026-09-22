@@ -1,6 +1,6 @@
 # EBB — Visual Style Bible (STYLE.md)
 
-Version 1.19, Stage 21, 2026-09-22 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
+Version 1.20, Stage 22, 2026-09-22 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
 
 Target in one sentence: **small, expressive, atmospheric pixel art with exceptional silhouette and lighting discipline** — a cold, wet, quiet northern shore at night, with one warm light in the player's hand.
 
@@ -89,7 +89,7 @@ Sheet: panel A (the 24 px figure with Ink outside and ramp-dark inside, against 
 
 **Ramp discipline:** a material gets a 3-step ramp (dark, mid, light) plus an optional highlight. Shadow is the dark step, never black, never a different hue unless the material's ramp says so (see 6).
 
-**Drop shadows (entities):** a separate blob sprite under every grounded entity, `Ink` at 45 % alpha, width = 60 % of the body width, height 4 px (6 px for bosses). Flying things (gull) keep a shadow on the floor offset by their height. Water-borne things (swimmer) have no shadow; they have a ripple.
+**Drop shadows (entities):** a separate blob sprite under every grounded entity, `Ink` at 45 % alpha, width = 60 % of the body width, height 4 px (6 px for bosses). As built (Stage 22): `assets/sprites/shadow.png` from `tools/gen_shadow.py` is a strip of 48x8 cells (8, 10, 12, 14 wide at 4 rows; 24, 28, 36, 40 at 6) and every scene's Shadow node picks its cell by region from the body's measured width (`tools/patch_shadows.py`), never by scale; the node sits 3 px under the root (5 on a boss) and carries `light_mask = 0`, because a shadow is the absence of light and the lantern must not add to it. Before this the one blob was black at 27 % and stretched by a non-integer scale per scene, 3.4 on the Wreck. Flying things (gull) keep a shadow on the floor offset by their height. Water-borne things (swimmer) have no shadow; they have a ripple.
 
 **Cast shadow (environment):** every wall casts a 3 px shadow band on the floor along its south edge (the side facing the camera), drawn as a floor overlay tile, `Ink` at 35 % alpha. West and east edges get a 1 px band. This is what makes walls read as height. Rocks and major props get a 2 px band on the south side inside their own sprite.
 
@@ -591,6 +591,7 @@ Listed here so no later stage is surprised. None are made in Stage 02.
 | The logo: slab capitals in the Bone ramp with the lighthouse at their left, a tide mark, foam and a reflection, at 1x | 18 |
 | The composition pass: water rings as steps, plain silt, HUD plates, the strip over the boss bar, the drowned crown, bosses at 55 % flash | 20 |
 | The four keyframes, frames of the real game at 640x360, as the final references | 21 |
+| The audit: shadows by cell, every enemy an elite by costume, the Netted's net at 1x, text snapped to the palette, no scale on a boss, an icon or a net | 22 |
 | HUD sprite kit and nine-slice panels replace `draw_rect` / `StyleBoxFlat` | 16 |
 | Tidemark family colours + Echo family colour | 03 (data) / 16 (icons) |
 | Death tint from material ramp; drowned death variant | 15 |
@@ -601,6 +602,7 @@ Listed here so no later stage is surprised. None are made in Stage 02.
 
 ## Change log
 
+- 1.20 (2026-09-22, Stage 22): the full consistency audit. Machine checks: every sprite pixel against the palette (only light textures, the paper inset, the water's translucent steps and the arches' water are off it, all by design; the old prop strip's dead cells were not, and are blank now), every node scale in `src`, every colour literal against its nearest palette colour, sheet layouts, highlight sides. Fixed, in order of impact: drop shadows by cell (4); elite costumes for the six post-brief enemies and the small swarm, so no enemy grows by a quarter (18, `tools/gen_enemies_b.py`); the Netted's thrown net as its own two frames at 1x (`net_thrown.png`) instead of the player's net scaled 0.4 and turned; `FX.text` snaps its colour like bursts and rings (a hundred call sites pass literals); the door signboard hops instead of scaling 1.6; the dead 1.9 boss scale and the 1.25 elite fallback removed from `enemy_base.gd`; the talk UI's dead strip reference. Left, with reasons, in ART_PROGRESS.
 - 1.19 (2026-09-22, Stage 21): the keyframes. `tools/keyframes.py` reduces four staged screenshots to `assets/reference/keyframes/` (Marrow Rock, the Flats, the Streets flooded, the Hall) and `keyframes_sheet.png`; the run scene's `--keyframe` dev aid stages the wave and the effects. The keyframes are named as the final references in the preamble. Noted: lights, haze and glints render per screen pixel under the `canvas_items` stretch (an audit item for Stage 22: `viewport` stretch would step them to the game pixel).
 - 1.18 (2026-09-22, Stage 20): the in-game composition pass, read off bot-played gameplay shots (`tests/sim_run.tscn --shot=N`). Water (12, law in 2): the shallow-to-deep rings are translucent steps, not checkers. Harbour (10): silt is plain mud. UI (15): Ink plates under the currency and the staff word; the whisper strip rises over a boss bar. Drowned (18): the crown rim on every drowned human, `tools/gen_rim.py`, inherited by the elites. Bosses (19): 55 % flash, lit light 0.25. Lighting (11): the light knee in `hit_flash.gdshader` closes the overexposure of pale bodies under stacked lights. Readability (20): rule 12, what was checked, what was left and why.
 - 1.17 (2026-09-21, Stage 18, done after 19 by request): the logo (16). `tools/gen_logo.py` writes `logo.png` at 108x58: slab capitals grown from Plate in the Bone ramp, lit by the lighthouse at their left, a high-water line, foam at the feet, a reflection cut by wavelets, the lamp's road the only other warm pixels. Three letter ramps and a lamp ray were drawn and judged; Bone and no ray ship. On review the tower was retapered (it read as a lowercase "i") and the reflection rebuilt (it read as noise). The title draws the logo at 1x at (266, 24) with the tag under the reflection; the 2x node scale, the last one in the title scene, is gone.

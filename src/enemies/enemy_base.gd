@@ -237,7 +237,6 @@ func make_elite(p_affix: String = "") -> void:
 func make_boss(p_name: String) -> void:
 	is_boss = true
 	display_name = p_name
-	scale = Vector2(1.9, 1.9)
 	call_deferred("_apply_stat_mult", 9.0, 1.3)
 	knockback_resist = 0.9
 	pearl_drop += 4
@@ -246,12 +245,12 @@ func make_boss(p_name: String) -> void:
 
 
 ## An elite is a costume, not a scale (STYLE.md 1, art Stage 07): enemies with a
-## `<sheet>_elite.png` beside their sheet swap to it at scale 1. The rest still grow by a
-## quarter until their elite costume is drawn.
+## `<sheet>_elite.png` beside their sheet swap to it at scale 1. Every enemy has one since
+## art Stage 22; a missing sheet is a bug, never a scale.
 func _apply_elite_sheet() -> void:
 	var tex := _elite_texture()
 	if tex == null:
-		scale = Vector2(1.25, 1.25)
+		push_warning("no elite sheet for %s" % name)
 		return
 	var sf := sprite.sprite_frames
 	for anim in sf.get_animation_names():

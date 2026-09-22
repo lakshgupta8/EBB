@@ -6,8 +6,8 @@ Rule: one stage per approval. The next stage starts only on an explicit "Proceed
 
 ## Current stage
 
-**Stage 21 — Biome keyframe pass: COMPLETE, awaiting review.** (Stages 01-20 are committed; Stage 21 is committed as its own commit.)
-Next stage on approval: **Stage 22 (the full consistency audit).**
+**Stage 22 — Full consistency audit: COMPLETE, awaiting review.** (Stages 01-21 are committed; Stage 22 is committed as its own commit.)
+Next stage on approval: **Stage 23.**
 
 ## Stage log
 
@@ -34,7 +34,8 @@ Next stage on approval: **Stage 22 (the full consistency audit).**
 | 19 Asset library | done 2026-09-21 | category by category against STYLE.md: the village at 24 px with portraits (`tools/gen_people.py`); the six post-brief enemies on the 16-frame layout, the small swarm, the Chainmother native at 48x48, the Shade's bolt, the wax pool, the wisp's shot, the anchor (`tools/gen_enemies_b.py`); eight more elite costumes, every elite and boss at scale 1 (`tools/gen_enemies.py`); the Harbour's tiles, decor, dock, vault and the lighthouse beam (`tools/gen_harbour.py`); STYLE.md v1.16 |
 | 20 Composition pass | done 2026-09-22 | eight bot-played gameplay shots read against STYLE.md 20; fixed: water rings as translucent steps (`tools/gen_water.py`), plain Harbour silt (`tools/gen_harbour.py`), HUD plates and the whisper strip over the boss bar (`hud.gd`, `announcer.gd`), the drowned crown rim (`tools/gen_rim.py`, both enemy generators), bosses at 55 % flash and a 0.25 lit light (`enemy_base.gd`); the light knee in `hit_flash.gdshader` for every pale body under stacked lights; STYLE.md v1.18 |
 | 21 Keyframes | done 2026-09-22 | `assets/reference/keyframes/` (marrow_rock, flats, streets flooded, hall) at 640x360 from the real game via the run scene's `--keyframe` dev aid and `tools/keyframes.py`; `keyframes_sheet.png`; STYLE.md v1.19 |
-| 22-23 | not started | |
+| 22 Consistency audit | done 2026-09-22 | machine checks over every sprite, scale and colour literal, plus the screens; the ten below, fixed in order of impact: shadows by cell (`tools/gen_shadow.py`, `tools/patch_shadows.py`), seven more elite costumes, the Netted's net at 1x, text snapped, the door hop, dead scales, dead cells; STYLE.md v1.20 |
+| 23 | not started | |
 
 ## Stage 19, category by category
 
@@ -81,6 +82,25 @@ The shots: `tests/sim_run.tscn` with `--shot=N` (the bot plays and the sim saves
 | The Deep Hall | `keyframes/hall.png` | the lit channels, a Tallow on the walk with his wax pool, citizens standing in the water, the HUD | all seven |
 
 Taken with `--keyframe` on the run scene (Tam mid-room, a wave of six, the fight's effects) after the biome card has gone. Rejected on the way: the Flats at tide 1.4 (the whole room under deep water; it flooded but it was not the Flats), and the `--fx` demo's effects (a debug ring, not a fight).
+
+## Stage 22, the ten biggest inconsistencies
+
+How they were found: a palette scan of every sprite pixel, a scan of every node scale in `src`, a scan of every colour literal against its nearest palette colour, sheet-layout and highlight-side checks over the sheets, and the screens from Stages 20 and 21. Ranked by how often and how large it shows in play.
+
+| # | Inconsistency | Rule | Done |
+|---|---|---|---|
+| 1 | Every entity's drop shadow was black at 27 % stretched by a non-integer scale per scene (3.4 on the Wreck, 1.5x1.2 on most), against Ink 45 % at 60 % of the body width, and the lantern lit it | 4 | **Fixed.** `shadow.png` is a strip of cells; each scene picks by region from the measured body width, sits under the feet, `light_mask = 0`. No scale. |
+| 2 | The six post-brief enemies and the small swarm had no elite costume, so their elites grew by a quarter (a node scale on a sprite) | 1, 18 | **Fixed.** Seven `_elite.png` sheets (salt crust, bronze crest, taller cones, a second flame, a violet halo, corks); the fallback scale is gone. |
+| 3 | The Netted threw the player's 24 px net scaled to 0.4 and turned at random | 1, 14 | **Fixed.** `net_thrown.png`, two frames at 1x: gathered, then spread where it lands. |
+| 4 | Floating combat text took its colour from a literal at each call (169 literals in `src` are more than 24 from any palette colour; bursts and rings already snapped, text did not) | 9 | **Fixed.** `FX.text` snaps to the palette. |
+| 5 | The door signboard popped open by scaling 1.6 to 1 | 1 | **Fixed.** It hops out along the door's axis instead. |
+| 6 | `make_boss` still set a 1.9 scale (dead code) and `_apply_elite_sheet` fell back to 1.25 | 1 | **Fixed.** Both removed; a missing elite sheet warns. |
+| 7 | The old 16 px prop strip kept its dead cells (89 % of its pixels off the palette) and the talk UI still referenced it | 9 | **Fixed.** Only the chest, the chest open and the lantern post remain in `props.png`; the dead reference is gone. |
+| 8 | Lights, the haze and the water glints render per screen pixel under the `canvas_items` stretch, smooth at 3x while every sprite is stepped | 1 | **Left, your call.** `viewport` stretch steps them to the game pixel and changes every glow. |
+| 9 | The HUD size setting scales the HUD layer by 1.5 (the text size setting is the same, and STYLE.md 16 accepts it as the cost of an accessibility setting) | 1 | **Left, your call.** An integer 2x option would keep the grid but doubles the HUD. |
+| 10 | Door signboards and Tam are tinted by `modulate` for states (shut, wet, riptide), which multiplies palette colours off the palette for the moment | 9 | **Left.** The night tint multiplies every pixel the same way; a state tint is lighting, not paint. |
+
+Checked and clean: sheet layouts (16 frames at 24, 18 at 48 or 72); top-down key light on every sheet (the top third is the lightest on all of them; the left/right differences are lanterns and lamps); character proportions (every person on Tam's skeleton); boss hierarchy (48 and 72 at scale 1); UI (one kit, three sizes); water (the Stage 20 steps); biome identity (the four keyframes).
 
 ## Completed assets
 
@@ -135,6 +155,11 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 3. **The letter ramp was chosen, not assumed.** Bone, Stone and Salt white were all drawn. Stone sinks into the sky; Salt is as cold as the moon and flattens the tide line; Bone reads at 1x and stays under the lamp. The sheet keeps the comparison.
 4. **The lamp ray was drawn and cut.** A solid ray from the lamp over the letters reads as a stick, and the title's own turning beam is three metres to the right of it.
 
+### Stage 22 (the audit)
+
+- In play after the fixes: the Netted's corks and its net landing spread in the Flats, the Choir card and the Bell in the Streets, every shadow a dark ellipse under the feet with the lantern on it (the lit gull's shadow on the sand is the clearest proof). No script errors; 96 tests pass.
+- Found on the way and fixed: the scene patcher first ate the blank line between nodes, and a shadow at (0, 2) at 60 % width hid entirely behind the boots (moved to (0, 3), (0, 5) on a boss).
+
 ### Stage 20 (the composition pass)
 
 - Found and fixed: the water rings (screen door), the silt lattice, the boss name under the strip, the currency over pale ground, the boss flash slab (which turned out to be overexposure, not the flash), the Hall citizen at 1.4:1 (the crown).
@@ -151,4 +176,4 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 
 ## Next visual task
 
-On approval: Stage 22 (the full consistency audit: the ten biggest remaining inconsistencies, fixed in order of impact).
+On approval: Stage 23.

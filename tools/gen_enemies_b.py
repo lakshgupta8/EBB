@@ -29,6 +29,7 @@ import gen_rim  # noqa: E402
 from gen_anchors import LEG, grid, zoom  # noqa: E402
 from gen_characters import part, stack, cell, recolour, LEGS_STAND, LEGS_W1, LEGS_W2, LEGS_W3, LEGS_W6  # noqa: E402
 from gen_enemies import shift, lay  # noqa: E402
+import gen_enemies  # noqa: E402
 
 SPRITES = os.path.join(P.ROOT, "assets", "sprites")
 REF = os.path.join(P.ROOT, "assets", "reference", "anchors")
@@ -863,6 +864,70 @@ def shade_bolt():
 
 
 # =============================================================================
+# --- elite costumes (art Stage 22) --------------------------------------------------
+# Every enemy is an elite by costume, never by scale (STYLE.md 1). These ride the crown of
+# the body by gen_enemies.elite_sheet, like the Stage 19 eight.
+MO_CRUST = grid("""
+..W..
+.WZW.
+WWWWW
+""")                       # the mooring: a salt crust on the cap
+DH_CREST = grid("""
+..&..
+.%&%.
+~%%%~
+""")                       # the deckhand: a bronze crest on the kerchief
+BA_CONES = grid("""
+V...V...V
+BV.BV..BV
+""")                       # the barnacle: taller bone cones
+TA_FLAME = grid("""
+.c.
+ycy
+.a.
+""")                       # tallow: a second, taller flame
+CH_HALO = grid("""
+.QQQ.
+Q.D.Q
+""")                       # the choir: a violet halo
+NE_CORKS = grid("""
+B.B.B
+vBvBv
+""")                       # the netted: bone corks over the net's crown
+ELITE_COSTUMES = {
+    "mooring": (MO_CRUST, "top", (0, 1)),
+    "deckhand": (DH_CREST, "top", (0, 1)),
+    "barnacle": (BA_CONES, "top", (0, 1)),
+    "tallow": (TA_FLAME, "top", (0, 2)),
+    "choir": (CH_HALO, "top", (0, 0)),
+    "netted": (NE_CORKS, "top", (0, 1)),
+}
+
+
+def net_thrown():
+    """The Netted's thrown net, 2 x 16x16 at 1x: gathered in the hand, then spread where
+    it lands. It used to be the player's 24 px net scaled to 0.4 and turned at random
+    (art Stage 22)."""
+    im = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+    px = im.load()
+    rope, knot, cork = P.rgba("ROPE"), P.rgba("WEATHERED_BROWN"), P.rgba("BONE")
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x - 7.5, y - 7.5
+            if dx * dx + dy * dy <= 3.5 ** 2:
+                px[x, y] = rope if (x + y) % 2 == 0 else knot
+    for (x, y) in ((5, 5), (10, 5), (5, 10), (10, 10)):
+        px[x, y] = cork
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x - 7.5, y - 7.5
+            if dx * dx + dy * dy <= 7.5 ** 2 and ((x + y) % 4 == 0 or (x - y) % 4 == 0):
+                px[16 + x, y] = rope
+    for (x, y) in ((7, 0), (8, 0), (14, 4), (14, 11), (7, 15), (8, 15), (1, 11), (1, 4)):
+        px[16 + x, y] = cork
+    return im
+
+
 def main():
     os.makedirs(SPRITES, exist_ok=True)
     os.makedirs(REF, exist_ok=True)
@@ -875,11 +940,16 @@ def main():
         "choir": choir_frames(),
         "netted": netted_frames(),
     }
+    gen_enemies.COSTUMES.update(ELITE_COSTUMES)
     for name, frames in built.items():
         assert len(frames) == 16, (name, len(frames))
         if name in gen_rim.DROWNED:       # the wet crown (STYLE.md 18, Stage 20)
             gen_rim.crown(frames)
         strip(frames).save(os.path.join(SPRITES, name + ".png"))
+        kind = "barnacle" if name == "barnacle_small" else name
+        elite = gen_enemies.elite_sheet(kind, frames)
+        strip(elite).save(os.path.join(SPRITES, name + "_elite.png"))
+    net_thrown().save(os.path.join(SPRITES, "net_thrown.png"))
     boss = chainmother_frames()
     assert len(boss) == 18
     strip(boss, BW, BW).save(os.path.join(SPRITES, "chainmother.png"))
