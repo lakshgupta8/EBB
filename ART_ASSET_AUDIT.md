@@ -386,7 +386,7 @@ Stage 17 replaced the 5x7 font (88 glyphs, 6x8 cells, line 9, no descenders, use
 
 ## 16. Visual QA of the current build (what the screenshots show)
 
-Reference images: `.shots/title.png`, `hub.png`, `latest.png` (Streets), `sim_run.png` and `run_whisper.png` (Flats), `sim_depth_13.png` (Streets flooded), `sim_boss.png` (Ebb), `hub_codex.png`, `sim_altar.png`, `hub_pause2.png`, `sim_results.png`, `hub_ending_break.png`.
+Reference images: the Stage 21 keyframes in `assets/reference/keyframes/` (marrow_rock, flats, streets flooded, hall) are the final references; the `.shots/` files below are the working captures from before the art stages: `title.png`, `hub.png`, `latest.png` (Streets), `sim_run.png` and `run_whisper.png` (Flats), `sim_depth_13.png` (Streets flooded), `sim_boss.png` (Ebb), `hub_codex.png`, `sim_altar.png`, `hub_pause2.png`, `sim_results.png`, `hub_ending_break.png`.
 
 1. **Water does not read as water.** The diagonal hatch looks like rain on glass; at 62 % alpha the Streets become a uniform blue field where floor, decor and the raised island all merge. Foam is a dotted rectangle outline on every flooded cell that touches ground, on all four sides, which reads as a selection marquee.
 2. **The lantern over-exposes.** The centre of Tam's light clips the sand to cream-white and hides the floor texture; it is a fog of light, not a lantern. Warm light is used by too many sources to feel precious.

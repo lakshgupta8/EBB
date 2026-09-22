@@ -1,6 +1,6 @@
 # EBB — Visual Style Bible (STYLE.md)
 
-Version 1.18, Stage 20, 2026-09-22 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
+Version 1.19, Stage 21, 2026-09-22 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
 
 Target in one sentence: **small, expressive, atmospheric pixel art with exceptional silhouette and lighting discipline** — a cold, wet, quiet northern shore at night, with one warm light in the player's hand.
 
@@ -20,6 +20,8 @@ Tone in three words: **melancholy, warm, uncanny.** Not horror. Not gothic. Not 
 8. **Detail density follows importance.** Player and bosses highest, enemies and interactables medium, floor and background lowest. The floor must never be busier than what stands on it.
 9. **Every biome has its own cast, on a shared foundation.** Same ramps, different mixes. If a screenshot cannot be placed in a biome within a second, the tile set is wrong.
 10. **Readability beats detail.** When a choice trades beauty for legibility at ten enemies plus water plus HUD, legibility wins.
+
+**The keyframes (Stage 21).** `assets/reference/keyframes/` holds the four final visual references, one 640x360 frame of the real game for each place, made by `tools/keyframes.py` from the run scene's `--keyframe` dev aid (Tam mid-room, a wave of six closing in, the fight's own effects: the arc, a spark, the Salt red cue, one enemy lit, one bleeding, drips) and the hub as it stands: `marrow_rock.png` (the twelve people, the beam across the sand, the tide at the dock), `flats.png` (a wet room at tide 0.8: sand, four foam-edged pools, a wet strip, crabs, shellbacks, gulls), `streets.png` (flooded to the doors: the flooding keyframe), `hall.png` (the lit channels, a Tallow and his wax, citizens in the water). All four on `assets/reference/anchors/keyframes_sheet.png`. When a later asset and a keyframe disagree, the keyframe is the reference and this document is the rule it was checked against. Known limit: under the `canvas_items` stretch, lights, the haze and the water's glints are rendered per screen pixel, so in a keyframe reduced from the 3x window they are sampled one pixel per block; every tile, sprite and letter is the game's own pixel. The hub keyframe has no run HUD and no enemies, because the hub has neither; its people and its info bar stand in.
 
 ---
 
@@ -588,6 +590,7 @@ Listed here so no later stage is surprised. None are made in Stage 02.
 | The village at 24 px with portraits; the six post-brief enemies and eight more costumes; the Chainmother native; the Harbour's tiles, decor, dock, vault; the lighthouse beam; the Shade's bolt | 19 |
 | The logo: slab capitals in the Bone ramp with the lighthouse at their left, a tide mark, foam and a reflection, at 1x | 18 |
 | The composition pass: water rings as steps, plain silt, HUD plates, the strip over the boss bar, the drowned crown, bosses at 55 % flash | 20 |
+| The four keyframes, frames of the real game at 640x360, as the final references | 21 |
 | HUD sprite kit and nine-slice panels replace `draw_rect` / `StyleBoxFlat` | 16 |
 | Tidemark family colours + Echo family colour | 03 (data) / 16 (icons) |
 | Death tint from material ramp; drowned death variant | 15 |
@@ -598,6 +601,7 @@ Listed here so no later stage is surprised. None are made in Stage 02.
 
 ## Change log
 
+- 1.19 (2026-09-22, Stage 21): the keyframes. `tools/keyframes.py` reduces four staged screenshots to `assets/reference/keyframes/` (Marrow Rock, the Flats, the Streets flooded, the Hall) and `keyframes_sheet.png`; the run scene's `--keyframe` dev aid stages the wave and the effects. The keyframes are named as the final references in the preamble. Noted: lights, haze and glints render per screen pixel under the `canvas_items` stretch (an audit item for Stage 22: `viewport` stretch would step them to the game pixel).
 - 1.18 (2026-09-22, Stage 20): the in-game composition pass, read off bot-played gameplay shots (`tests/sim_run.tscn --shot=N`). Water (12, law in 2): the shallow-to-deep rings are translucent steps, not checkers. Harbour (10): silt is plain mud. UI (15): Ink plates under the currency and the staff word; the whisper strip rises over a boss bar. Drowned (18): the crown rim on every drowned human, `tools/gen_rim.py`, inherited by the elites. Bosses (19): 55 % flash, lit light 0.25. Lighting (11): the light knee in `hit_flash.gdshader` closes the overexposure of pale bodies under stacked lights. Readability (20): rule 12, what was checked, what was left and why.
 - 1.17 (2026-09-21, Stage 18, done after 19 by request): the logo (16). `tools/gen_logo.py` writes `logo.png` at 108x58: slab capitals grown from Plate in the Bone ramp, lit by the lighthouse at their left, a high-water line, foam at the feet, a reflection cut by wavelets, the lamp's road the only other warm pixels. Three letter ramps and a lamp ray were drawn and judged; Bone and no ray ship. On review the tower was retapered (it read as a lowercase "i") and the reflection rebuilt (it read as noise). The title draws the logo at 1x at (266, 24) with the tag under the reflection; the 2x node scale, the last one in the title scene, is gone.
 - 1.16 (2026-09-21, Stage 19): the asset library rebuilt category by category (as-built notes in 7, 10, 11, 18 and 19). `tools/gen_people.py`: ten more people at 24 px and twelve portraits; `tools/gen_enemies_b.py`: the six post-brief enemies on the 16-frame layout, the small swarm, the Chainmother at 48x48, the anchor, the wax pool at 40x28, the wisp's shot, the Shade's bolt; `tools/gen_enemies.py`: eight more elite costumes (every scale on an elite or a boss is gone); `tools/gen_harbour.py`: tiles 26-31, decor4, the dock, the vault, the beam. Stage 18 (the logo) was skipped by request and stays open. Tests: `tests/test_village.gd` counts twelve portraits.

@@ -6,8 +6,8 @@ Rule: one stage per approval. The next stage starts only on an explicit "Proceed
 
 ## Current stage
 
-**Stage 20 — In-game composition pass: COMPLETE, committed with Stages 11-19.**
-Next stage on approval: **Stage 21 (the biome keyframes).**
+**Stage 21 — Biome keyframe pass: COMPLETE, awaiting review.** (Stages 01-20 are committed; Stage 21 is committed as its own commit.)
+Next stage on approval: **Stage 22 (the full consistency audit).**
 
 ## Stage log
 
@@ -33,7 +33,8 @@ Next stage on approval: **Stage 21 (the biome keyframes).**
 | 18 Logo and title | done 2026-09-21 (after 19, by request) | `tools/gen_logo.py`: `logo.png` 108x58 at 1x, slab capitals grown from Plate in the Bone ramp, the lighthouse at their left, a high-water line, foam and a reflection; the title's 2x scale gone; STYLE.md v1.17 |
 | 19 Asset library | done 2026-09-21 | category by category against STYLE.md: the village at 24 px with portraits (`tools/gen_people.py`); the six post-brief enemies on the 16-frame layout, the small swarm, the Chainmother native at 48x48, the Shade's bolt, the wax pool, the wisp's shot, the anchor (`tools/gen_enemies_b.py`); eight more elite costumes, every elite and boss at scale 1 (`tools/gen_enemies.py`); the Harbour's tiles, decor, dock, vault and the lighthouse beam (`tools/gen_harbour.py`); STYLE.md v1.16 |
 | 20 Composition pass | done 2026-09-22 | eight bot-played gameplay shots read against STYLE.md 20; fixed: water rings as translucent steps (`tools/gen_water.py`), plain Harbour silt (`tools/gen_harbour.py`), HUD plates and the whisper strip over the boss bar (`hud.gd`, `announcer.gd`), the drowned crown rim (`tools/gen_rim.py`, both enemy generators), bosses at 55 % flash and a 0.25 lit light (`enemy_base.gd`); the light knee in `hit_flash.gdshader` for every pale body under stacked lights; STYLE.md v1.18 |
-| 21-23 | not started | |
+| 21 Keyframes | done 2026-09-22 | `assets/reference/keyframes/` (marrow_rock, flats, streets flooded, hall) at 640x360 from the real game via the run scene's `--keyframe` dev aid and `tools/keyframes.py`; `keyframes_sheet.png`; STYLE.md v1.19 |
+| 22-23 | not started | |
 
 ## Stage 19, category by category
 
@@ -70,6 +71,17 @@ The shots: `tests/sim_run.tscn` with `--shot=N` (the bot plays and the sim saves
 | Effect density | flare, riptide, harpoon, sparks | Under the cap in every shot; the boss hit flash was the one effect that erased its target: 55 % on bosses. |
 | Biome identity | all | Flats warm-grey and open, Harbour tar and wood around a basin, Streets cold cobble and pools, Hall black with lit water. Reads. |
 
+## Stage 21, the keyframes
+
+| Place | Frame | What it holds | Requirement check |
+|---|---|---|---|
+| Marrow Rock | `keyframes/marrow_rock.png` | the twelve people, the beam across the sand, the tide at the dock, Tam's lantern, the hub's info bar | no run HUD and no enemies: the hub has neither; the drowned people stand in for the drowned treatment |
+| The Flats | `keyframes/flats.png` | a wet room at tide 0.8: sand, four foam-edged pools and a wet strip, two crabs, two shellbacks, two gulls, the arc, a spark, the cue ring, the HUD | all seven |
+| The Drowned Streets | `keyframes/streets.png` | flooded to the doors, a lit lamplighter, citizens, Tam's arc over water, the HUD | all seven; **the flooding keyframe** |
+| The Deep Hall | `keyframes/hall.png` | the lit channels, a Tallow on the walk with his wax pool, citizens standing in the water, the HUD | all seven |
+
+Taken with `--keyframe` on the run scene (Tam mid-room, a wave of six, the fight's effects) after the biome card has gone. Rejected on the way: the Flats at tide 1.4 (the whole room under deep water; it flooded but it was not the Flats), and the `--fx` demo's effects (a debug ring, not a fight).
+
 ## Completed assets
 
 Shipped (`assets/sprites/`, wired into the game):
@@ -104,6 +116,8 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 
 ## Decisions still pending the user
 
+- Stretch mode. `canvas_items` renders lights, the haze and the water glints per screen pixel (smooth at 3x); `viewport` would step them to the game pixel like everything else. A Stage 22 audit item under pixel density; it changes how every glow looks, so it is your call.
+
 - The logo's size. It is 30-row capitals (108x58 on a 640x360 screen, 1x). The old one showed 60-row letters (2x). The generator can grow the letters to 40 rows if the title wants more weight; say so and it is one number.
 - The Windows icon (`icon.svg`, `installer/ebb.ico`) is still the smooth red-capped lighthouse from before the art stages, off the palette. It can be redrawn from the logo's tower on the tide line; it touches the installer build, so it waits for your word.
 - Whether the Harbour's hull top should step down from Iron light to Iron (a STYLE.md 10 change).
@@ -137,4 +151,4 @@ Reference: `assets/reference/anchors/people_sheet.png`, `enemies_b_sheet.png`, `
 
 ## Next visual task
 
-On approval: Stage 21 (one 640x360 keyframe each for Marrow Rock, the Flats, the Streets and the Hall, at least one flooded, each with HUD, player, enemies, environment, water and lighting).
+On approval: Stage 22 (the full consistency audit: the ten biggest remaining inconsistencies, fixed in order of impact).

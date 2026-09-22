@@ -1512,6 +1512,50 @@ func _end_run() -> void:
 
 ## Dev aid for the art review (Stage 15): `--fx` with `--screenshot` fires one of every effect
 ## around Tam and puts LIT, STUN, a cue ring and a crack on the first enemies, just before the shot.
+## Dev aid for the biome keyframes (art Stage 21): Tam in the middle of the room and a
+## full wave of the biome's enemies closing in, so one frame holds everything the
+## reference must show. Pair with --fx, --wet, --tide=N and --screenshot.
+func _keyframe_stage() -> void:
+	if player == null or room == null:
+		return
+	player.global_position = room.cell_to_world(Vector2i(room.template.width / 2, room.template.height / 2))
+	var present := 0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e is Enemy and not e.is_boss:
+			present += 1
+	if present < 6:
+		_spawn_enemies(6 - present, true)
+
+
+## The keyframe's effects, the ones a fight has: Tam's arc toward the nearest enemy, a
+## spark on it and its Salt red cue, one enemy lit, one bleeding, drips off the walls.
+func _keyframe_fx() -> void:
+	var nearest: Enemy = null
+	var best := 1.0e9
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e is Enemy and not e.is_boss:
+			var d: float = e.global_position.distance_to(player.global_position)
+			if d < best:
+				best = d
+				nearest = e
+	var p := player.global_position
+	if nearest != null:
+		FX.slash(p + Vector2(0, -6), (nearest.global_position - p).angle())
+		FX.spark(nearest.global_position + nearest.body_centre())
+		nearest.strike_cue()
+		var i := 0
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if e is Enemy and e != nearest and not e.is_boss:
+				if i == 0:
+					e.lit(3.0)
+				elif i == 1:
+					e.apply_bleed(3)
+				i += 1
+	if room != null:
+		for k in 4:
+			room.call("_tick_drips", 4.0)
+
+
 func _fx_demo() -> void:
 	if player == null:
 		return
@@ -1580,6 +1624,12 @@ func _handle_screenshot_arg() -> void:
 			frames = int(a.trim_prefix("--wait="))
 	for i in frames:
 		await get_tree().process_frame
+	if "--keyframe" in OS.get_cmdline_user_args():
+		_keyframe_stage()
+		await get_tree().create_timer(3.8).timeout  # real seconds: the card goes, the wave walks in
+		_keyframe_fx()
+		for i in 3:
+			await get_tree().process_frame
 	if "--fx" in OS.get_cmdline_user_args():
 		_fx_demo()
 		for i in 3:
