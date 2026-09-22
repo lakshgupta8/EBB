@@ -5,7 +5,7 @@ extends Enemy
 ## dash, or do not be there.
 
 const SHEET := preload("res://assets/sprites/netted.png")
-const THROWN_NET := preload("res://assets/sprites/net.png")
+const THROWN_NET := preload("res://assets/sprites/net_thrown.png")  # 2 x 16x16: gathered, spread
 const REACH := 30.0
 const SWING_WINDUP := 0.45
 const SWING := 0.18
@@ -28,6 +28,7 @@ func _setup_animations() -> void:
 	_throw_t = randf_range(1.0, 2.5)
 	_net = Sprite2D.new()
 	_net.texture = THROWN_NET
+	_net.hframes = 2
 	_net.z_index = 4
 	_net.top_level = true
 	_net.visible = false
@@ -122,12 +123,10 @@ func _throw_net() -> void:
 	_net.visible = true
 	_net.modulate = Color(1, 1, 1, 0.95)
 	_net.global_position = global_position + Vector2(0, -8)
-	_net.scale = Vector2(0.4, 0.4)
-	_net.rotation = randf() * TAU
+	_net.frame = 0   # gathered in the hand; it opens where it lands (no scale, no turn: STYLE.md 1)
 	Audio.play("net", 0.1, -2.0)
 	var tw := create_tween()
 	tw.tween_property(_net, "global_position", at, 0.22)
-	tw.parallel().tween_property(_net, "scale", Vector2(1, 1), 0.22)
 	tw.tween_callback(_land_net.bind(at))
 	tw.tween_interval(NET_ROOT)
 	tw.tween_property(_net, "modulate:a", 0.0, 0.3)
@@ -135,6 +134,7 @@ func _throw_net() -> void:
 
 
 func _land_net(at: Vector2) -> void:
+	_net.frame = 1
 	FX.burst(at, Color(0.85, 0.75, 0.55, 0.9), 8, 45.0)
 	if player == null or player.dead:
 		return

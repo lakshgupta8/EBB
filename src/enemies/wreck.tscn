@@ -32,9 +32,11 @@ salt_drop = 12
 pearl_drop = 6
 
 [node name="Shadow" type="Sprite2D" parent="."]
-position = Vector2(0, 4)
-scale = Vector2(3.4, 2.6)
+position = Vector2(0, 5)
 texture = ExtResource("5_shadow")
+light_mask = 0
+region_enabled = true
+region_rect = Rect2(336, 0, 48, 8)
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -21)

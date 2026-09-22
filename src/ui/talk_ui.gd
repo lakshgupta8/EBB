@@ -6,7 +6,6 @@ extends CanvasLayer
 
 signal finished
 
-const PROPS := preload("res://assets/sprites/props.png")
 
 var is_open: bool = false
 var _lines: Array = []
@@ -65,7 +64,6 @@ func _build(who: String, name: String) -> void:
 	paper.add_child(h)
 	_portrait = TextureRect.new()
 	var at := AtlasTexture.new()
-	at.atlas = PROPS
 	at.atlas = Prop.PORTRAITS
 	at.region = Rect2(int(Prop.PORTRAIT.get(who, 0)) * 16, 0, 16, 16)
 	_portrait.texture = at

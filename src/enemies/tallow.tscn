@@ -23,9 +23,11 @@ death_color = Color(0.86, 0.8, 0.66, 1)
 salt_drop = 4
 
 [node name="Shadow" type="Sprite2D" parent="."]
-position = Vector2(0, 2)
-scale = Vector2(1.2, 1)
+position = Vector2(0, 3)
 texture = ExtResource("4_shadow")
+light_mask = 0
+region_enabled = true
+region_rect = Rect2(0, 0, 48, 8)
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -8)

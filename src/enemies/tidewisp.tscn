@@ -25,9 +25,11 @@ salt_drop = 3
 
 [node name="Shadow" type="Sprite2D" parent="."]
 position = Vector2(0, 4)
-scale = Vector2(0.7, 0.6)
 modulate = Color(1, 1, 1, 0.5)
 texture = ExtResource("4_shadow")
+light_mask = 0
+region_enabled = true
+region_rect = Rect2(0, 0, 48, 8)
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -6)

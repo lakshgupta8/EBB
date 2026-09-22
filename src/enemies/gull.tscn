@@ -28,8 +28,10 @@ death_color = Color(0.92, 0.92, 0.88, 1)
 
 [node name="Shadow" type="Sprite2D" parent="."]
 position = Vector2(0, 8)
-scale = Vector2(0.8, 0.8)
 texture = ExtResource("5_shadow")
+light_mask = 0
+region_enabled = true
+region_rect = Rect2(0, 0, 48, 8)
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -8)
