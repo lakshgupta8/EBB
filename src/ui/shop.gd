@@ -89,7 +89,7 @@ func buy(i: int) -> bool:
 	if not can_buy(i):
 		if _hint:
 			_hint.text = "not enough salt" if _stock[i] > 0 else "sold out"
-			_hint.modulate = Color(1.0, 0.6, 0.55)
+			UI.hint_kind(_hint, "bad")
 		return false
 	var it: Dictionary = ITEMS[i]
 	_run.state.salt -= _price(i)
@@ -111,13 +111,13 @@ func buy(i: int) -> bool:
 	_refresh()
 	if _hint:
 		_hint.text = "bought %s" % it.name.to_lower()
-		_hint.modulate = Color(0.75, 0.95, 0.8)
+		UI.hint_kind(_hint, "ok")
 	return true
 
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -131,8 +131,8 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(340, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("THE DROWNED MERCHANT", 16, Color(0.7, 0.85, 0.95), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("\"Salt for salt. That is the bargain.\"", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("THE DROWNED MERCHANT"))
+	box.add_child(UI.label("\"Salt for salt. That is the bargain.\"", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
 	_rows = []
 	for i in ITEMS.size():
@@ -143,7 +143,7 @@ func _build() -> void:
 		var a := UI.label("[%d] %s" % [i + 1, it.name], 8)
 		a.custom_minimum_size = Vector2(110, 0)
 		var d := UI.flex_label(it.desc)
-		var c := UI.label("%d salt" % _price(i), 8, Color(0.98, 0.9, 0.6), HORIZONTAL_ALIGNMENT_RIGHT)
+		var c := UI.label("%d salt" % _price(i), 8, UI.ACCENT, HORIZONTAL_ALIGNMENT_RIGHT)
 		c.custom_minimum_size = Vector2(50, 0)
 		h.add_child(a)
 		h.add_child(d)
@@ -155,9 +155,9 @@ func _build() -> void:
 		box.add_child(b)
 		_rows.append([a, d, c, b])
 	box.add_child(UI.spacer(4))
-	_salt_label = UI.label("", 8, Color(0.98, 0.9, 0.6), HORIZONTAL_ALIGNMENT_CENTER)
+	_salt_label = UI.label("", 8, UI.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_salt_label)
-	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_hint = UI.label(" ", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
 	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -171,8 +171,8 @@ func _refresh() -> void:
 	_salt_label.text = "you carry %d salt" % _run.state.salt
 	for i in _rows.size():
 		var dimmed := not can_buy(i)
-		var col := Color(0.5, 0.5, 0.55) if dimmed else Color(0.95, 0.93, 0.9)
+		var col := UI.MUTED if dimmed else UI.PRIMARY
 		_rows[i][0].add_theme_color_override("font_color", col)
 		if _stock[i] <= 0:
 			_rows[i][2].text = "sold"
-			_rows[i][2].add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			_rows[i][2].add_theme_color_override("font_color", UI.MUTED)

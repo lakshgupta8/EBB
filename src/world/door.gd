@@ -11,7 +11,6 @@ signal entered(door: Door)
 
 const ICONS := preload("res://assets/sprites/icons.png")
 const FRAME := preload("res://assets/sprites/door.png")
-const GLOW := preload("res://assets/sprites/glow.png")
 const DESCEND := -1  # hub door, and the way down out of a boss arena
 ## door.png cells.
 enum Frame { SHUT, OPEN, WATER_CLOSED, FLOODED, WET_SHUT, WET_OPEN }
@@ -58,9 +57,10 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	_refresh_frame()
 
 	_glow = Sprite2D.new()
-	_glow.texture = GLOW
+	_glow.texture = Atmosphere.HAZE
+	_glow.scale = Vector2(0.4, 0.4)
 	_glow.position = _interior * 6.0
-	_glow.modulate = Color(0.55, 0.85, 1.0, 0.0)
+	_glow.modulate = Color(Atmosphere.COLD, 0.0)
 	_glow.z_index = 2
 	add_child(_glow)
 
@@ -140,8 +140,8 @@ func open() -> void:
 	breathe.tween_property(_glow, "modulate:a", 0.75, 0.8).set_trans(Tween.TRANS_SINE)
 	breathe.tween_property(_glow, "modulate:a", 0.35, 0.8).set_trans(Tween.TRANS_SINE)
 	FX.burst(global_position + _interior * 8.0, Color(0.6, 0.85, 1.0), 10, 40.0)
-	var l := Atmosphere.light(self, Color(0.55, 0.8, 1.0), 2.2, 0.9, _interior * 10.0)
-	Atmosphere.breathe(l, 0.7, 1.1, 1.6)
+	var l := Atmosphere.light(self, Atmosphere.COLD, 1.6, 0.4, _interior * 10.0)
+	Atmosphere.breathe(l, 0.34, 0.46, 1.6)
 	Audio.play("door", 0.05, -4.0)
 
 

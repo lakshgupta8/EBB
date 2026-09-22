@@ -11,6 +11,7 @@ const KINDLE_RADIUS := 130.0
 const KINDLE_TIME := 5.0
 const KINDLE_WINDUP := 0.5
 const THROW_WINDUP := 0.45
+const THROW_FOLLOW := 0.25
 const THROW_RANGE := 190.0
 const SHOT_SPEED := 175.0
 const SHOT_DAMAGE := 7
@@ -21,16 +22,13 @@ var _glow: PointLight2D
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 3},
-		"walk": {"frames": [2, 3], "fps": 7},
-		"kindle": {"frames": [4], "fps": 1},
-		"throw": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	var a := anims({"idle": "idle", "walk": "walk", "kindle": "windup", "throw": "attack", "hurt": "hurt"}, {"idle": 3, "walk": 7})
+	# The throw's anticipation alone: the pole drawn back (the kindle's flare is not a throw tell).
+	a["brace"] = {"frames": [8], "fps": 1, "loop": false}
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, a)
 	_strafe_dir = 1.0 if randf() < 0.5 else -1.0
 	_act_t = randf_range(1.0, 2.0)
-	_glow = Atmosphere.light(self, Color(1.0, 0.8, 0.5), 2.2, 0.8, Vector2(6, -10))
+	_glow = Atmosphere.light(self, Atmosphere.FLAME, 1.6, 0.5, Vector2(6, -10))
 	Atmosphere.breathe(_glow, 0.6, 1.0, 1.4)
 
 
@@ -45,6 +43,9 @@ func _enter_state(s: StringName) -> void:
 			play("kindle")
 			velocity = Vector2.ZERO
 		&"throw_windup":
+			play("brace")
+			velocity = Vector2.ZERO
+		&"throw":
 			play("throw")
 			velocity = Vector2.ZERO
 
@@ -87,6 +88,10 @@ func _tick(delta: float) -> void:
 				strike_cue()
 			if state_t >= THROW_WINDUP:
 				_throw(d)
+				change_state(&"throw")
+		&"throw":
+			velocity = Vector2.ZERO
+			if state_t >= THROW_FOLLOW:
 				change_state(&"drift")
 
 
@@ -112,7 +117,7 @@ func _throw(d: Vector2) -> void:
 	var dir := d.normalized() if d != Vector2.ZERO else Vector2.RIGHT
 	var p := Projectile.spawn(get_parent(), global_position + Vector2(6, -10), dir * SHOT_SPEED, SHOT_DAMAGE, LANTERN, self, 64, 1.4)
 	p.knockback = 120.0
-	Atmosphere.light(p, Color(1.0, 0.8, 0.5), 1.6, 0.9)
+	Atmosphere.light(p, Atmosphere.FLAME, 1.0, 0.5, Vector2.ZERO, true)
 	Audio.play("kindle", 0.3, -6.0)
 
 

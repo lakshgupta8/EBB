@@ -83,21 +83,21 @@ func _listen(event: InputEvent) -> void:
 func _start_listen(action: String) -> void:
 	listening = action
 	_status.text = "press a key, a mouse button or a pad button for %s   (Esc keeps it)" % Settings.ACTION_NAMES[action].to_lower()
-	_status.modulate = Color(1.0, 0.85, 0.5)
+	UI.hint_kind(_status, "accent")
 	_refresh()
 
 
 func _stop_listen(text: String) -> void:
 	listening = ""
 	_status.text = text
-	_status.modulate = Color(0.75, 0.95, 0.8)
+	UI.hint_kind(_status, "ok")
 	Audio.play("ui", 0.0, -8.0)
 	_refresh()
 
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -111,16 +111,16 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 2)
 	box.custom_minimum_size = Vector2(360, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("CONTROLS", 16, Color(0.85, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("pick a row, then press what you want it to be", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("CONTROLS"))
+	box.add_child(UI.label("pick a row, then press what you want it to be", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(2))
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)
-	var h0 := UI.label("", 8, Color(0.55, 0.6, 0.7))
+	var h0 := UI.label("", 8, UI.SECONDARY)
 	h0.custom_minimum_size = Vector2(130, 0)
-	var h1 := UI.label("keyboard / mouse", 8, Color(0.55, 0.6, 0.7))
+	var h1 := UI.label("keyboard / mouse", 8, UI.SECONDARY)
 	h1.custom_minimum_size = Vector2(110, 0)
-	var h2 := UI.label("pad", 8, Color(0.55, 0.6, 0.7))
+	var h2 := UI.label("pad", 8, UI.SECONDARY)
 	h2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(h0)
 	head.add_child(h1)
@@ -138,9 +138,9 @@ func _build() -> void:
 		h.add_theme_constant_override("separation", 8)
 		var n := UI.label("[%d] %s" % [i + 1, Settings.ACTION_NAMES[a]], 8)
 		n.custom_minimum_size = Vector2(130, 0)
-		var k := UI.label("", 8, Color(0.92, 0.92, 0.98))
+		var k := UI.label("", 8, UI.PRIMARY)
 		k.custom_minimum_size = Vector2(110, 0)
-		var p := UI.label("", 8, Color(0.92, 0.92, 0.98))
+		var p := UI.label("", 8, UI.PRIMARY)
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(n)
 		h.add_child(k)
@@ -156,11 +156,11 @@ func _build() -> void:
 		_rows[a] = [k, p, b]
 		buttons.append(b)
 	box.add_child(UI.spacer(2))
-	_status = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_status = UI.label(" ", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.custom_minimum_size = Vector2(340, 0)
 	box.add_child(_status)
-	box.add_child(UI.label("Menus: arrows or the move keys, Enter or A picks, Esc or B leaves; numbers jump", 8, Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("Menus: arrows or the move keys, Enter or A picks, Esc or B leaves; numbers jump", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(2))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
@@ -169,7 +169,7 @@ func _build() -> void:
 	reset.pressed.connect(func():
 		Settings.reset_bindings()
 		_status.text = "back to the keeper's own bindings"
-		_status.modulate = Color(0.75, 0.95, 0.8)
+		UI.hint_kind(_status, "ok")
 		Audio.play("ui", 0.0, -8.0)
 		_refresh())
 	row.add_child(reset)
@@ -192,13 +192,13 @@ func _refresh() -> void:
 		if a == listening:
 			k.text = "..."
 			p.text = "..."
-			k.modulate = Color(1.0, 0.85, 0.5)
-			p.modulate = Color(1.0, 0.85, 0.5)
+			k.modulate = UI.ACCENT
+			p.modulate = UI.ACCENT
 			continue
 		var kn := Settings.key_name(a)
 		var pn := Settings.pad_name(a)
 		k.text = kn if kn != "" else "-"
 		p.text = pn if pn != "" else "-"
 		var changed := Settings.is_rebound(a)
-		k.modulate = Color(1.0, 0.95, 0.8) if changed else Color.WHITE
+		k.modulate = UI.PRIMARY if changed else Color.WHITE
 		p.modulate = k.modulate

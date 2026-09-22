@@ -22,6 +22,25 @@ var resume: Dictionary = {}
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	print("EBB %s | Godot %s" % [VERSION, Engine.get_version_info().string])
+	_set_cursor()
+	get_tree().root.size_changed.connect(_set_cursor)
+
+
+## The pointer: an 8 px Salt white arrow with an Ink outline, a small hook over anything
+## clickable (art Stage 16, STYLE.md 15). The cursor is not on the canvas, so it is grown by
+## the window's integer scale to stay the same size as the game's pixels.
+func _set_cursor() -> void:
+	var tex := load("res://assets/sprites/cursor.png") as Texture2D
+	if tex == null:
+		return
+	var img := tex.get_image()
+	var s := maxi(1, int(floor(minf(get_tree().root.size.x / 640.0, get_tree().root.size.y / 360.0))))
+	var arrow := img.get_region(Rect2i(0, 0, 8, 8))
+	var hook := img.get_region(Rect2i(8, 0, 8, 8))
+	arrow.resize(8 * s, 8 * s, Image.INTERPOLATE_NEAREST)
+	hook.resize(8 * s, 8 * s, Image.INTERPOLATE_NEAREST)
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(arrow), Input.CURSOR_ARROW, Vector2(0, 0))
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(hook), Input.CURSOR_POINTING_HAND, Vector2(2 * s, 1 * s))
 
 
 func _input(event: InputEvent) -> void:

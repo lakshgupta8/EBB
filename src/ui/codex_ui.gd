@@ -66,7 +66,7 @@ func _input(event: InputEvent) -> void:
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -80,13 +80,13 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(560, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("CODEX", 16, Color(0.85, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("CODEX"))
 	box.add_child(UI.spacer(2))
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 4)
 	_tab_buttons = []
 	for i in Codex.TABS.size():
-		var b := UI.text_button("", 8)
+		var b := UI.tab_button("", false)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_set_tab.bind(i))
 		tabs.add_child(b)
@@ -96,13 +96,18 @@ func _build() -> void:
 	_scroll.custom_minimum_size = Vector2(560, 214)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	box.add_child(_scroll)
+	# The entries sit on the paper inset (STYLE.md 15).
+	var paper := PanelContainer.new()
+	paper.add_theme_stylebox_override("panel", UI.paper_style(4))
+	box.add_child(paper)
+	paper.add_child(_scroll)
+	UI.style_scroll(_scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_list)
 	box.add_child(UI.spacer(2))
-	_count = UI.label("", 8, Color(0.7, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+	_count = UI.label("", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_count)
 	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -118,7 +123,7 @@ func _set_tab(i: int) -> void:
 		var k: String = Codex.TABS[j]
 		var b: Button = _tab_buttons[j]
 		b.text = "[%d] %s" % [j + 1, Codex.TAB_NAMES[k]]
-		b.add_theme_color_override("font_color", Color(1, 1, 1) if j == i else Color(0.7, 0.75, 0.85))
+		UI.set_tab_active(b, j == i)
 	for c in _list.get_children():
 		c.queue_free()
 	for e in Codex.entries(kind):
@@ -143,6 +148,7 @@ func _row(e: Dictionary) -> Control:
 			edge.color = e.color
 			edge.custom_minimum_size = Vector2(2, 0)
 			h.add_child(edge)
+		h.add_child(UI.sprite_slot(e))
 		var a := UI.label(e.name, 8, Palette.TEXT.primary)
 		a.custom_minimum_size = Vector2(150, 0)
 		h.add_child(a)
@@ -152,14 +158,14 @@ func _row(e: Dictionary) -> Control:
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		h.add_child(d)
 		v.add_child(h)
-		var lore := UI.label(e.lore, 8, Color(0.62, 0.66, 0.78))
+		var lore := UI.label(e.lore, 8, UI.SECONDARY)
 		lore.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lore.custom_minimum_size = Vector2(520, 0)
 		v.add_child(lore)
 	else:
-		var a := UI.label("???", 8, Color(0.45, 0.47, 0.55))
+		var a := UI.label("???", 8, UI.MUTED)
 		a.custom_minimum_size = Vector2(150, 0)
 		h.add_child(a)
-		h.add_child(UI.flex_label("not yet met", 8, Color(0.45, 0.47, 0.55)))
+		h.add_child(UI.flex_label("not yet met", 8, UI.MUTED))
 		v.add_child(h)
 	return p

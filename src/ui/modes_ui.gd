@@ -118,13 +118,13 @@ func pick(id: String) -> void:
 
 func _say(text: String, good: bool) -> void:
 	_hint.text = text
-	_hint.modulate = Color(0.75, 0.95, 0.8) if good else Color(1.0, 0.6, 0.55)
+	UI.hint_kind(_hint, "ok" if good else "bad")
 	Audio.play("ui", 0.0, -6.0)
 
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -149,17 +149,17 @@ func _build() -> void:
 
 
 func _build_modes(box: VBoxContainer) -> void:
-	box.add_child(UI.label("THE SEA KEEPS TIME", 16, Color(0.7, 0.85, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
-	var l := UI.label("\"Every tide has a clock in it. Idris keeps them all.\"", 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+	box.add_child(UI.header("THE SEA KEEPS TIME"))
+	var l := UI.label("\"Every tide has a clock in it. Idris keeps them all.\"", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(l)
 	box.add_child(UI.spacer(4))
 	for i in Modes.ALL.size():
 		var m: Dictionary = Modes.ALL[i]
 		var why := Modes.locked_reason(str(m.id))
-		var b := UI.row_button(Color(0.7, 0.85, 1.0) if why == "" else UI.PANEL_EDGE.darkened(0.3))
+		var b := UI.row_button(Palette.SEA_PALE if why == "" else UI.NONE)
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 8)
-		var a := UI.label("[%d] %s" % [i + 1, m.name], 8, Color(0.95, 0.93, 0.9) if why == "" else Color(0.6, 0.6, 0.65))
+		var a := UI.label("[%d] %s" % [i + 1, m.name], 8, UI.PRIMARY if why == "" else UI.SECONDARY)
 		a.custom_minimum_size = Vector2(120, 0)
 		var d := UI.flex_label(str(m.desc) if why == "" else "locked: " + why)
 		h.add_child(a)
@@ -173,9 +173,8 @@ func _build_modes(box: VBoxContainer) -> void:
 			_seed_edit.placeholder_text = "seed  [S]"
 			_seed_edit.custom_minimum_size = Vector2(110, 14)
 			_seed_edit.max_length = 24
-			_seed_edit.add_theme_font_override("font", UI.FONT)
-			_seed_edit.add_theme_font_size_override("font_size", UI.scaled(8))
-			_seed_edit.add_theme_color_override("font_color", Color(0.95, 0.93, 0.9))
+			UI.set_size(_seed_edit, 8)
+			_seed_edit.add_theme_color_override("font_color", UI.PRIMARY)
 			_seed_edit.add_theme_color_override("font_placeholder_color", Color(0.5, 0.55, 0.65))
 			var st := StyleBoxFlat.new()
 			st.bg_color = UI.INK
@@ -187,7 +186,7 @@ func _build_modes(box: VBoxContainer) -> void:
 			_seed_edit.mouse_filter = Control.MOUSE_FILTER_STOP
 			h.add_child(_seed_edit)
 		if right != "":
-			var c := UI.label(right, 8, Color(0.7, 0.85, 1.0), HORIZONTAL_ALIGNMENT_RIGHT)
+			var c := UI.label(right, 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_RIGHT)
 			h.add_child(c)
 		b.add_child(h)
 		UI.fill(h, 6.0, 4.0)
@@ -212,15 +211,15 @@ func _build_modes(box: VBoxContainer) -> void:
 	# The daily board: the last few, each against the bot's pace.
 	var scores: Array = SaveManager.data.get("daily_scores", [])
 	if scores.size() > 0:
-		box.add_child(UI.label("DAILY BOARD   (bar: your time against the bot's pace for the rooms you reached)", 8, Color(0.6, 0.65, 0.75)))
+		box.add_child(UI.label("DAILY BOARD   (bar: your time against the bot's pace for the rooms you reached)", 8, UI.SECONDARY))
 		var n := mini(5, scores.size())
 		for k in n:
 			var s: Dictionary = scores[scores.size() - 1 - k]
-			box.add_child(UI.label("%s   %s   %s" % [str(s.get("date", "")), _score_text(s), _bar(s)], 8, Color(0.8, 0.85, 0.9)))
+			box.add_child(UI.label("%s   %s   %s" % [str(s.get("date", "")), _score_text(s), _bar(s)], 8, UI.PRIMARY))
 		box.add_child(UI.spacer(2))
 	if Settings.assists_on():
-		box.add_child(UI.label("assists are on: pearls x%.2f, and the board says so" % Settings.assist_pearl_mult(), 8, Color(0.85, 0.8, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
-	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+		box.add_child(UI.label("assists are on: pearls x%.2f, and the board says so" % Settings.assist_pearl_mult(), 8, UI.ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
+	_hint = UI.label(" ", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hint.custom_minimum_size = Vector2(480, 0)
 	box.add_child(_hint)
@@ -244,9 +243,9 @@ static func _bar(s: Dictionary) -> String:
 
 
 func _build_history(box: VBoxContainer) -> void:
-	box.add_child(UI.label("HISTORY", 16, Color(0.7, 0.85, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("HISTORY"))
 	var hist: Array = SaveManager.data.get("history", [])
-	box.add_child(UI.label("%d of the last fifty nights   [Tab] back" % hist.size(), 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("%d of the last fifty nights   [Tab] back" % hist.size(), 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(2))
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(480, 220)
@@ -257,7 +256,7 @@ func _build_history(box: VBoxContainer) -> void:
 	scroll.add_child(list)
 	box.add_child(scroll)
 	if hist.is_empty():
-		list.add_child(UI.label("no nights yet", 8, Color(0.6, 0.65, 0.75)))
+		list.add_child(UI.label("no nights yet", 8, UI.SECONDARY))
 	for k in hist.size():
 		var h: Dictionary = hist[hist.size() - 1 - k]
 		var marks: Array = h.get("marks", [])
@@ -270,7 +269,7 @@ func _build_history(box: VBoxContainer) -> void:
 			"   tier %d" % int(h.get("tier", 0)) if int(h.get("tier", 0)) > 0 else ""]
 		if bool(h.get("assisted", false)):
 			line += "   assisted"
-		var col := Color(0.95, 0.85, 0.6) if str(h.get("cause", "")) == "won" else Color(0.8, 0.85, 0.9)
+		var col := UI.ACCENT if str(h.get("cause", "")) == "won" else UI.PRIMARY
 		list.add_child(UI.label(line, 8, col))
 	box.add_child(UI.spacer(2))
 	var back := UI.text_button("Back   " + UI.hint("interact"))

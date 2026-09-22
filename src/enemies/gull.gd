@@ -16,10 +16,13 @@ var _dive_dir: Vector2 = Vector2.RIGHT
 
 
 func _setup_animations() -> void:
+	# fly 4, brace 2 (the wings thrown high, then the tuck), dive 2 (the stoop, the pull-out), hurt.
 	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
 		"fly": {"frames": [0, 1, 2, 3], "fps": 10},
-		"dive": {"frames": [4], "fps": 1},
-		"hurt": {"frames": [5], "fps": 1},
+		"brace": {"frames": [4, 5], "fps": 6, "loop": false},
+		"dive": {"frames": [6, 7], "fps": 12, "loop": false},
+		"hurt": {"frames": [8], "fps": 1},
+		"death": {"frames": [9, 10, 11], "fps": 6, "loop": false},
 	})
 	_orbit_angle = randf() * TAU
 	_orbit_dir = 1.0 if randf() < 0.5 else -1.0
@@ -32,7 +35,7 @@ func _enter_state(s: StringName) -> void:
 			play("fly")
 			_next_dive = randf_range(1.5, 2.6)
 		&"windup":
-			play("dive")
+			play("brace")
 			velocity = Vector2.ZERO
 		&"dive":
 			play("dive")

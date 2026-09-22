@@ -76,7 +76,7 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(dim)
@@ -91,25 +91,30 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 4)
 	box.custom_minimum_size = Vector2(270, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("THE ALTAR OFFERS", 16, Color(0.8, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("Choose one tidemark. It is yours for tonight only.", 8, Color(0.85, 0.85, 0.9), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("click a mark, or press 1-%d" % offers.size(), 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("THE ALTAR OFFERS"))
+	box.add_child(UI.label("Choose one tidemark. It is yours for tonight only.", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("click a mark, or press 1-%d" % offers.size(), 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
 	var buttons: Array = []
 	for i in offers.size():
 		var m := Tidemarks.get_mark(offers[i])
 		var col: Color = Tidemarks.FAMILY_COLOR[m.family]
 		var b := UI.row_button(col)
+		var card := HBoxContainer.new()
+		card.add_theme_constant_override("separation", 6)
+		card.add_child(UI.family_icon(str(m.family), true))
 		var inner := VBoxContainer.new()
+		inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		inner.add_theme_constant_override("separation", 2)
 		var tag := str(m.family) + ("  " + str(m.rarity) if m.has("rarity") else "") + ("  active" if m.has("active") else "")
 		inner.add_child(UI.label("[%d] %s   %s" % [i + 1, m.name.to_upper(), tag], 8, Palette.TEXT.primary))
-		var desc := UI.label(m.desc, 8, Color(0.85, 0.85, 0.9))
+		var desc := UI.label(m.desc, 8, UI.PRIMARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		inner.add_child(desc)
-		b.add_child(inner)
-		UI.fill(inner, 6.0, 5.0)
-		b.custom_minimum_size = Vector2(250, 32 if m.desc.length() * 6 <= 238 else 42)
+		card.add_child(inner)
+		b.add_child(card)
+		UI.fill(card, 8.0, 5.0)
+		b.custom_minimum_size = Vector2(250, 32 if UI.width(m.desc) <= 238 else 42)
 		b.pressed.connect(choose.bind(i))
 		box.add_child(b)
 		buttons.append(b)

@@ -95,7 +95,7 @@ static func saved_text(n: int) -> String:
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -109,21 +109,21 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(380, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("KEEPERS", 16, Color(0.85, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(UI.label("three slots; the one marked is in use", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("KEEPERS"))
+	box.add_child(UI.label("three slots; the one marked is in use", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(4))
 	var buttons: Array = []
 	var current := SaveManager.slot_in_use()
 	for n in [1, 2, 3]:
 		var on: bool = n == current
-		var b := UI.row_button(Color(0.95, 0.8, 0.5) if on else UI.PANEL_EDGE)
+		var b := UI.row_button(UI.ACCENT if on else UI.PANEL_EDGE)
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 1)
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 8)
-		var a := UI.label("[%d] Slot %d%s" % [n, n, "   (in use)" if on else ""], 8, Color(1, 1, 1) if on else Color(0.85, 0.85, 0.9))
+		var a := UI.label("[%d] Slot %d%s" % [n, n, "   (in use)" if on else ""], 8, UI.PRIMARY if on else UI.PRIMARY)
 		a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var d := UI.label(saved_text(n), 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_RIGHT)
+		var d := UI.label(saved_text(n), 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_RIGHT)
 		h.add_child(a)
 		h.add_child(d)
 		v.add_child(h)
@@ -135,11 +135,11 @@ func _build() -> void:
 		box.add_child(b)
 		buttons.append(b)
 	box.add_child(UI.spacer(4))
-	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_hint = UI.label(" ", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	_wipe_btn = UI.text_button("Wipe slot %d   [X]" % current, 8, Color(0.85, 0.7, 0.7))
+	_wipe_btn = UI.text_button("Wipe slot %d   [X]" % current, 8, UI.PRIMARY)
 	_wipe_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_wipe_btn.pressed.connect(_wipe)
 	row.add_child(_wipe_btn)
@@ -163,7 +163,7 @@ func _wipe() -> void:
 		_wipe_armed = true
 		_wipe_btn.text = "Really wipe slot %d?   [X] again" % n
 		_hint.text = "everything in it goes: nights, pearls, everyone brought home"
-		_hint.modulate = Color(1.0, 0.6, 0.55)
+		UI.hint_kind(_hint, "bad")
 		return
 	SaveManager.wipe_slot(n)
 	Audio.play("splash", 0.0, -4.0)
@@ -172,4 +172,4 @@ func _wipe() -> void:
 		_root.queue_free()
 	_build()
 	_hint.text = "slot %d is empty: a new keeper" % n
-	_hint.modulate = Color(0.75, 0.95, 0.8)
+	UI.hint_kind(_hint, "ok")

@@ -154,7 +154,7 @@ func _cycle(key: String, steps: Array, current, dir: int, fallback: int) -> void
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -168,20 +168,20 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(340, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("SETTINGS", 16, Color(0.85, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("SETTINGS"))
 	# The two pages as tabs.
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 4)
 	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
 	_tabs = []
 	for p in PAGES.size():
-		var t := UI.text_button(PAGES[p].name, 8, Color(1, 1, 1) if p == page else Color(0.6, 0.65, 0.75))
+		var t := UI.tab_button(PAGES[p].name, p == page)
 		t.custom_minimum_size = Vector2(150, 16)
 		t.pressed.connect(set_page.bind(p))
 		tabs.add_child(t)
 		_tabs.append(t)
 	box.add_child(tabs)
-	box.add_child(UI.label("click or number to step   %s adjust   [Tab] page" % UI.hint("leftright"), 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.label("click or number to step   %s adjust   [Tab] page" % UI.hint("leftright"), 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(2))
 	_rows = []
 	var buttons: Array = []
@@ -193,10 +193,17 @@ func _build() -> void:
 		h.add_theme_constant_override("separation", 8)
 		var a := UI.label("[%d] %s" % [i + 1, r.name], 8)
 		a.custom_minimum_size = Vector2(180, 0)
-		var c := UI.label("", 8, Color(0.92, 0.92, 0.98), HORIZONTAL_ALIGNMENT_RIGHT)
+		var c := UI.label("", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_RIGHT)
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(a)
 		h.add_child(c)
+		var rail: UI.Rail = null
+		if r.kind == "volume":
+			# an iron rail with a brass slider, then the number
+			rail = UI.Rail.new()
+			rail.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			h.add_child(rail)
+			c.custom_minimum_size = Vector2(30, 0)
 		b.add_child(h)
 		UI.fill(h, 6.0, 4.0)
 		b.custom_minimum_size = Vector2(320, 18)
@@ -206,17 +213,17 @@ func _build() -> void:
 			_step(i, 1))
 		b.mouse_entered.connect(func(): _show_note(i))
 		box.add_child(b)
-		_rows.append([a, c, b])
+		_rows.append([a, c, b, rail])
 		buttons.append(b)
 	box.add_child(UI.spacer(2))
-	_note = UI.label(" ", 8, Color(0.6, 0.65, 0.75), HORIZONTAL_ALIGNMENT_CENTER)
+	_note = UI.label(" ", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(320, 0)
 	box.add_child(_note)
 	if page == 1:
 		var m := Settings.assist_pearl_mult()
 		box.add_child(UI.label("assists are a trade: pearls at the end of a night x%.2f" % m if m < 1.0
-			else "assists off: full pearls", 8, Color(0.85, 0.8, 0.6) if m < 1.0 else Color(0.55, 0.6, 0.7), HORIZONTAL_ALIGNMENT_CENTER))
+			else "assists off: full pearls", 8, UI.ACCENT if m < 1.0 else UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UI.spacer(2))
 	var leave := UI.text_button("Done   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -248,7 +255,9 @@ func _refresh() -> void:
 			match r.kind:
 				"volume":
 					var n := int(round(float(v) * 10.0))
-					text = "%s %d%%" % ["#".repeat(n) + "-".repeat(10 - n), n * 10]
+					text = "%d%%" % (n * 10)
+					if _rows[i].size() > 3 and _rows[i][3] != null:
+						_rows[i][3].frac = n / 10.0
 				"shake":
 					text = "off" if float(v) <= 0.0 else ("low" if float(v) < 1.0 else "full")
 				"bool":

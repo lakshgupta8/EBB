@@ -31,13 +31,9 @@ var _chase_limit: float = 1.6
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 72, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 4},
-		"windup": {"frames": [4], "fps": 1},
-		"slam": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	}, 48)
+	sprite.sprite_frames = SheetFrames.build(SHEET, 72, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "slam": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 5}, true), 48)
+	hold_frame.call_deferred(&"intro", INTRO)
 	charge_box.source = self
 	charge_box.landed.connect(_on_hit_landed)
 
@@ -211,10 +207,11 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 	if phase == 0 and health.hp <= health.max_hp / 2:
 		phase = 1
 		speed *= 1.3
-		sprite.modulate = Color(0.95, 0.75, 0.7)
+		sprite.modulate = PHASE_TINT
 		EventBus.request_shake.emit(1.0)
 		EventBus.request_hitstop.emit(0.15)
 		FX.burst(global_position, Color(0.9, 0.4, 0.35), 24, 120.0)
 		phase_changed.emit(phase)
 		if state != &"charge":
 			change_state(&"summon")
+		hold_frame(&"phase", 0.7)

@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://bkoea8006j4a6"
+path="res://.godot/imported/ebb_display.fnt-dac286af9abcd31390429af076ef02e5.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/ebb_display.fnt"
+dest_files=["res://.godot/imported/ebb_display.fnt-dac286af9abcd31390429af076ef02e5.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

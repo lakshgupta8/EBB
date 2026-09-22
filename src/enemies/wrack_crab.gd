@@ -16,13 +16,8 @@ var _charge_dir: Vector2 = Vector2.RIGHT
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 3},
-		"walk": {"frames": [2, 3], "fps": 10},
-		"windup": {"frames": [4], "fps": 1},
-		"charge": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "charge": "attack", "hurt": "hurt"}, {"idle": 3, "walk": 12}))
 	_strafe_dir = 1.0 if randf() < 0.5 else -1.0
 	_skitter_t = randf_range(0.7, 1.4)
 

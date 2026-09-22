@@ -8,7 +8,7 @@ func show_result(r: Dictionary) -> void:
 	visible = true
 	_shown = true
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.78)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -20,10 +20,13 @@ func show_result(r: Dictionary) -> void:
 	panel.add_theme_stylebox_override("panel", UI.panel_style())
 	center.add_child(panel)
 
+	var paper := PanelContainer.new()
+	paper.add_theme_stylebox_override("panel", UI.paper_style(8))
+	panel.add_child(paper)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(220, 0)
-	panel.add_child(box)
+	paper.add_child(box)
 
 	var title_text: String
 	var title_color: Color
@@ -31,13 +34,13 @@ func show_result(r: Dictionary) -> void:
 		title_text = str(Run.BIOMES[clampi(int(r.get("biome", 0)), 0, Run.BIOMES.size() - 1)].won)
 		if int(r.get("tier", 0)) >= 8 and int(r.get("biome", 0)) >= Run.BIOMES.size() - 1:
 			title_text = "THE SEA REMEMBERS"
-		title_color = Color(0.95, 0.85, 0.6)
+		title_color = UI.ACCENT
 	elif r.taken:
 		title_text = "TAKEN BY THE TIDE"
-		title_color = Color(0.6, 0.8, 0.95)
+		title_color = Palette.SEA_PALE
 	else:
 		title_text = "TAKEN BY THE DEEP"
-		title_color = Color(0.85, 0.5, 0.5)
+		title_color = UI.DANGER  # display size with the 2 px shadow (STYLE.md 15)
 	box.add_child(UI.label(title_text, 16, title_color, HORIZONTAL_ALIGNMENT_CENTER))
 	var why := ""
 	if r.victory:
@@ -46,7 +49,7 @@ func show_result(r: Dictionary) -> void:
 		why = "The water rose over you. Half your salt still comes home as pearls."
 	else:
 		why = "Your health ran out. The salt is lost; pearls and echoes come home."
-	var wl := UI.label(why, 8, Color(0.9, 0.9, 0.95), HORIZONTAL_ALIGNMENT_CENTER)
+	var wl := UI.label(why, 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	wl.custom_minimum_size = Vector2(300, 0)
 	box.add_child(wl)
@@ -56,7 +59,7 @@ func show_result(r: Dictionary) -> void:
 	elif not r.victory:
 		line = Story.whisper("taken" if r.taken else "death")
 	if line != "":
-		var l := UI.label("\"%s\"" % line, 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+		var l := UI.label("\"%s\"" % line, 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(300, 0)
 		box.add_child(l)
@@ -85,8 +88,8 @@ func show_result(r: Dictionary) -> void:
 	grid.add_theme_constant_override("h_separation", 16)
 	grid.add_theme_constant_override("v_separation", 2)
 	for row in rows:
-		grid.add_child(UI.label(row[0], 8, Color(0.75, 0.75, 0.8)))
-		grid.add_child(UI.label(row[1], 8, Color(0.95, 0.93, 0.9)))
+		grid.add_child(UI.label(row[0], 8, UI.SECONDARY))
+		grid.add_child(UI.label(row[1], 8, UI.PRIMARY))
 	box.add_child(grid)
 	box.add_child(UI.spacer(6))
 	var back := UI.text_button("Back to the lighthouse   " + UI.hint("interact"))

@@ -70,19 +70,19 @@ func _pick(i: int) -> void:
 		hint = str(_handler.call(i))
 	if hint == "":
 		_hint.text = str(_options[i].get("fail", "not now"))
-		_hint.modulate = Color(1.0, 0.6, 0.55)
+		UI.hint_kind(_hint, "bad")
 		Audio.play("ui", 0.0, -6.0)
 		return
 	_selected = i
 	_hint.text = hint
-	_hint.modulate = Color(0.75, 0.95, 0.8)
+	UI.hint_kind(_hint, "ok")
 	Audio.play("buy")
 	_refresh()
 
 
 func _build(title: String, line: String) -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -97,7 +97,7 @@ func _build(title: String, line: String) -> void:
 	box.custom_minimum_size = Vector2(440, 0)
 	panel.add_child(box)
 	box.add_child(UI.label(title, 16, _accent, HORIZONTAL_ALIGNMENT_CENTER))
-	var l := UI.label("\"%s\"" % line, 8, Color(0.75, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+	var l := UI.label("\"%s\"" % line, 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(440, 0)
 	box.add_child(l)
@@ -123,7 +123,7 @@ func _build(title: String, line: String) -> void:
 		box.add_child(b)
 		_rows.append([a, d, c, b])
 	box.add_child(UI.spacer(4))
-	_hint = UI.label(" ", 8, Color(0.75, 0.95, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
+	_hint = UI.label(" ", 8, UI.PRIMARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_hint)
 	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -145,5 +145,5 @@ func _refresh() -> void:
 		var on := i == _selected
 		var right: String = "in hand" if on else str(_options[i].get("right", ""))
 		_rows[i][2].text = right
-		_rows[i][2].add_theme_color_override("font_color", _accent if on else Color(0.8, 0.8, 0.85))
-		_rows[i][0].add_theme_color_override("font_color", Color(1, 1, 1) if on else Color(0.85, 0.85, 0.9))
+		_rows[i][2].add_theme_color_override("font_color", _accent if on else UI.PRIMARY)
+		_rows[i][0].add_theme_color_override("font_color", UI.PRIMARY if on else UI.PRIMARY)

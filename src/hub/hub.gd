@@ -24,6 +24,8 @@ const LANTERNS_PER := 8
 
 var room: Room
 var _toast: Label
+## The place name over the info lines, in the display face (STYLE.md 16).
+var _place: Label
 var _props: Dictionary = {}  # npc id -> Prop
 
 
@@ -79,7 +81,12 @@ func _ready() -> void:
 	log_ui.closed.connect(_refresh_info)
 	talk_ui.finished.connect(_refresh_info)
 	ending_ui.tide = room.set_tide
-	_toast = UI.label("", 8, Color(0.95, 0.9, 0.75), HORIZONTAL_ALIGNMENT_CENTER)
+	_place = UI.label("MARROW ROCK", 16)
+	_place.position = info.position + Vector2(0, -2)
+	_place.size = Vector2(200, 16)
+	$HUD.add_child(_place)
+	info.position.y += 16
+	_toast = UI.label("", 8, UI.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.position = Vector2(20, 296)
 	_toast.size = Vector2(600, 30)
 	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -146,8 +153,8 @@ func _apply_epilogue(id: String) -> void:
 		"keep":
 			# Maren's lamp is lit: the tower burns warmer, and she stands at its foot.
 			for cell in room.template.marker_cells("h"):
-				var l := Atmosphere.light(room, Color(1.0, 0.85, 0.5), 9.0, 2.2, room.cell_to_world(cell) + Vector2(0, -40))
-				Atmosphere.breathe(l, 1.8, 2.6, 2.0)
+				var l := Atmosphere.light(room, Atmosphere.WARM, 5.0, 0.8, room.cell_to_world(cell) + Vector2(0, -40))
+				Atmosphere.breathe(l, 0.72, 0.88, 2.0)
 				break
 		"walk":
 			# Empty ruins, still sea: the people are here, but faint, the way memories are.
@@ -552,7 +559,7 @@ func _refresh_info() -> void:
 	if asp != "":
 		wname = str(Weapon.aspect_entry(asp).get("name", wname)).to_lower()
 	var gifts := _gifts_in_hand()
-	info.text = "MARROW ROCK   %s%s\npearls %d   shards %d   runs %d   best %d   wins %d   echoes %d/%d%s%s%s%s" % [
+	info.text = "%s%s\npearls %d   shards %d   runs %d   best %d   wins %d   echoes %d/%d%s%s%s%s" % [
 		wname, ("   " + str(Ledger.keel().name).to_lower()) if not Ledger.keel().is_empty() else "",
 		s.pearls, int(s.get("shards", 0)), s.runs, s.best_depth, s.wins, echoes, Story.ECHO_IDS.size(),
 		"   endings %d/3" % endings if endings > 0 else "",
@@ -574,6 +581,10 @@ func _handle_screenshot_arg() -> void:
 	for i in 30:
 		await get_tree().process_frame
 	var args := OS.get_cmdline_user_args()
+	var extra := 0
+	for a in args:
+		if a.begins_with("--wait="):
+			extra = int(a.trim_prefix("--wait="))
 	if "--ledger" in args:
 		ledger_ui.open()
 	elif "--bram" in args:
@@ -612,6 +623,9 @@ func _handle_screenshot_arg() -> void:
 		open_fen()
 	elif "--codex" in args:
 		codex_ui.open(0)
+	elif "--talk" in args:
+		talk_ui.talk("maren", "Maren", ["The sea came back in last night. All the way in, gentle as anything.",
+			"Go and talk to her, Tam."])
 	elif "--codex2" in args:
 		codex_ui.open(1)
 	elif "--settings" in args:
@@ -624,8 +638,8 @@ func _handle_screenshot_arg() -> void:
 					await get_tree().process_frame
 			elif a.begins_with("--codex="):
 				codex_ui.open(int(a.trim_prefix("--codex=")))
-	await get_tree().process_frame
-	await get_tree().process_frame
+	for i in extra + 2:
+		await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var img := get_viewport().get_texture().get_image()

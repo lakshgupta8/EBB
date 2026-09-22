@@ -16,7 +16,7 @@ script = ExtResource("1_gaff")
 position = Vector2(2, 0)
 texture = ExtResource("2_tex")
 centered = false
-offset = Vector2(0, -3)
+offset = Vector2(0, -4)
 
 [node name="Hitbox" type="Area2D" parent="Pivot"]
 collision_layer = 0

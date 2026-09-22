@@ -308,9 +308,7 @@ def build_wisp_shot():
 
 def build_all(built):
     built["tidewisp"] = Image.open(os.path.join(OUT, "tidewisp.png")).convert("RGBA")  # art Stage 07 sheet
-    built["netted"] = build_netted()
-    built["choir"] = build_choir()
-    built["tallow"] = build_tallow()
-    built["wax"] = build_wax()
-    built["wisp_shot"] = build_wisp_shot()
+    # Art Stage 19: drawn by tools/gen_enemies_b.py; read, never rebuilt.
+    for name in ("netted", "choir", "tallow", "wax", "wisp_shot"):
+        built[name] = Image.open(os.path.join(OUT, name + ".png")).convert("RGBA")
     return built

@@ -229,6 +229,7 @@ func _arm_and_activate(lunge: bool) -> void:
 	hitbox.crit = crit
 	hitbox.damage_mult = arm_mult(_player, false, lunge, crit)
 	hitbox.activate()
+	FX.stab(global_position, pivot.rotation, sprite.flip_v)
 	Audio.play("stab", 0.2, -2.0)
 
 
@@ -266,12 +267,12 @@ func _start_throw() -> void:
 	net_sprite.visible = true
 	net_sprite.modulate = Color(1, 1, 1, 1)
 	net_sprite.global_position = origin
-	net_sprite.scale = Vector2(0.4, 0.4)
-	net_sprite.rotation = randf() * TAU
+	# A rope net is pixel art: never scaled, never turned (STYLE.md 1, 14).
+	net_sprite.scale = Vector2.ONE
+	net_sprite.rotation = 0.0
 	var fly := clampf(origin.distance_to(target) / 520.0, 0.06, 0.18)
 	var tw := create_tween()
 	tw.tween_property(net_sprite, "global_position", target, fly)
-	tw.parallel().tween_property(net_sprite, "scale", Vector2(1, 1), fly)
 	tw.tween_callback(_land_net.bind(target))
 	tw.tween_interval(_net_hold)
 	tw.tween_property(net_sprite, "modulate:a", 0.0, 0.3)

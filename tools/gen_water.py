@@ -93,29 +93,28 @@ def deep(f, base="DEEP_SEA", rip="SEA"):
     return im
 
 
-def ring(f, near, far, keep):
-    """A 2-colour checker: `keep(x, y)` picks the near tile's pixel, else the far tile's."""
-    im = far(f).copy()
-    a = near(f)
-    px = im.load()
-    ap = a.load()
-    for y in range(16):
-        for x in range(16):
-            if keep(x, y):
-                px[x, y] = ap[x, y]
+def ring(f, near, far, a):
+    """The far tile laid over the near one at alpha `a`: a translucent step. These were
+    1 px checkers (STYLE.md 12 allowed the dither) until the Stage 20 gameplay pass: a
+    pool four tiles across is nothing but ring cells, and at the screen's 3x the checker
+    read as a screen door over the whole pool. Steps of depth, not texture."""
+    im = near(f).copy()
+    over = far(f).copy()
+    over.putalpha(over.split()[3].point(lambda v: int(v * a)))
+    im.alpha_composite(over)
     return im
 
 
-def deep_ring_a(f):   # next to shallow: half and half
-    return ring(f, lambda f: shallow(0, f), deep, lambda x, y: (x + y) % 2 == 0)
+def deep_ring_a(f):   # next to shallow: the deep body at 45 % over the shallow one
+    return ring(f, lambda f: shallow(0, f), deep, 0.45)
 
 
-def deep_ring_b(f):   # two tiles in: a quarter still shows the floor
-    return ring(f, lambda f: shallow(0, f), deep, lambda x, y: x % 2 == 0 and y % 2 == 0)
+def deep_ring_b(f):   # two tiles in: 75 %
+    return ring(f, lambda f: shallow(0, f), deep, 0.75)
 
 
 def abyss_ring(f):
-    return ring(f, deep, lambda f: deep(f, "ABYSS", "DEEP_SEA"), lambda x, y: (x + y) % 2 == 0)
+    return ring(f, deep, lambda f: deep(f, "ABYSS", "DEEP_SEA"), 0.5)
 
 
 def abyss(f):

@@ -23,15 +23,11 @@ var _cast_t: float = 0.0
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"drift": {"frames": [0, 1, 2, 3], "fps": 6},
-		"windup": {"frames": [4], "fps": 1},
-		"cast": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"drift": "idle", "windup": "windup", "cast": "attack", "hurt": "hurt"}, {"drift": 6}))
 	_drift_dir = 1.0 if randf() < 0.5 else -1.0
 	_cast_t = randf_range(0.4, 1.6)
-	var glow := Atmosphere.light(self, Color(0.6, 0.9, 1.0), 2.6, 0.9, Vector2(0, -10))
+	var glow := Atmosphere.light(self, Atmosphere.COLD, 1.6, 0.5, Vector2(0, -10))
 	Atmosphere.breathe(glow, 0.7, 1.1, 1.6)
 
 
@@ -105,7 +101,7 @@ func _cast() -> void:
 		dir * SHOT_SPEED, SHOT_DAMAGE, SHOT, self, 64, 2.6)
 	p.knockback = 70.0
 	p.spin = 6.0
-	Atmosphere.light(p, Color(0.6, 0.9, 1.0), 1.4, 0.8)
+	Atmosphere.light(p, Atmosphere.COLD, 1.0, 0.5, Vector2.ZERO, true)
 	FX.burst(global_position, Color(0.6, 0.9, 1.0), 6, 40.0)
 	Audio.play("lantern", 0.2, -6.0)
 

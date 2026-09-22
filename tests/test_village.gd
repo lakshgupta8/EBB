@@ -374,6 +374,6 @@ func test_hub_template_has_room_for_the_village() -> void:
 	for m in ["S", "I", "L", "V", "Y"]:
 		var c: Vector2i = t.marker_cells(m)[0]
 		assert_true(not t.is_solid(c.x, c.y), m + " stands on open ground")
-	assert_eq(Prop.PORTRAIT.size(), 11)
+	assert_eq(Prop.PORTRAIT.size(), 12, "eleven people and the drowned merchant (art Stage 19)")
 	for id in NPCS:
 		assert_true(Prop.PORTRAIT.has(id), "a portrait for " + id)

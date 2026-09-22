@@ -20,14 +20,9 @@ var _pools: Array = []
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 4},
-		"windup": {"frames": [4], "fps": 1},
-		"pour": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
-	var flame := Atmosphere.light(self, Color(1.0, 0.75, 0.4), 2.4, 0.9, Vector2(0, -18))
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "pour": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 4}))
+	var flame := Atmosphere.light(self, Atmosphere.FLAME, 1.6, 0.5, Vector2(0, -18))
 	Atmosphere.breathe(flame, 0.7, 1.1, 1.1)
 
 
@@ -98,12 +93,13 @@ func _pour_wax() -> void:
 	pool.global_position = at
 	pool.z_index = 1
 	var s := Sprite2D.new()
-	s.texture = WAX_TEX
-	s.scale = Vector2(1.6, 1.6)
+	s.texture = WAX_TEX  # 40x28, drawn at the size it plays at
+	s.material = ShaderMaterial.new()
+	s.material.shader = FLASH_SHADER  # for its light knee: Bone wax under its own flame (art Stage 20)
 	pool.add_child(s)
 	get_parent().add_child(pool)
 	_pools.append(pool)
-	Atmosphere.light(pool, Color(1.0, 0.7, 0.35), 2.6, 0.8)
+	Atmosphere.light(pool, Atmosphere.FLAME, 2.0, 0.5)
 	FX.burst(at, Color(1.0, 0.75, 0.4), 10, 50.0)
 	Audio.play("kindle", 0.1, -2.0)
 	# It burns whoever stands in it, cools, and fades. The pool looks after itself.

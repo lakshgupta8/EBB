@@ -33,14 +33,10 @@ var _chase_limit: float = 1.2
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 72, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 4},
-		"windup": {"frames": [4], "fps": 1},
-		"cast": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	}, 72)
-	var l := Atmosphere.light(self, Color(0.6, 0.85, 1.0), 6.0, 1.4, Vector2(0, -10))
+	sprite.sprite_frames = SheetFrames.build(SHEET, 72, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "cast": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 5}, true), 72)
+	hold_frame.call_deferred(&"intro", INTRO)
+	var l := Atmosphere.light(self, Atmosphere.COLD, 4.0, 0.6, Vector2(0, -10))
 	Atmosphere.breathe(l, 1.0, 1.8, 2.6)
 
 
@@ -272,7 +268,7 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 	if new_phase > phase:
 		phase = new_phase
 		speed *= 1.2
-		sprite.modulate = Color(0.95, 0.85, 0.9) if phase == 1 else Color(1.0, 0.75, 0.75)
+		sprite.modulate = PHASE_TINT if phase == 1 else PHASE_TINT_2
 		EventBus.request_shake.emit(1.0)
 		EventBus.request_hitstop.emit(0.15)
 		FX.burst(global_position, Color(0.5, 0.8, 1.0), 30, 140.0)
@@ -280,3 +276,4 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 		phase_changed.emit(phase)
 		if state != &"haul" and state != &"slam":
 			change_state(&"surge_windup")
+		hold_frame(&"phase", 0.7)

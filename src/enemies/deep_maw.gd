@@ -12,12 +12,8 @@ const CLOSED_TINT := Color(0.75, 0.78, 0.85, 0.9)
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"closed": {"frames": [0], "fps": 1},
-		"windup": {"frames": [4], "fps": 1},
-		"bite": {"frames": [5], "fps": 1},
-		"open": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"closed": "idle", "windup": "windup", "bite": "attack", "open": "hurt"}, {"closed": 2}))
 	sprite.position = Vector2(0, 0)
 	sprite.modulate = CLOSED_TINT
 	z_index = -1  # in the floor

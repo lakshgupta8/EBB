@@ -71,7 +71,7 @@ func _in_run() -> bool:
 
 func _build() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.7)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -85,7 +85,7 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 4)
 	box.custom_minimum_size = Vector2(200, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("PAUSED", 16, Color(0.9, 0.9, 0.95), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("PAUSED"))
 	box.add_child(UI.spacer(4))
 	var buttons: Array = []
 	var resume := UI.text_button("Resume   " + UI.hint("pause"))
@@ -109,7 +109,7 @@ func _build() -> void:
 		_rest_btn.pressed.connect(_rest)
 		box.add_child(_rest_btn)
 		buttons.append(_rest_btn)
-		var give_up := UI.text_button("Give up and return   [Q]", 8, Color(1.0, 0.75, 0.7))
+		var give_up := UI.text_button("Give up and return   [Q]", 8, UI.PRIMARY)
 		give_up.pressed.connect(_quit_to_hub)
 		box.add_child(give_up)
 		buttons.append(give_up)
@@ -118,13 +118,13 @@ func _build() -> void:
 		title.pressed.connect(_to_title)
 		box.add_child(title)
 		buttons.append(title)
-	_quit_btn = UI.text_button("Quit game   [X]", 8, Color(0.85, 0.7, 0.7))
+	_quit_btn = UI.text_button("Quit game   [X]", 8, UI.PRIMARY)
 	_quit_btn.pressed.connect(_quit_game)
 	box.add_child(_quit_btn)
 	buttons.append(_quit_btn)
 	_cursor = UI.Cursor.new(buttons)
 	box.add_child(UI.spacer(6))
-	var hint := Color(0.6, 0.7, 0.8)
+	var hint := UI.SECONDARY
 	if _in_run():
 		# The reminders say the keys the player actually has (Settings -> Controls).
 		box.add_child(UI.label("%s attack (gaff: hold to charge)   %s special" % [UI.key("attack"), UI.key("special")], 8, hint, HORIZONTAL_ALIGNMENT_CENTER))

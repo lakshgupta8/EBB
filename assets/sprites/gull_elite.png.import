@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://be4u68tgjepv6"
-path="res://.godot/imported/fx_ring.png-e10654cafb355094cf31766ee91ddf1c.ctex"
+uid="uid://daads33ljkmy0"
+path="res://.godot/imported/gull_elite.png-99ef93dae9f431affa080bca8a1905bb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/fx_ring.png"
-dest_files=["res://.godot/imported/fx_ring.png-e10654cafb355094cf31766ee91ddf1c.ctex"]
+source_file="res://assets/sprites/gull_elite.png"
+dest_files=["res://.godot/imported/gull_elite.png-99ef93dae9f431affa080bca8a1905bb.ctex"]
 
 [params]
 

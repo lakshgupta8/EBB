@@ -1,9 +1,11 @@
 """Stage 07: enemy design.  The eleven enemies of the brief, drawn to STYLE.md and the anchors.
 
-Sheets keep the shipped 7-frame layout so no enemy script changes its bindings this stage
-(idle 0-1, walk 2-3, windup 4, attack 5, hurt 6; the gull is fly 0-3, dive 4, hurt 5).
-Frame counts grow in the animation stage.  Feet on row 21 (STYLE.md 7); the Deep Maw is a
-floor thing centred in its cell; the Tidewisp and the Shade do not touch the ground.
+Sheets use the production layout of art Stage 13 (STYLE.md 17), 13 frames: idle 0-3, walk
+4-7, windup 8-9 (the anticipation, then the held pose the engine flashes), attack 10-11
+(the strike, then the follow-through), hurt 12, death 13-15 (the drowned go down like people: a knee, lying still, sunk a pixel;
+the rest end the way their bodies allow).  The gull is fly 0-3, brace 4-5, dive 6-7,
+hurt 8, death 9-11.  Feet on row 21 (STYLE.md 7); the Deep Maw is a floor thing centred in its cell;
+the Tidewisp and the Shade do not touch the ground.
 
 Writes assets/sprites/<enemy>.png for: shellback, gull, wrack_crab, still_citizen,
 lamplighter, bell_ringer, swimmer, keeper_shade, anchor, deep_maw, tidewisp; elite costume
@@ -19,6 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import palette as P  # noqa: E402
+import gen_rim  # noqa: E402
 import gen_anchors as GA  # noqa: E402
 from gen_anchors import grid, zoom  # noqa: E402
 from gen_characters import part, stack, cell, LANTERN_OUT, HEAD as TAM_HEAD  # noqa: E402
@@ -38,6 +41,37 @@ def sub(text, table):
     for a, b in table.items():
         text = text.replace(a, b)
     return text
+
+
+def lay(im):
+    """A standing figure lying on the floor: turned a quarter (head toward the facing side),
+    set down with its lowest pixel on row 21."""
+    r = im.transpose(Image.ROTATE_270)
+    bb = r.getbbox()
+    piece = r.crop(bb)
+    out = cell()
+    out.alpha_composite(piece, ((CELL - piece.width) // 2, max(0, 22 - piece.height)))
+    return out
+
+
+def faded(im, alpha):
+    out = im.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            px[x, y] = (r, g, b, int(a * alpha))
+    return out
+
+
+def shift_region(im, box, dx, dy):
+    """Move the pixels inside `box` (x0, y0, x1, y1) by (dx, dy); the rest stays."""
+    out = im.copy()
+    piece = im.crop(box)
+    clear = Image.new("RGBA", piece.size, (0, 0, 0, 0))
+    out.paste(clear, (box[0], box[1]))
+    out.alpha_composite(piece, (box[0] + dx, box[1] + dy))
+    return out
 
 
 # =============================================================================
@@ -125,15 +159,23 @@ def shade_frame(head=SHADE_HEAD, torso=SHADE_TORSO, legs=SHADE_LEGS, dy=0, hdx=0
 
 
 def build_shade():
-    return [
-        shade_frame(),
-        shade_frame(dy=1, ld=(0, 1)),
-        shade_frame(legs=SHADE_LEGS_2),
-        shade_frame(legs=SHADE_LEGS_3, dy=1),
-        shade_frame(head=SHADE_HEAD_WINDUP, torso=SHADE_TORSO_RAISE, hdx=-1),
-        shade_frame(torso=SHADE_TORSO_STRIKE, legs=SHADE_LEGS_2, hdx=2, tdx=1, ld=(-2, 0)),
-        shade_frame(hdx=-2, tdx=-1, ld=(1, 0)),
-    ]
+    # idle: a slow breath, the cold lantern swaying against it
+    idle = [shade_frame(), shade_frame(dy=1, ld=(0, 1)), shade_frame(ld=(0, 1)), shade_frame(dy=1)]
+    # walk: contact, pass (down), contact, pass; the rags never touch the floor
+    walk = [shade_frame(legs=SHADE_LEGS_2), shade_frame(legs=SHADE_LEGS_3, dy=1),
+            shade_frame(legs=SHADE_LEGS_2, hdx=1, tdx=1), shade_frame(legs=SHADE_LEGS, dy=1)]
+    # windup: a crouch with the lantern drawn back, then the raised strike held
+    windup = [shade_frame(hdx=-1, tdx=-1, dy=1, ld=(-1, 0)),
+              shade_frame(head=SHADE_HEAD_WINDUP, torso=SHADE_TORSO_RAISE, hdx=-1)]
+    # attack: the strike, then the body follows the weapon through
+    attack = [shade_frame(torso=SHADE_TORSO_STRIKE, legs=SHADE_LEGS_2, hdx=2, tdx=1, ld=(-2, 0)),
+              shade_frame(torso=SHADE_TORSO_STRIKE, legs=SHADE_LEGS_2, hdx=3, tdx=2, dy=1, ld=(-3, 1))]
+    hurt = [shade_frame(hdx=-2, tdx=-1, ld=(1, 0))]
+    # death: it sinks into its own rags; the cold lantern is the last of it, on the floor
+    death = [shade_frame(dy=3, legs=SHADE_LEGS_3, ld=(0, 2)),
+             stack((SHADE_TORSO, 0, 15), (LANTERN_OUT, 2, 15)),
+             stack((LANTERN_OUT, 4, 16))]
+    return idle + walk + windup + attack + hurt + death
 
 
 # =============================================================================
@@ -192,21 +234,31 @@ kk....kk......kk........
 """)
 
 
+# The dome's offset per frame; the elite crown rides on it.
+SB_DOME_OFF = [(0, 0), (0, -1), (0, 0), (0, 0), (0, 0), (0, -1), (1, 0), (1, -1), (-1, -1), (-1, -3), (1, 2), (0, 1), (-1, 0),
+               (0, 1), (1, 3), (1, 4)]
+
+
 def build_shellback():
     def f(dome_dy=0, dome_dx=0, body=SB_BODY, extra=None):
         layers = [(body, 0, 16), (SB_DOME, dome_dx, 6 + dome_dy)]
         if extra:
             layers.append(extra)
         return stack(*layers)
-    return [
-        f(),
-        f(dome_dy=-1),
-        f(body=SB_BODY_2),
-        f(body=SB_BODY, dome_dy=-1),
-        f(dome_dy=-3, dome_dx=-1, body=SB_BODY_WINDUP, extra=(SB_CLAW_UP, 0, 8)),
-        f(dome_dy=2, dome_dx=1, body=SB_BODY_SLAM),
-        f(dome_dx=-1),
-    ]
+    # idle: the dome lifts on a breath, the legs shuffle once
+    idle = [f(), f(dome_dy=-1), f(), f(body=SB_BODY_2)]
+    # walk: the legs alternate, the dome rocks with the step
+    walk = [f(body=SB_BODY_2), f(dome_dy=-1), f(dome_dx=1), f(body=SB_BODY_2, dome_dy=-1, dome_dx=1)]
+    # windup: the dome lifts and the claw gathers, then the claw is up and held
+    windup = [f(dome_dy=-1, dome_dx=-1, body=SB_BODY_WINDUP),
+              f(dome_dy=-3, dome_dx=-1, body=SB_BODY_WINDUP, extra=(SB_CLAW_UP, 0, 8))]
+    # attack: the slam drives the dome down, then it rebounds a pixel
+    attack = [f(dome_dy=2, dome_dx=1, body=SB_BODY_SLAM), f(dome_dy=1, body=SB_BODY_SLAM)]
+    # death: the dome comes down on its own legs and settles
+    death = [f(dome_dy=1, body=SB_BODY_SLAM), f(dome_dy=3, dome_dx=1, body=SB_BODY_SLAM), f(dome_dy=4, dome_dx=1, body=SB_BODY_SLAM)]
+    frames = idle + walk + windup + attack + [f(dome_dx=-1)] + death
+    assert len(frames) == len(SB_DOME_OFF)
+    return frames
 
 
 # =============================================================================
@@ -286,7 +338,13 @@ GULL_DIVE = part("""
 
 
 def build_gull():
-    return [GULL_UP, GULL_MID, GULL_DOWN, GULL_MID, GULL_DIVE, shift(GULL_MID, -1, 0)]
+    # fly 4; brace 2 (wings thrown high, then the tuck); dive 2 (the stoop, the pull-out); hurt
+    fly = [GULL_UP, GULL_MID, GULL_DOWN, GULL_MID]
+    brace = [shift(GULL_UP, 0, -2), shift(GULL_DIVE, 1, -3)]
+    dive = [GULL_DIVE, shift(GULL_DIVE, 2, 2)]
+    # death: thrown up, tumbling, on its back
+    death = [shift(GULL_UP, 0, 3), shift(GULL_DOWN, 1, 6), shift(GULL_MID.transpose(Image.FLIP_TOP_BOTTOM), 0, 6)]
+    return fly + brace + dive + [shift(GULL_MID, -1, 0)] + death
 
 
 # =============================================================================
@@ -398,8 +456,27 @@ CRAB_CHARGE = part("""
 """)
 
 
+# The big claw's offset per frame for the elite costume.
+CRAB_CLAW_OFF = [(0, 0), (0, -1), (0, 0), (0, -1), (0, 0), (0, 0), (0, -1), (0, -1), (-1, 0), (-3, -4), (1, 0), (1, 0), (-1, 0),
+                 (-3, -5), (0, 1)]
+
+
 def build_crab():
-    return [CRAB, shift(CRAB, 0, -1), CRAB_2, CRAB, CRAB_WINDUP, CRAB_CHARGE, shift(CRAB, -1, 0)]
+    claw_twitch = shift_region(CRAB, (19, 11, 24, 19), 0, -1)
+    charge_2 = shift_region(CRAB_CHARGE, (0, 20, 24, 22), 1, 0)
+    # idle: a breath, then the forward claw twitches
+    idle = [CRAB, shift(CRAB, 0, -1), CRAB, claw_twitch]
+    # walk: legs alternate, the body rides up on the pass
+    walk = [CRAB, CRAB_2, shift(CRAB, 0, -1), shift(CRAB_2, 0, -1)]
+    # windup: a step back, then the claw raised and held
+    windup = [shift(CRAB, -1, 0), CRAB_WINDUP]
+    # attack: the charge, legs scrabbling
+    attack = [CRAB_CHARGE, charge_2]
+    # death: it rears, drops flat, and ends on its back with the legs up
+    death = [shift(CRAB_WINDUP, 0, -1), shift(CRAB, 0, 1), shift(CRAB.transpose(Image.FLIP_TOP_BOTTOM), 0, 9)]
+    frames = idle + walk + windup + attack + [shift(CRAB, -1, 0)] + death
+    assert len(frames) == len(CRAB_CLAW_OFF) + 1
+    return frames
 
 
 # =============================================================================
@@ -513,13 +590,29 @@ CIT_STAB = """
 """
 
 
+# The salt hat's position per frame for the elite costume.
+CIT_HAT_POS = [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, -1), (0, -1), (-1, 0), (2, 3), (2, 3), (4, 3), (-2, 0),
+               (0, 3)]
+
+
 def build_citizen():
-    return [
-        GA.cell24(CIT_STATUE), GA.cell24(CIT_STATUE),
-        GA.cell24(CIT_RUN_1), GA.cell24(CIT_RUN_2),
-        GA.cell24(CIT_WINDUP), GA.cell24(CIT_STAB),
-        shift(GA.cell24(CIT_STATUE), -2, 0),
-    ]
+    statue = GA.cell24(CIT_STATUE)
+    run1, run2 = GA.cell24(CIT_RUN_1), GA.cell24(CIT_RUN_2)
+    stab = GA.cell24(CIT_STAB)
+    # idle: a statue does not breathe
+    idle = [statue] * 4
+    # walk: the run, arms out, the skirt lifting on the pass
+    walk = [run1, run2, shift(run1, 0, -1), shift(run2, 0, -1)]
+    # windup: the arms come out, then up and held
+    windup = [shift(run1, -1, 0), GA.cell24(CIT_WINDUP)]
+    # attack: the lunge, then it carries on two pixels further
+    attack = [stab, shift(stab, 2, 0)]
+    # death: a person going down: the knee, lying still, sunk a pixel into the wet stone
+    lying = lay(statue)
+    death = [shift(statue, 0, 3), lying, shift(lying, 0, 1)]
+    frames = idle + walk + windup + attack + [shift(statue, -2, 0)] + death
+    assert len(frames) == len(CIT_HAT_POS) + 2
+    return frames
 
 
 # =============================================================================
@@ -611,15 +704,33 @@ def build_lamplighter():
     body = GA.cell24(LL_BODY)
     b2 = shift(body, 0, 1)
     legs_a = GA.cell24(LL_BODY.replace(".......kb33kk33bk.......\n.......kbbbkkbbbk.......", "......kb33k..k33bk......\n......kbbbk..kbbbk......"))
-    return [
-        stack((body, 0, 0), (LL_POLE, 0, 2)),
-        stack((b2, 0, 0), (LL_POLE.crop((0, 0, 24, 19)), 0, 3)),
-        stack((legs_a, 0, 0), (LL_POLE, 0, 2)),
-        stack((b2, 0, 0), (LL_POLE.crop((0, 0, 24, 19)), 0, 3)),
-        stack((body, 0, 0), (LL_POLE_KINDLE, 0, 0)),
-        stack((shift(body, 1, 0), 0, 0), (LL_POLE_THROW, 0, 0)),
-        stack((shift(body, -2, 0), 0, 0), (LL_POLE, -2, 2)),
-    ]
+    pole = LL_POLE
+    pole19 = LL_POLE.crop((0, 0, 24, 19))
+    # the flame's second frame: its two rows swap (STYLE.md 6: flames are 2 frames)
+    flick = pole.copy()
+    flick.paste(pole.crop((18, 3, 21, 4)), (18, 2))
+    flick.paste(pole.crop((18, 2, 21, 3)), (18, 3))
+    flick19 = flick.crop((0, 0, 24, 19))
+    # idle: a breath, the flame flickering against it
+    idle = [stack((body, 0, 0), (pole, 0, 2)), stack((b2, 0, 0), (flick19, 0, 3)),
+            stack((body, 0, 0), (flick, 0, 2)), stack((b2, 0, 0), (pole19, 0, 3))]
+    # walk: step, pass, step, pass; the lantern bobs on the pole
+    walk = [stack((legs_a, 0, 0), (pole, 0, 2)), stack((b2, 0, 0), (flick19, 0, 3)),
+            stack((legs_a, 0, 0), (flick, 0, 2)), stack((b2, 0, 0), (pole19, 0, 3))]
+    # windup: the pole drawn back, then the lantern flaring (the kindle)
+    windup = [stack((shift(body, -1, 0), 0, 0), (shift(pole, -2, -1), 0, 2)),
+              stack((body, 0, 0), (LL_POLE_KINDLE, 0, 0))]
+    # attack: the throw, then the body follows the pole through
+    attack = [stack((shift(body, 1, 0), 0, 0), (LL_POLE_THROW, 0, 0)),
+              stack((shift(body, 2, 0), 0, 0), (shift(LL_POLE_THROW, 2, 1), 0, 0))]
+    hurt = [stack((shift(body, -2, 0), 0, 0), (pole, -2, 2))]
+    # death: the knee with the pole slipping, then lying by the fallen pole, sunk a pixel
+    lying = lay(body)
+    fallen_pole = shift(LL_POLE_THROW, -4, 9)
+    death = [stack((shift(body, 0, 3), 0, 0), (shift(pole, 2, 4), 0, 2)),
+             stack((fallen_pole, 0, 0), (lying, 0, 0)),
+             stack((shift(fallen_pole, 0, 1), 0, 0), (shift(lying, 0, 1), 0, 0))]
+    return idle + walk + windup + attack + hurt + death
 
 
 # =============================================================================
@@ -678,15 +789,25 @@ def build_bell_ringer():
                                      ".....kbbk...kbbk........\n.....kbbk...kbbk........\n.....kkkk...kkkk........"))
     windup = GA.cell24(BR_BODY.replace("....kwwkFFFFFkwwk.......\n....kwwkFkFkFkwwk.......",
                                        "....kwwkFFFFFkwwkkk.....\n....kwwkFkFkFkwwkFk....."))
-    return [
-        stack((body, 0, 0), (BELL, 16, 13)),
-        stack((body2, 0, 0), (BELL, 16, 14)),
-        stack((legs, 0, 0), (BELL, 16, 13)),
-        stack((body2, 0, 0), (BELL, 17, 14)),
-        stack((windup, 0, 0), (BELL_UP, 16, 2)),
-        stack((body, 0, 0), (BELL, 18, 9), (grid("W\nW"), 23, 10), (grid("W"), 22, 8)),
-        stack((shift(body, -2, 0), 0, 0), (BELL, 14, 13)),
-    ]
+    # idle: a heavy breath, the bell swaying once
+    idle = [stack((body, 0, 0), (BELL, 16, 13)), stack((body2, 0, 0), (BELL, 16, 14)),
+            stack((body, 0, 0), (BELL, 16, 13)), stack((body, 0, 0), (BELL, 17, 13))]
+    # walk: the slow step; the bell swings against it
+    walk = [stack((legs, 0, 0), (BELL, 16, 13)), stack((body2, 0, 0), (BELL, 17, 14)),
+            stack((legs, 0, 0), (BELL, 16, 12)), stack((body2, 0, 0), (BELL, 16, 14))]
+    # windup: the bell rises, then it is held high (the long tell)
+    windup = [stack((body, 0, 0), (BELL, 17, 9)), stack((windup, 0, 0), (BELL_UP, 16, 2))]
+    # attack: the ring, then the bell falls through
+    attack = [stack((body, 0, 0), (BELL, 18, 9), (grid("W\nW"), 23, 10), (grid("W"), 22, 8)),
+              stack((body, 0, 0), (BELL, 18, 12))]
+    hurt = [stack((shift(body, -2, 0), 0, 0), (BELL, 14, 13))]
+    # death: the knee, then lying with the bell on its side beside the hand
+    lying = lay(body)
+    bell_side = BELL.transpose(Image.ROTATE_90)
+    death = [stack((shift(body, 0, 3), 0, 0), (BELL, 17, 16)),
+             stack((lying, 0, 0), (bell_side, 1, 15)),
+             stack((shift(lying, 0, 1), 0, 0), (bell_side, 1, 16))]
+    return idle + walk + windup + attack + hurt + death
 
 
 # =============================================================================
@@ -827,8 +948,42 @@ SWIM_BITE = """
 
 
 def build_swimmer():
-    return [GA.cell24(SWIM_1), GA.cell24(SWIM_2), GA.cell24(CRAWL_1), GA.cell24(CRAWL_2),
-            GA.cell24(SWIM_WINDUP), GA.cell24(SWIM_BITE), shift(GA.cell24(SWIM_1), -2, 0)]
+    s1, s2 = GA.cell24(SWIM_1), GA.cell24(SWIM_2)
+    c1, c2 = GA.cell24(CRAWL_1), GA.cell24(CRAWL_2)
+    bite = GA.cell24(SWIM_BITE)
+    # idle (swim): the stroke, the body riding the swell
+    idle = [s1, s2, shift(s1, 0, 1), shift(s2, 0, 1)]
+    # walk (crawl on dry stone): the arms haul, the body drags up on the pass
+    walk = [c1, c2, shift(c1, 0, -1), shift(c2, 0, -1)]
+    # windup: the head lifts, then the jaw is open and held
+    windup = [shift(s1, 0, -2), GA.cell24(SWIM_WINDUP)]
+    # attack: the dart, then it carries on
+    attack = [bite, shift(bite, 2, 0)]
+    # death: it goes under; a ring on the water is all that is left
+    ring = part("""
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........PPPPPPPP........
+......PP........PP......
+......PP........PP......
+........PPPPPPPP........
+""")
+    death = [shift(s1, 0, 2), shift(s1, 0, 6), ring]
+    return idle + walk + windup + attack + [shift(s1, -2, 0)] + death
 
 
 # =============================================================================
@@ -939,15 +1094,28 @@ def build_anchor():
     man2 = shift(man, 0, 1)
     legs = GA.cell24(ANC_MAN.replace(".....k333k333k..........\n.....k333k333k..........\n.....kbbbkbbbk..........\n.....kbbbkbbbk..........",
                                      "....k333kk333k..........\n....k333k.k333k.........\n...kbbbk..kbbbk.........\n...kbbbk..kbbbk........."))
-    return [
-        stack((man, 0, 0), (CHAIN, 13, 12), (ANCHOR_IRON, 12, 8)),
-        stack((man2, 0, 0), (CHAIN, 13, 13), (ANCHOR_IRON, 12, 8)),
-        stack((legs, 0, 0), (CHAIN, 13, 12), (ANCHOR_IRON, 12, 8)),
-        stack((man2, 0, 0), (CHAIN, 13, 13), (ANCHOR_IRON, 12, 8)),
-        stack((GA.cell24(ANC_MAN_HOIST), 0, 0), (ANCHOR_IRON, 10, 0)),
-        stack((GA.cell24(ANC_MAN_SLAM), 0, 0), (ANCHOR_IRON, 12, 8)),
-        stack((shift(man, -2, 0), 0, 0), (CHAIN, 11, 12), (ANCHOR_IRON, 12, 8)),
-    ]
+    slam = GA.cell24(ANC_MAN_SLAM)
+    # idle: the breath; the anchor settles a pixel on the last frame
+    idle = [stack((man, 0, 0), (CHAIN, 13, 12), (ANCHOR_IRON, 12, 8)),
+            stack((man2, 0, 0), (CHAIN, 13, 13), (ANCHOR_IRON, 12, 8)),
+            stack((man, 0, 0), (CHAIN, 13, 12), (ANCHOR_IRON, 12, 8)),
+            stack((man, 0, 0), (CHAIN, 13, 12), (ANCHOR_IRON, 12, 9))]
+    # walk: the drag; the anchor lags a pixel behind the step
+    walk = [stack((legs, 0, 0), (CHAIN, 13, 12), (ANCHOR_IRON, 12, 8)),
+            stack((man2, 0, 0), (CHAIN, 13, 13), (ANCHOR_IRON, 13, 8)),
+            stack((legs, 0, 0), (CHAIN, 14, 12), (ANCHOR_IRON, 13, 9)),
+            stack((man2, 0, 0), (CHAIN, 13, 13), (ANCHOR_IRON, 12, 8))]
+    # windup: the anchor comes off the ground, then it is hoisted high and held
+    windup = [stack((man, 0, 0), (ANCHOR_IRON, 11, 4)), stack((GA.cell24(ANC_MAN_HOIST), 0, 0), (ANCHOR_IRON, 10, 0))]
+    # attack: the slam, then the iron bounces
+    attack = [stack((slam, 0, 0), (ANCHOR_IRON, 12, 8)), stack((slam, 0, 0), (ANCHOR_IRON, 13, 7))]
+    hurt = [stack((shift(man, -2, 0), 0, 0), (CHAIN, 11, 12), (ANCHOR_IRON, 12, 8))]
+    # death: the knee, then lying beside the anchor that would not let him go
+    lying = lay(man)
+    death = [stack((shift(man, 0, 3), 0, 0), (CHAIN, 13, 15), (ANCHOR_IRON, 12, 9)),
+             stack((lying, 0, 0), (ANCHOR_IRON, 12, 8)),
+             stack((shift(lying, 0, 1), 0, 0), (ANCHOR_IRON, 12, 9))]
+    return idle + walk + windup + attack + hurt + death
 
 
 # =============================================================================
@@ -1062,7 +1230,20 @@ MAW_HANG = """
 
 def build_maw():
     c = GA.cell24(MAW_CLOSED)
-    return [c, c, c, c, GA.cell24(MAW_WINDUP), GA.cell24(MAW_OPEN), GA.cell24(MAW_HANG)]
+    # a twitch: the seam shows Bone for one frame
+    twitch = c.copy()
+    px = twitch.load()
+    for x in range(10, 14):
+        px[x, 11] = P.rgb("BONE") + (255,)
+    # idle: nearly nothing, one twitch; walk: it never moves; windup: the floor shudders,
+    # then the teeth show; attack: the bite open, then wider; hurt: hanging open
+    idle = [c, c, twitch, c]
+    walk = [c, c, c, c]
+    windup = [shift(c, 0, -1), GA.cell24(MAW_WINDUP)]
+    attack = [GA.cell24(MAW_OPEN), GA.cell24(MAW_HANG)]
+    # death: it hangs open, the teeth show once more, then it is a scar in the floor
+    death = [GA.cell24(MAW_HANG), GA.cell24(MAW_WINDUP), shift(c, 0, 1)]
+    return idle + walk + windup + attack + [GA.cell24(MAW_HANG)] + death
 
 
 # =============================================================================
@@ -1154,7 +1335,28 @@ WISP_HURT = part("""
 
 
 def build_wisp():
-    return [wisp(0), wisp(1), wisp(0), wisp(-1), WISP_WINDUP, WISP_CAST, WISP_HURT]
+    # idle and walk: the drift, the tail waving; windup: it swells, then contracts and holds;
+    # attack: the cast reaches, then recoils
+    drift = [wisp(0), wisp(1), wisp(0), wisp(-1)]
+    windup = [shift(wisp(0), 0, -1), WISP_WINDUP]
+    attack = [WISP_CAST, shift(WISP_CAST, -2, 0)]
+    # death: it scatters, thins, and is one cold point going out
+    last = part("""
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+..............P.........
+""")
+    death = [WISP_HURT, faded(shift(WISP_HURT, 0, 1), 0.5), faded(last, 0.7)]
+    return drift + drift + windup + attack + [WISP_HURT] + death
 
 
 # =============================================================================
@@ -1181,19 +1383,90 @@ CIT_HAT = part("""
 """)
 
 
+# Art Stage 19: the eight remaining costumes ride the body's bounding box (top centre, or the
+# bottom for the gull's trailing line), so every frame but the death carries them.
+GULL_LINE = part("""
+r...
+.r..
+..r.
+..rB
+""")
+LL_CROWN = part("""
+W.W.W
+WWWWW
+""")
+BR_CRUST = part("""
+WzWzW
+zzzzz
+""")
+SW_CAP = part("""
+.WWW.
+W...W
+""")
+SHADE_TIP = part("""
+.P.
+.2.
+222
+""")
+ANC_RUST = part("""
+u.U.u
+uUuUu
+""")
+MAW_TEETH = part("""
+B.v.B.v.B
+vBvBvBvBv
+""")
+WISP_SPARKS = part("""
+P.W.P
+.....
+""")
+COSTUMES = {
+    "gull": (GULL_LINE, "bottom", (2, 0)),
+    "lamplighter": (LL_CROWN, "top", (0, 0)),
+    "bell_ringer": (BR_CRUST, "top", (0, 1)),
+    "swimmer": (SW_CAP, "top", (0, 0)),
+    "keeper_shade": (SHADE_TIP, "top", (0, 1)),
+    "anchor": (ANC_RUST, "top", (0, 1)),
+    "deep_maw": (MAW_TEETH, "top", (0, 1)),
+    "tidewisp": (WISP_SPARKS, "top", (0, -1)),
+}
+
+
+def trimmed(p):
+    bb = p.getbbox()
+    return p.crop(bb)
+
+
 def elite_sheet(kind, frames):
+    """The costume rides the body by the offset tables; a frame past the table (a body lying
+    down or on its back) loses it."""
     out = []
     for i, f in enumerate(frames):
-        if kind == "shellback":
-            dy = (0, -1, 0, -1, -3, 2, 0)[i]
-            dx = (0, 0, 0, 0, -1, 1, -1)[i]
+        if kind in COSTUMES:
+            piece, where, (dx, dy) = COSTUMES[kind]
+            piece = trimmed(piece)
+            bb = f.getbbox()
+            if bb is None or i >= 13:
+                out.append(f)
+                continue
+            cx = (bb[0] + bb[2]) // 2
+            if where == "top":
+                x, y = cx - piece.width // 2 + dx, bb[1] - piece.height + dy
+            else:
+                x, y = cx - piece.width // 2 + dx, bb[3] - 1 + dy
+            out.append(stack((f, 0, 0), (piece, x, max(0, y))))
+            continue
+        if kind == "shellback" and i < len(SB_DOME_OFF):
+            dx, dy = SB_DOME_OFF[i]
             out.append(stack((f, 0, 0), (SB_CROWN, 8 + dx, 4 + dy)))
-        elif kind == "wrack_crab":
-            dx, dy = ((0, 0), (0, -1), (0, 0), (0, 0), (-3, -4), (1, 0), (-1, 0))[i]
+        elif kind == "wrack_crab" and i < len(CRAB_CLAW_OFF):
+            dx, dy = CRAB_CLAW_OFF[i]
             out.append(stack((f, 0, 0), (CRAB_BIG_CLAW, dx, 9 + dy)))
-        elif kind == "still_citizen":
-            pos = ((0, 0), (0, 0), (0, 0), (0, 0), (2, 3), (2, 3), (-2, 0))[i]
+        elif kind == "still_citizen" and i < len(CIT_HAT_POS):
+            pos = CIT_HAT_POS[i]
             out.append(stack((f, 0, 0), (CIT_HAT, pos[0], pos[1])))
+        else:
+            out.append(f)
     return out
 
 
@@ -1220,7 +1493,11 @@ def main():
         "deep_maw": build_maw(),
         "tidewisp": build_wisp(),
     }
-    for kind in ("shellback", "wrack_crab", "still_citizen"):
+    for kind in gen_rim.DROWNED:          # the wet crown (STYLE.md 18, Stage 20), before the costumes
+        if kind in built:
+            gen_rim.crown(built[kind])
+    for kind in ("shellback", "wrack_crab", "still_citizen", "gull", "lamplighter", "bell_ringer", "swimmer",
+                 "keeper_shade", "anchor", "deep_maw", "tidewisp"):
         built[kind + "_elite"] = elite_sheet(kind, built[kind])
     for name, frames in built.items():
         strip(frames).save(os.path.join(SPRITES, name + ".png"))
@@ -1234,20 +1511,22 @@ def main():
     floors = {"keeper_shade": "BASALT", "deep_maw": "BASALT", "shellback": "SAND", "gull": "SAND", "wrack_crab": "SAND",
               "tidewisp": "SAND", "still_citizen": "STONE", "lamplighter": "STONE", "bell_ringer": "STONE",
               "swimmer": "SEA", "anchor": "STONE", "shellback_elite": "SAND", "wrack_crab_elite": "SAND",
-              "still_citizen_elite": "STONE"}
-    labels = ["idle", "idle", "walk", "walk", "windup", "attack", "hurt"]
-    W = 12 + 7 * (CELL * 4 + 4) + 12
+              "still_citizen_elite": "STONE", "gull_elite": "SAND", "lamplighter_elite": "STONE",
+              "bell_ringer_elite": "STONE", "swimmer_elite": "SEA", "keeper_shade_elite": "BASALT",
+              "anchor_elite": "STONE", "deep_maw_elite": "BASALT", "tidewisp_elite": "SAND"}
+    labels = ["idle"] * 4 + ["walk"] * 4 + ["windup", "windup", "attack", "attack", "hurt", "death", "death", "death"]
+    W = 12 + 16 * (CELL * 4 + 4) + 12
     sheet = Image.new("RGBA", (W, 12 + len(built) * (CELL * 4 + 40)), (30, 33, 42, 255))
     d = ImageDraw.Draw(sheet)
     y = 8
     for name, frames in built.items():
         d.text((12, y), name, fill=P.rgb("SALT_WHITE"), font=font)
         y += 14
-        labs = ["fly", "fly", "fly", "fly", "dive", "hurt"] if name == "gull" else labels
+        labs = ["fly"] * 4 + ["brace", "brace", "dive", "dive", "hurt", "death", "death", "death"] if name == "gull" else labels
         if name == "deep_maw":
-            labs = ["closed", "closed", "closed", "closed", "windup", "bite", "open"]
+            labs = ["closed"] * 8 + ["windup", "windup", "bite", "bite", "open", "death", "death", "death"]
         if name == "tidewisp":
-            labs = ["drift", "drift", "drift", "drift", "windup", "cast", "hurt"]
+            labs = ["drift"] * 8 + ["windup", "windup", "cast", "cast", "hurt", "death", "death", "death"]
         for i, f in enumerate(frames):
             bg = Image.new("RGBA", (CELL, CELL), P.rgba(floors[name]))
             bg.alpha_composite(f)
@@ -1262,8 +1541,8 @@ def main():
         A[name] = frames[0]
     A["gull"] = built["gull"][1]
     A["swimmer"] = built["swimmer"][0]
-    A["still_citizen_run"] = built["still_citizen"][2]
-    A["shellback_windup"] = built["shellback"][4]
+    A["still_citizen_run"] = built["still_citizen"][4]
+    A["shellback_windup"] = built["shellback"][9]
     ents = [("tam", 296, 168, 14),
             ("shellback", 380, 110, 20), ("shellback_windup", 210, 250, 20), ("wrack_crab", 150, 180, 18),
             ("gull", 330, 60, 0), ("tidewisp", 90, 90, 0), ("still_citizen", 120, 300, 12),

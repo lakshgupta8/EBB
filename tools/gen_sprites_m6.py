@@ -707,12 +707,9 @@ def build_weapons_m6():
 def build_all(built):
     built.update(build_weapons_m6())
     built["tiles"] = Image.open(os.path.join(OUT, "tiles.png")).convert("RGBA")  # art Stage 09 sheet
-    built["decor4"] = build_decor4()
-    built["mooring"] = build_mooring()
-    built["barnacle"] = build_barnacle()
-    built["deckhand"] = build_deckhand()
-    built["chainmother"] = build_chainmother()
-    built["anchor_drop"] = build_anchor_drop()
+    # Art Stage 19: these are drawn by tools/gen_tiles.py (decor4) and tools/gen_enemies_b.py.
+    for name in ("decor4", "mooring", "barnacle", "deckhand", "chainmother", "anchor_drop"):
+        built[name] = Image.open(os.path.join(OUT, name + ".png")).convert("RGBA")
     built["icons"] = Image.open(os.path.join(OUT, "icons.png")).convert("RGBA")  # art Stage 09 sheet
     built["props"] = Image.open(os.path.join(OUT, "props.png")).convert("RGBA")  # art Stage 09 sheet
     built["pickups"] = build_pickups_m6(built["pickups"])

@@ -76,7 +76,7 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.08, 0.6)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 	var center := CenterContainer.new()
@@ -90,7 +90,7 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.custom_minimum_size = Vector2(470, 0)
 	panel.add_child(box)
-	box.add_child(UI.label("THE KEEPER'S LOG", 16, Color(0.95, 0.85, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
+	box.add_child(UI.header("THE KEEPER'S LOG"))
 	box.add_child(UI.spacer(2))
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 4)
@@ -112,7 +112,7 @@ func _build() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_list)
 	box.add_child(UI.spacer(2))
-	_count = UI.label("", 8, Color(0.7, 0.75, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
+	_count = UI.label("", 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_count)
 	var leave := UI.text_button("Leave   " + UI.hint("interact"))
 	leave.pressed.connect(close)
@@ -125,7 +125,7 @@ func _set_tab(i: int) -> void:
 	for j in _tab_buttons.size():
 		var b: Button = _tab_buttons[j]
 		b.text = "[%d] %s" % [j + 1, TAB_NAMES[TABS[j]]]
-		b.add_theme_color_override("font_color", Color(1, 1, 1) if j == i else Color(0.7, 0.75, 0.85))
+		b.add_theme_color_override("font_color", UI.PRIMARY if j == i else UI.SECONDARY)
 	for c in _list.get_children():
 		c.queue_free()
 	match TABS[i]:
@@ -175,17 +175,17 @@ static func _reward_text(m: Dictionary) -> String:
 
 
 func _row(name: String, desc: String, right: String, done: bool, current: bool = false) -> Control:
-	var p := UI.row_panel(Color(0.95, 0.85, 0.6) if current else UI.PANEL_EDGE)
+	var p := UI.row_panel(UI.ACCENT if current else UI.PANEL_EDGE)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	p.add_child(h)
-	var col := Color(0.55, 0.75, 0.6) if done else (Color(0.95, 0.93, 0.9) if current else Color(0.8, 0.8, 0.85))
+	var col := Palette.SEA_PALE if done else (UI.PRIMARY if current else UI.PRIMARY)
 	var a := UI.label(("+ " if done else "  ") + name, 8, col)
 	a.custom_minimum_size = Vector2(150, 0)
 	h.add_child(a)
 	h.add_child(UI.flex_label(desc))
-	var c := UI.label(right, 8, Color(0.75, 0.75, 0.8), HORIZONTAL_ALIGNMENT_RIGHT)
+	var c := UI.label(right, 8, UI.SECONDARY, HORIZONTAL_ALIGNMENT_RIGHT)
 	c.custom_minimum_size = Vector2(110, 0)
 	h.add_child(c)
 	return p

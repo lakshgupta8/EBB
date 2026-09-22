@@ -9,8 +9,6 @@ const DECOR := preload("res://assets/sprites/decor.png")
 const DECOR_STREETS := preload("res://assets/sprites/decor2.png")
 const DECOR_DEEP := preload("res://assets/sprites/decor3.png")
 const DECOR_HARBOUR := preload("res://assets/sprites/decor4.png")
-const DECOR_COUNT := 8
-const DECOR_PUDDLE := 4
 const WATER_SHADER := preload("res://src/world/water.gdshader")
 ## Neighbour order for the water autotiles: the bit for each is 1 << index (N E S W).
 const DIRS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
@@ -25,6 +23,8 @@ var theme: int = Tiles.Look.FLATS
 var doors: Array[Door] = []
 var props: Array[Prop] = []
 
+var _beyond: Node2D      # the void beyond the walls and the far scenery on it (art Stage 12)
+var _fore: Node2D        # foreground silhouettes on the south rim, above everything that walks
 var _ground: TileMapLayer
 var _shade: TileMapLayer   # the walls' cast shadow on the floor (art Stage 09)
 var _edge: TileMapLayer    # the dry side of the shore: wet band, and the tide line round low ground
@@ -40,6 +40,9 @@ var _body: Dictionary = {}       # flooded cell -> Body
 var _foam_case: Dictionary = {}  # flooded cell -> dry-neighbour bits
 var _bubble_t: float = 0.0
 var _bubble_rng := RandomNumberGenerator.new()
+var _spray: CPUParticles2D              # Salt white specks along the shore (art Stage 15)
+var _drip_points: PackedVector2Array = []  # wall tops that drip (the Streets, the Hall)
+var _drip_t: float = 0.0
 var _astar: AStarGrid2D
 
 
@@ -48,6 +51,9 @@ func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS
 	theme = p_theme
 	add_to_group("room")
 	_bubble_rng.seed = decor_seed if decor_seed != 0 else hash(t.name)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _bubble_rng.seed
+	_build_beyond(rng)
 	_ground = TileMapLayer.new()
 	_ground.name = "Ground"
 	_ground.tile_set = Tiles.tileset()
@@ -78,13 +84,71 @@ func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS
 	add_child(_foam)
 	for y in t.height:
 		for x in t.width:
+			# The inside of a wall mass is left to the void layer beneath.
+			if t.is_beyond(x, y):
+				continue
 			_ground.set_cell(Vector2i(x, y), 0, Tiles.coords(t.tile_at(x, y, theme)))
 	_cast_wall_shadows()
+	_build_foreground(rng)
 	_build_nav()
+	_build_spray()
+	_find_drips()
 	set_tide(0.0)
 
 
-## Scatter shells, kelp, driftwood... on open sand so rooms do not look identical.
+## The void beyond the walls (STYLE.md 11: Abyss with a faint Night 1 texture, unlit) with the
+## far scenery standing in it, on one node so it can shift a little with Tam (Scenery.PARALLAX).
+func _build_beyond(rng: RandomNumberGenerator) -> void:
+	_beyond = Node2D.new()
+	_beyond.name = "Beyond"
+	add_child(_beyond)
+	var unlit := CanvasItemMaterial.new()
+	unlit.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	var void_layer := TileMapLayer.new()
+	void_layer.name = "Void"
+	void_layer.tile_set = Tiles.beyond_tileset()
+	void_layer.material = unlit
+	var row := Scenery.void_row(theme)
+	# Every wall cell and one cell past the room on each side: the rim walls draw over it, and
+	# the shift never shows the clear colour.
+	for y in range(-1, template.height + 1):
+		for x in range(-1, template.width + 1):
+			if template.char_at(x, y) == "#":
+				var c := Vector2i(x, y)
+				void_layer.set_cell(c, 0, Vector2i(Scenery.void_variant(c), row))
+	_beyond.add_child(void_layer)
+	for p in Scenery.place_scenery(template, theme, rng):
+		var s := Sprite2D.new()
+		var at := AtlasTexture.new()
+		at.atlas = Scenery.SCENERY
+		at.region = Rect2(int(p.kind) * Scenery.CELL, 0, Scenery.CELL, Scenery.CELL)
+		s.texture = at
+		s.centered = false
+		s.position = p.pos - Vector2(Scenery.CELL / 2.0, Scenery.CELL)
+		s.material = unlit
+		_beyond.add_child(s)
+
+
+## Foreground silhouettes on the south rim (STYLE.md 20: the strongest shapes on screen, so two
+## or three, and never near a door). They overhang the last floor row by 8 px, above the content.
+func _build_foreground(rng: RandomNumberGenerator) -> void:
+	_fore = Node2D.new()
+	_fore.name = "Foreground"
+	_fore.z_index = 3
+	add_child(_fore)
+	for p in Scenery.place_foreground(template, theme, rng):
+		var s := Sprite2D.new()
+		var at := AtlasTexture.new()
+		at.atlas = Scenery.FOREGROUND
+		at.region = Rect2(int(p.kind) * Scenery.FG_W, 0, Scenery.FG_W, Scenery.FG_H)
+		s.texture = at
+		s.centered = false
+		s.position = p.pos - Vector2(Scenery.FG_W / 2.0, Scenery.FG_H)
+		_fore.add_child(s)
+
+
+## The small things (shells, kelp, driftwood, benches, candles...), placed by rule
+## (DecorRules, art Stage 12) so rooms differ without clutter in doorways or under props.
 func _scatter_decor(decor_seed: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = decor_seed if decor_seed != 0 else hash(template.name)
@@ -92,30 +156,18 @@ func _scatter_decor(decor_seed: int) -> void:
 	layer.name = "Decor"
 	layer.z_index = 0
 	add_child(layer)
-	var candidates: Array[Vector2i] = []
-	for y in range(1, template.height - 1):
-		for x in range(1, template.width - 1):
-			var ch := template.char_at(x, y)
-			if ch == "." or ch == "_":
-				candidates.append(Vector2i(x, y))
-	var count := mini(candidates.size(), rng.randi_range(10, 18))
-	for i in count:
-		var idx := rng.randi() % candidates.size()
-		var cell := candidates[idx]
-		candidates.remove_at(idx)
-		var kind := rng.randi() % DECOR_COUNT
-		if theme == Tiles.Look.FLATS and template.char_at(cell.x, cell.y) == "_" and rng.randf() < 0.5:
-			kind = DECOR_PUDDLE
+	var atlas: Texture2D = DECOR
+	match theme:
+		Tiles.Look.DEEP: atlas = DECOR_DEEP
+		Tiles.Look.STREETS: atlas = DECOR_STREETS
+		Tiles.Look.HARBOUR: atlas = DECOR_HARBOUR
+	for d in DecorRules.plan(template, theme, rng):
 		var s := Sprite2D.new()
 		var at := AtlasTexture.new()
-		at.atlas = DECOR
-		match theme:
-			Tiles.Look.DEEP: at.atlas = DECOR_DEEP
-			Tiles.Look.STREETS: at.atlas = DECOR_STREETS
-			Tiles.Look.HARBOUR: at.atlas = DECOR_HARBOUR
-		at.region = Rect2(kind * 16, 0, 16, 16)
+		at.atlas = atlas
+		at.region = Rect2(int(d.kind) * 16, 0, 16, 16)
 		s.texture = at
-		s.position = cell_to_world(cell) + Vector2(rng.randi_range(-3, 3), rng.randi_range(-3, 3))
+		s.position = cell_to_world(d.cell) + Vector2(rng.randi_range(-3, 3), rng.randi_range(-3, 3))
 		s.flip_h = rng.randf() < 0.5
 		layer.add_child(s)
 
@@ -352,6 +404,74 @@ func _refresh_water() -> void:
 					if bits:
 						_edge.set_cell(c, 0, Vector2i(bits, Tiles.WATER_LINE_ROW))
 	_paint_water()
+	_refresh_spray()
+
+
+## Spray (STYLE.md 13, art Stage 15): 1 px Salt white specks rising off the water just inside
+## the foam line, 6 px over 1.5 s and fading; the count follows the length of the foam line.
+func _build_spray() -> void:
+	_spray = CPUParticles2D.new()
+	_spray.name = "Spray"
+	_spray.emitting = false
+	_spray.lifetime = 1.5
+	_spray.preprocess = 1.5
+	_spray.emission_shape = CPUParticles2D.EMISSION_SHAPE_POINTS
+	_spray.direction = Vector2(0, -1)
+	_spray.spread = 8.0
+	_spray.gravity = Vector2.ZERO
+	_spray.initial_velocity_min = 3.0
+	_spray.initial_velocity_max = 5.0
+	_spray.scale_amount_min = 1.0
+	_spray.scale_amount_max = 1.0
+	# Bright at birth and gone by the end of its rise: a 1 px speck is invisible at 25 %.
+	_spray.color = Color(Palette.SALT_WHITE, 0.9)
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 1))
+	fade.set_color(1, Color(1, 1, 1, 0))
+	_spray.color_ramp = fade
+	_spray.z_index = 5
+	add_child(_spray)
+
+
+func _refresh_spray() -> void:
+	if _spray == null:
+		return
+	var pts := PackedVector2Array()
+	for c in _foam_case:
+		var bits: int = _foam_case[c]
+		var at := cell_to_world(c)
+		# just inside the foam, over the water, where a Salt white speck reads
+		for i in 4:
+			if bits & (1 << i):
+				pts.append(at + Vector2(DIRS[i]) * 2.0)
+	if pts.is_empty():
+		_spray.emitting = false
+		return
+	_spray.emission_points = pts
+	_spray.amount = clampi(pts.size() / 2, 4, 32)
+	_spray.emitting = true
+
+
+## Drips (STYLE.md 13): in the Streets and the Hall an occasional 1 px Sea pale drop falls
+## down a wall face, about one every 4 s per room and more in a long one.
+func _find_drips() -> void:
+	_drip_points = PackedVector2Array()
+	if theme != Tiles.Look.STREETS and theme != Tiles.Look.DEEP:
+		return
+	for y in range(1, template.height):
+		for x in template.width:
+			if not template.is_solid(x, y) and template.is_solid(x, y - 1) and not template.is_beyond(x, y - 1):
+				_drip_points.append(cell_to_world(Vector2i(x, y - 1)) + Vector2(0, -6))
+
+
+func _tick_drips(delta: float) -> void:
+	if _drip_points.is_empty():
+		return
+	_drip_t += delta * (1.0 + float(_drip_points.size()) / 40.0)
+	if _drip_t >= 4.0:
+		_drip_t -= 4.0
+		var p: Vector2 = _drip_points[_bubble_rng.randi() % _drip_points.size()]
+		FX.drip(p + Vector2(_bubble_rng.randi_range(-6, 6), 0), self)
 
 
 ## Body and foam cells for the current animation tick.
@@ -367,6 +487,12 @@ func _paint_water() -> void:
 
 
 func _process(delta: float) -> void:
+	# The void slides a few pixels with Tam: the rim is near, what stands beyond it is far.
+	if _beyond != null:
+		var tam := get_tree().get_first_node_in_group("player") as Node2D
+		if tam != null:
+			_beyond.position = ((to_local(tam.global_position) - size_px() * 0.5) * Scenery.PARALLAX).round()
+	_tick_drips(delta)
 	if _flooded.is_empty():
 		return
 	_anim_t += delta

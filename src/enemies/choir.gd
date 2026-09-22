@@ -25,16 +25,11 @@ var spared: bool = false
 
 
 func _setup_animations() -> void:
-	sprite.sprite_frames = SheetFrames.build(SHEET, 24, {
-		"idle": {"frames": [0, 1], "fps": 2},
-		"walk": {"frames": [2, 3], "fps": 5},
-		"windup": {"frames": [4], "fps": 1},
-		"sing": {"frames": [5], "fps": 1},
-		"hurt": {"frames": [6], "fps": 1},
-	})
+	sprite.sprite_frames = SheetFrames.build(SHEET, 24, anims(
+		{"idle": "idle", "walk": "walk", "windup": "windup", "sing": "attack", "hurt": "hurt"}, {"idle": 2, "walk": 5}))
 	_drift_dir = 1.0 if randf() < 0.5 else -1.0
 	_sing_t = randf_range(0.8, 2.0)
-	var glow := Atmosphere.light(self, Color(0.8, 0.7, 0.95), 2.0, 0.6, Vector2(0, -10))
+	var glow := Atmosphere.light(self, Palette.VIOLET_LIGHT, 1.6, 0.35, Vector2(0, -10))
 	Atmosphere.breathe(glow, 0.4, 0.8, 2.2)
 	_prompt = UI.label("", 8, Color(0.95, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	_prompt.size = Vector2(120, 10)

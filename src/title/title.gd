@@ -2,10 +2,11 @@ extends Node2D
 ## The entrance: Marrow Rock seen from the water at night. Stars, a thin moon, the
 ## lighthouse sweeping its lamp over the sea, and Tam on the near shore with the one warm
 ## light. The menu sits over the water. Keep the tide starts (or continues) at the rock.
-## Everything here is drawn on the pixel grid; nothing is scaled but the logo (2x).
+## Everything here is drawn on the pixel grid; nothing is scaled. The logo is drawn at
+## its own size by tools/gen_logo.py (Stage 18).
 
 const LOGO := preload("res://assets/sprites/logo.png")
-const GLOW := preload("res://assets/sprites/glow.png")
+const GLOW := preload("res://assets/sprites/haze.png")  # a soft sprite; the light texture is two-zone now
 const PLAYER_SHEET := preload("res://assets/sprites/player.png")
 const GULL_SHEET := preload("res://assets/sprites/gull.png")
 
@@ -197,13 +198,13 @@ func _build_menu() -> void:
 	_logo = TextureRect.new()
 	_logo.texture = LOGO
 	_logo.stretch_mode = TextureRect.STRETCH_KEEP
-	_logo.scale = Vector2(2, 2)
-	_logo.position = Vector2(320 - LOGO.get_width(), 30)
+	_logo.position = Vector2(320 - LOGO.get_width() / 2, 24)
 	_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_logo)
-	var tag := UI.label("k e e p   t h e   t i d e", 8, PALE, HORIZONTAL_ALIGNMENT_CENTER)
+	var tag := UI.label("keep the tide", 8, PALE, HORIZONTAL_ALIGNMENT_CENTER)
+	UI.whisper(tag)
 	tag.name = "Tag"
-	tag.position = Vector2(200, 30 + LOGO.get_height() * 2 + 3)
+	tag.position = Vector2(200, 24 + LOGO.get_height() + 4)
 	tag.size = Vector2(240, 10)
 	layer.add_child(tag)
 
@@ -272,8 +273,7 @@ func _menu_button(text: String, slot: int) -> Button:
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.text = UI.t(text)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.add_theme_font_override("font", UI.FONT)
-	b.add_theme_font_size_override("font_size", 8)
+	UI.set_size(b, 8)
 	b.add_theme_color_override("font_color", SALT)
 	b.add_theme_color_override("font_hover_color", FOAM)
 	b.add_theme_color_override("font_pressed_color", WARM)
@@ -369,7 +369,7 @@ func _intro() -> void:
 	var tw2 := create_tween()
 	tw2.tween_interval(0.4)
 	tw2.tween_property(_logo, "modulate:a", 1.0, 0.7)
-	tw2.parallel().tween_property(_logo, "position:y", 30.0, 0.7).from(26.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw2.parallel().tween_property(_logo, "position:y", 24.0, 0.7).from(20.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tw2.tween_property(layer.get_node("Tag"), "modulate:a", 1.0, 0.5)
 	var tw3 := create_tween()
 	tw3.tween_interval(0.9)
