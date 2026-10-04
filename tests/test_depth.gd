@@ -4,6 +4,23 @@ extends TestCase
 ## rules in STYLE.md 8.
 
 const BLOCK := """
+################
+################
+################
+###..........###
+###.######...###
+###.######...###
+###.######...###
+###.######...###
+###.######...###
+###..........###
+###..........###
+###..........###
+###...P......###
+######D#########
+"""
+
+const SPECK := """
 ##########
 #........#
 #..####..#
@@ -43,30 +60,34 @@ func _rng(seed: int = 7) -> RandomNumberGenerator:
 
 func test_the_inside_of_a_wall_mass_is_beyond() -> void:
 	var t := RoomTemplate.parse(BLOCK, "block")
-	assert_true(t.is_beyond(4, 3), "walled in on all eight sides")
-	assert_true(t.is_beyond(5, 3), "and its neighbour")
-	assert_true(not t.is_beyond(3, 3), "the block's west edge touches floor: rim")
-	assert_true(not t.is_beyond(0, 0), "the outer ring touches floor: rim")
-	assert_true(not t.is_beyond(1, 1), "floor is never beyond")
-	assert_eq(Scenery.beyond_cells(t).size(), 2, "two beyond cells in the block")
+	assert_true(t.is_beyond(5, 0), "three cells from the floor: the void")
+	assert_true(t.is_beyond(0, 7), "and in the west mass")
+	assert_true(not t.is_beyond(1, 7), "two cells from the floor: the rim is two thick (map Stage 06)")
+	assert_true(not t.is_beyond(2, 7), "the rim's inner ring")
+	assert_true(not t.is_beyond(6, 6), "a speck of void inside an outcrop stays rock")
+	assert_true(not t.is_beyond(4, 4), "the outcrop's edge touches floor")
+	assert_true(not t.is_beyond(3, 3), "floor is never beyond")
+	assert_eq(Scenery.beyond_cells(t).size(), 42, "the outer mass only")
 
 
 func test_the_ground_leaves_beyond_cells_to_the_void() -> void:
 	var r := Room.new()
 	r.build(RoomTemplate.parse(BLOCK, "block"))
-	assert_eq(r._ground.get_cell_source_id(Vector2i(4, 3)), -1, "no ground tile inside the mass")
-	assert_true(r._ground.get_cell_source_id(Vector2i(3, 3)) != -1, "the rim keeps its wall tile")
+	assert_eq(r._ground.get_cell_source_id(Vector2i(5, 0)), -1, "no ground tile inside the mass")
+	assert_true(r._ground.get_cell_source_id(Vector2i(1, 7)) != -1, "the rim keeps its wall tile")
 	var void_layer: TileMapLayer = r._beyond.get_node("Void")
-	assert_eq(void_layer.get_cell_source_id(Vector2i(4, 3)), 0, "the void is painted there")
-	assert_eq(void_layer.get_cell_atlas_coords(Vector2i(4, 3)).y, Scenery.Void.SEA, "the Flats void is the night sea")
+	assert_eq(void_layer.get_cell_source_id(Vector2i(5, 0)), 0, "the void is painted there")
+	assert_eq(void_layer.get_cell_atlas_coords(Vector2i(5, 0)).y, Scenery.Void.SEA, "the Flats void is the night sea")
 	assert_eq(void_layer.get_cell_source_id(Vector2i(-1, -1)), 0, "and one cell past the room")
-	assert_eq(void_layer.get_cell_source_id(Vector2i(1, 1)), -1, "never under floor")
+	assert_eq(void_layer.get_cell_source_id(Vector2i(3, 3)), -1, "never under floor")
 	r.free()
 
 
 func test_scenery_stands_only_on_beyond_cells() -> void:
-	var small := RoomTemplate.parse(BLOCK, "block")
-	assert_eq(Scenery.place_scenery(small, Tiles.Look.FLATS, _rng()).size(), 0, "nothing fits in two cells")
+	# The old block: a 4x3 outcrop, all of it within two cells of the floor, so no void at all.
+	var small := RoomTemplate.parse(SPECK, "speck")
+	assert_eq(Scenery.beyond_cells(small).size(), 0, "no void in a small outcrop")
+	assert_eq(Scenery.place_scenery(small, Tiles.Look.FLATS, _rng()).size(), 0, "nothing stands on rock")
 	# a 12x8 mass: plenty of room
 	var rows: PackedStringArray = []
 	for y in 23:

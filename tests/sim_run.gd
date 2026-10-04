@@ -266,7 +266,7 @@ func _stall_watch() -> void:
 			run.state.depth, run.room.template.name, WEDGE_TICKS / 60, names])
 		run.give_up()
 		return
-	if _stall_ticks % 1200 == 0:
+	if _stall_ticks % (1200 * _room_scale()) == 0:
 		var enemies := get_tree().get_nodes_in_group("enemies")
 		var names := []
 		for e in enemies:
@@ -279,12 +279,19 @@ func _stall_watch() -> void:
 			player.global_position.round(), player.health.hp, names, doors])
 
 
+## How many one-screen rooms this room is (map Stage 02): walking an L room takes longer, so
+## the stall and stuck reports wait that much longer before they speak.
+func _room_scale() -> int:
+	var t: RoomTemplate = run.room.template
+	return maxi(1, ceili(float(t.width * t.height) / (40.0 * 23.0)))
+
+
 func _stuck_report(door: Door) -> void:
 	if run.state.depth != _progress_depth:
 		_progress_depth = run.state.depth
 		_no_progress = 0
 	_no_progress += 1
-	if _no_progress % 600 == 0:
+	if _no_progress % (600 * _room_scale()) == 0:
 		var path := run.room.nav_path(player.global_position, door.global_position)
 		print("sim_run: STUCK? tick=%d room=%s player=%s cell=%s door=%s cell=%s open=%s path=%d solid_here=%s" % [
 			tick, run.room.template.name, player.global_position.round(), run.room.world_to_cell(player.global_position),

@@ -158,6 +158,10 @@ func _ready() -> void:
 	_rng.seed = state.seed
 	seed(state.seed)  # enemies roll on the global RNG: the same seed is the same night
 	hud.bind(self)
+	var marks := OffscreenMarks.new()
+	marks.name = "Offscreen"
+	$HUD.add_child(marks)
+	$HUD.move_child(marks, 0)
 	shop.setup(self)
 	_tide_step = int(floor(state.tide.level))
 	EventBus.pickup_collected.connect(_hint_pickup)
@@ -221,6 +225,10 @@ func _ready() -> void:
 				_dev_tide = float(a.trim_prefix("--tide="))
 			elif a == "--named":
 				_dev_named = true
+			elif a.begins_with("--room="):
+				# Every fighting room is this template (map Stage 02: try a large room in play).
+				var path := a.trim_prefix("--room=")
+				_dev_room = RoomTemplate.load_file(path if path.begins_with("res://") else "res://" + path)
 		# Nessa's fish come down with you; Long Memory brings one mark from last night.
 		state.fish = []
 		for f in SaveManager.data.get("fish", []):
@@ -459,9 +467,12 @@ func _load_templates(dir: String) -> void:
 
 
 var _last_template: String = ""
+var _dev_room: RoomTemplate = null  # --room=<path>: every fighting room is this one
 
 
 func _pick_template(type: int) -> RoomTemplate:
+	if _dev_room != null and (type == RoomGraph.COMBAT or type == RoomGraph.ELITE):
+		return _dev_room
 	var list: Array = _templates[type]
 	if list.is_empty():
 		# Never a black room: a fighting room stands in, and the log says which biome is short.
@@ -1519,6 +1530,7 @@ func _keyframe_stage() -> void:
 	if player == null or room == null:
 		return
 	player.global_position = room.cell_to_world(Vector2i(room.template.width / 2, room.template.height / 2))
+	$Camera.snap()
 	var present := 0
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e is Enemy and not e.is_boss:

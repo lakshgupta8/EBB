@@ -89,8 +89,9 @@ func _check_templates(dir: String) -> void:
 		assert_true(found, "%s has a %s template" % [dir, prefix])
 	for f in files:
 		var t := RoomTemplate.load_file(dir + f)
-		assert_eq(t.width, 40, f + " width")
-		assert_eq(t.height, 23, f + " height (16:9 stretch)")
+		# STYLE.md 22: S is one screen (40x23, the 16:9 stretch), L is two by two (80x46).
+		assert_true(t.width >= 40 and t.width <= 80, f + " width %d in 40-80" % t.width)
+		assert_true(t.height >= 23 and t.height <= 46, f + " height %d in 23-46" % t.height)
 		assert_true(t.player_spawn.x >= 0, f + " has a player spawn")
 		assert_true(t.doors.size() >= 1, f + " has a door slot")
 		if f.begins_with("flats") or f.begins_with("harbour") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
@@ -224,7 +225,8 @@ func test_run_result_conversion() -> void:
 ## Every open cell in every template must be walkable from the player spawn (no
 ## diagonal-only gaps, no sealed chest rooms). Pure flood fill on the template.
 func test_templates_are_connected() -> void:
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/",
+			"res://data/rooms/test/"]:
 		for f in DirAccess.get_files_at(dir):
 			var t := RoomTemplate.load_file(dir + f)
 			var seen := {}
