@@ -8,7 +8,8 @@ extends Node2D
 ## Mouse paints the chosen brush (right button paints floor). 1-9 and 0 pick a brush,
 ## Tab and Shift+Tab step the whole palette, [ and ] step through the biome's files.
 ## S saves (it refuses a room you cannot walk around), L reloads, G shows the grid,
-## Esc quits. Writing goes to the real file through the project folder, so this is for
+## Esc quits. A room larger than the screen (map Stage 02) opens framed whole; the arrow
+## keys or the middle button pan, the wheel or Z zooms between 1x and the whole room. Writing goes to the real file through the project folder, so this is for
 ## a build run from source, which is what a dev flag means here.
 
 const DEFAULT_ROOM := "data/rooms/biome1/flats_01.txt"
@@ -35,6 +36,7 @@ const THEME_BY_DIR := {"biome1": Tiles.Look.FLATS, "harbour": Tiles.Look.HARBOUR
 
 var path: String = DEFAULT_ROOM
 var rows: PackedStringArray = []
+var directives: PackedStringArray = []  # `@` lines (set pieces, map Stage 05), kept as written
 var brush: int = 0
 var dirty: bool = false
 var show_grid: bool = true
@@ -46,6 +48,9 @@ var _palette: Label
 var _title: Label
 var _grid: GridOverlay
 var _painting: int = 0  # mouse button held, or 0
+var _panning: bool = false
+var _framed: Vector2i = Vector2i.ZERO  # the room size the view was last framed for
+@onready var _cam: Camera2D = $Camera
 
 
 func _ready() -> void:
@@ -89,8 +94,12 @@ func _scan_dir() -> void:
 func _load() -> void:
 	var text := FileAccess.get_file_as_string("res://" + path)
 	rows = PackedStringArray()
+	directives = PackedStringArray()
 	for line in text.split("\n"):
 		if line.strip_edges() == "":
+			continue
+		if line.begins_with("@"):
+			directives.append(line.strip_edges())
 			continue
 		rows.append(line.strip_edges(false, true))
 	dirty = false
@@ -107,7 +116,7 @@ func _save() -> void:
 	if f == null:
 		_say("cannot write %s (error %d)" % [path, FileAccess.get_open_error()], false)
 		return
-	f.store_string("\n".join(rows) + "\n")
+	f.store_string("\n".join(rows + directives) + "\n")
 	f = null
 	dirty = false
 	_say("saved %s" % path, true)
@@ -149,7 +158,7 @@ func _check() -> String:
 
 
 func _template() -> RoomTemplate:
-	return RoomTemplate.parse("\n".join(rows), path.get_file().get_basename())
+	return RoomTemplate.parse("\n".join(rows + directives), path.get_file().get_basename())
 
 
 # --- painting ------------------------------------------------------------------------
@@ -176,10 +185,16 @@ func _cell_at(pos: Vector2) -> Vector2i:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			_panning = event.pressed
+		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			_zoom_to(_cam.zoom.x * (2.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 0.5))
+		elif event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 			_painting = event.button_index if event.pressed else 0
 			if event.pressed:
 				_paint(get_global_mouse_position(), event.button_index)
+	elif event is InputEventMouseMotion and _panning:
+		_cam.position -= event.relative / _cam.zoom
 	elif event is InputEventMouseMotion and _painting != 0:
 		_paint(get_global_mouse_position(), _painting)
 	elif event is InputEventKey and event.pressed and not event.echo:
@@ -243,9 +258,30 @@ func _rebuild() -> void:
 	var look: int = THEME_BY_DIR.get(_dir().get_file(), Tiles.Look.FLATS)
 	_room.build(_template(), 7, look)
 	_room.set_tide(0.0)
+	var size := Vector2i(_room.template.width, _room.template.height)
+	if size != _framed:
+		# A new room, or a resized one: show it whole, centred.
+		_framed = size
+		_cam.position = _room.size_px() * 0.5
+		_zoom_to(_fit_zoom())
 	if _grid:
 		_grid.queue_redraw()
 	_refresh()
+
+
+## The largest of 1x, 1/2x, 1/4x that shows the whole room above the bar.
+func _fit_zoom() -> float:
+	var room := _room.size_px()
+	var view := Vector2(640, 326)
+	var z := 1.0
+	while z > 0.25 and (room.x * z > view.x + 0.5 or room.y * z > view.y + 16.5):
+		z *= 0.5
+	return z
+
+
+func _zoom_to(z: float) -> void:
+	z = clampf(z, 0.25, 1.0)
+	_cam.zoom = Vector2(z, z)
 
 
 func _build_ui() -> void:
@@ -269,7 +305,7 @@ func _build_ui() -> void:
 	_palette.position = Vector2(4, 338)
 	_palette.size = Vector2(632, 10)
 	layer.add_child(_palette)
-	_status = UI.label("mouse paints   right button clears   [S] save  [L] reload  [Tab] brush  [ ] file  [G] grid  [Esc] quit", 8, Color(0.6, 0.7, 0.8))
+	_status = UI.label("paint: mouse  clear: right  [S] save  [L] reload  [Tab] brush  [ ] file  [G] grid  [Z] zoom  arrows pan  [Esc] quit", 8, Color(0.6, 0.7, 0.8))
 	_status.position = Vector2(4, 348)
 	_status.size = Vector2(632, 10)
 	layer.add_child(_status)

@@ -1,7 +1,7 @@
 extends TestCase
 ## The water overlay picks its cells from the height map (art Stage 10): foam only on the
-## shore side, the wet band on the dry side, the tide line round dry low ground, deep water
-## dithered where it meets shallow water, and the arch that matches the tide.
+## shore side, the wet band on the dry side, deep water dithered where it meets shallow water,
+## and the arch that matches the tide. Drawn on the dual grid since map Stage 03.
 
 const POOL := """
 ############
@@ -32,17 +32,22 @@ func test_low_ground_floods_first_with_foam_on_the_shore_side() -> void:
 	assert_true(r._body.has(Vector2i(4, 4)), "the middle of the basin is water")
 	assert_true(not r._foam_case.has(Vector2i(4, 4)), "no foam away from the shore")
 	assert_true(int(r._body[Vector2i(4, 4)]) <= Room.Body.SHALLOW_B, "half a level of water is shallow")
-	# The floor north of the basin carries the wet band on its south edge.
-	assert_eq(r._edge.get_cell_atlas_coords(Vector2i(3, 1)), Vector2i(4, Tiles.WATER_WET_ROW), "wet band faces the water")
+	# The shore between the floor at (3, 1) and the water at (3, 2) is drawn on the corner they
+	# share with (4, 1) and (4, 2): wet below, dry above (case BL|BR), foam and wet band in one tile.
+	assert_eq(r._water.get_cell_atlas_coords(Vector2i(4, 2)).x / Tiles.TERRAIN_VARIANTS, 4 | 8, "the shore tile is wet to the south")
 	assert_true(not r._body.has(Vector2i(3, 1)), "the floor is dry")
 	r.free()
 
 
-func test_dry_low_ground_keeps_a_tide_line() -> void:
+func test_dry_low_ground_sits_below_the_floor() -> void:
+	# Map Stage 03: no tide line; dry low ground is the low layer, and the floor's bank and its
+	# shadow mark where it starts.
 	var r := _pool(0.0)
 	assert_true(r._body.is_empty(), "nothing floods at tide 0")
-	assert_eq(r._edge.get_cell_atlas_coords(Vector2i(3, 2)), Vector2i(1 | 8, Tiles.WATER_LINE_ROW), "the line faces the floor")
-	assert_eq(r._edge.get_cell_atlas_coords(Vector2i(4, 4)), Vector2i(-1, -1), "no line inside the basin")
+	assert_eq(r._water.get_used_cells().size(), 0, "no water drawn")
+	assert_eq(r._terrain[1].get_cell_atlas_coords(Vector2i(5, 5)), Vector2i(-1, -1), "no floor inside the basin")
+	assert_true(r._terrain[0].get_cell_atlas_coords(Vector2i(5, 5)).x >= Tiles.TERRAIN_FILL, "the low ground fills it")
+	assert_true(r._terrain[1].get_cell_atlas_coords(Vector2i(4, 2)) != Vector2i(-1, -1), "the floor's bank on the basin's edge")
 	r.free()
 
 

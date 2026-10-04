@@ -12,6 +12,9 @@ var player_spawn: Vector2i = Vector2i(-1, -1)
 var enemy_spawns: Array[Vector2i] = []
 var doors: Array[Vector2i] = []
 var markers: Dictionary = {}  # char -> Array[Vector2i]
+var pieces: Array[Dictionary] = []  # [{id, cell}] set pieces (map Stage 05), from `@ id x y` lines
+var piece_cells: Dictionary = {}    # cell -> piece id: the solid footprints
+var directives: PackedStringArray = []  # the `@` lines as written, kept for the room editor
 
 
 static func parse(text: String, p_name: String = "") -> RoomTemplate:
@@ -19,6 +22,9 @@ static func parse(text: String, p_name: String = "") -> RoomTemplate:
 	t.name = p_name
 	for line in text.split("\n"):
 		if line.strip_edges() == "":
+			continue
+		if line.begins_with("@"):
+			t._directive(line.strip_edges())
 			continue
 		t.rows.append(line.strip_edges(false, true))
 	t.height = t.rows.size()
@@ -36,6 +42,26 @@ static func parse(text: String, p_name: String = "") -> RoomTemplate:
 						t.markers[ch] = []
 					t.markers[ch].append(cell)
 	return t
+
+
+## `@ <piece id> <x> <y>`: a set piece with its footprint's top-left at cell (x, y).
+func _directive(line: String) -> void:
+	directives.append(line)
+	var parts := line.substr(1).strip_edges().split(" ", false)
+	if parts.size() != 3 or not SetPieces.has(parts[0]):
+		push_warning("%s: unknown directive '%s'" % [name, line])
+		return
+	var at := Vector2i(int(parts[1]), int(parts[2]))
+	pieces.append({"id": parts[0], "cell": at})
+	for c in SetPieces.footprint(parts[0], at):
+		piece_cells[c] = parts[0]
+	# A pier or a bridge lays its deck, a tide pool its water, into the plan (never over a wall
+	# or a door). The `@` lines follow the rows, so the rows are all read by now.
+	var lay := SetPieces.ground(parts[0], at)
+	for c: Vector2i in lay:
+		if c.y >= 0 and c.y < rows.size() and c.x >= 0 and c.x < rows[c.y].length() and not rows[c.y][c.x] in ["#", "D"]:
+			var row := rows[c.y]
+			rows[c.y] = row.substr(0, c.x) + str(lay[c]) + row.substr(c.x + 1)
 
 
 static func load_file(path: String) -> RoomTemplate:
@@ -60,19 +86,62 @@ func height_at(x: int, y: int) -> int:
 
 func is_solid(x: int, y: int) -> bool:
 	var ch := char_at(x, y)
-	return ch == "#" or ch == "o" or ch == "h"
+	return ch == "#" or ch == "o" or ch == "h" or piece_cells.has(Vector2i(x, y))
 
 
-## A wall cell with nothing but wall (or the room's edge) round it: the world stops there and
-## the void shows through (art Stage 12). Walls that touch floor are the rim and stay walls.
+## A wall cell with nothing but wall (or the room's edge) within RIM cells: the world stops there
+## and the void shows through (art Stage 12). The walls nearer the floor are the rim, a mass at
+## least RIM thick (map Stage 06, STYLE.md 22). A patch of void smaller than VOID_MIN cells that
+## does not reach the room's edge stays rock: a speck of void in an outcrop reads as a hole.
+const RIM := 2
+const VOID_MIN := 6
+var _beyond: Dictionary = {}
+var _beyond_built := false
+
+
 func is_beyond(x: int, y: int) -> bool:
-	if char_at(x, y) != "#":
-		return false
-	for dy in range(-1, 2):
-		for dx in range(-1, 2):
-			if char_at(x + dx, y + dy) != "#":
-				return false
-	return true
+	if not _beyond_built:
+		_build_beyond()
+	return _beyond.has(Vector2i(x, y))
+
+
+func _build_beyond() -> void:
+	_beyond_built = true
+	var deep: Dictionary = {}
+	for y in height:
+		for x in width:
+			if char_at(x, y) != "#":
+				continue
+			var clear := true
+			for dy in range(-RIM, RIM + 1):
+				for dx in range(-RIM, RIM + 1):
+					if char_at(x + dx, y + dy) != "#":
+						clear = false
+						break
+				if not clear:
+					break
+			if clear:
+				deep[Vector2i(x, y)] = true
+	var seen: Dictionary = {}
+	for start: Vector2i in deep:
+		if seen.has(start):
+			continue
+		var patch: Array[Vector2i] = [start]
+		seen[start] = true
+		var edge := false
+		var i := 0
+		while i < patch.size():
+			var c := patch[i]
+			i += 1
+			edge = edge or c.x == 0 or c.y == 0 or c.x == width - 1 or c.y == height - 1
+			for off: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var n := c + off
+				if deep.has(n) and not seen.has(n):
+					seen[n] = true
+					patch.append(n)
+		if edge or patch.size() >= VOID_MIN:
+			for c in patch:
+				_beyond[c] = true
 
 
 ## Ground tile index for a cell (door cells return DOOR; caller swaps when opened).
