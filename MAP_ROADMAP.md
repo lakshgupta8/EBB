@@ -61,8 +61,8 @@ a fifth biome; autotiled terrain, material patches and set pieces. The options a
 | 04 | Ground at large scale (**done 2026-10-05**) | Material patches by noise (wet sand streaks, tide pools, worn cobble paths, moss, basalt veins), large decals, decor clustered not sprinkled | Sample sheet approved |
 | 05 | Set pieces (**done and approved 2026-10-05**: 32 pieces, eight a look) | 8-10 multi-tile pieces per biome with collision and light (Flats: wreck hull, rock arch, tidepool; Streets: house fronts, well, market stall, collapsed tower; Harbour: pier, moored boat, crane, warehouse; Hall: nave columns, altar, organ, keeper statues) | Sample sheet approved |
 | 06 | One sample room per biome (**done and approved 2026-10-05**, "1": draw the second batch first) | Four rooms built with 02-05, shot in play | **User approves before any mass production** |
-| 07 | World light (**done 2026-10-05**, awaiting approval) | Fixed light sources per biome (lamps, candles, glowing kelp, braziers) composing each room; Tam's lantern stays the warmest | Shots approved |
-| 08 | Layout grammar (if B1) | Chunk format, the stitcher, the validator, a seed-to-room preview tool | 200 generated rooms pass the validator |
+| 07 | World light (**done and approved 2026-10-05**) | Fixed light sources per biome (lamps, candles, glowing kelp, braziers) composing each room; Tam's lantern stays the warmest | Shots approved |
+| 08 | Layout grammar (if B1) (**done 2026-10-05**, awaiting approval) | Chunk format, the stitcher, the validator, a seed-to-room preview tool | 200 generated rooms pass the validator |
 | 09 | Redesign the 79 rooms | Every existing room rebuilt to the new standard (combat, elite, challenge, dive, vault, treasure) | Contact sheet approved |
 | 10 | More rooms | New rooms to the agreed count (B1 chunk library or B2 templates), new shapes: corridors, L, ring, split-level, flooded | Contact sheet approved |
 | 11 | Fifth biome (B3) | Concept, palette and tiles, then its chunks and set pieces through 03-08; enemies, boss, music and story hooks as their own sub-stages | Concept approved before any art |

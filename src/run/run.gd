@@ -229,6 +229,10 @@ func _ready() -> void:
 				# Every fighting room is this template (map Stage 02: try a large room in play).
 				var path := a.trim_prefix("--room=")
 				_dev_room = RoomTemplate.load_file(path if path.begins_with("res://") else "res://" + path)
+			elif a == "--gen":
+				# Every fighting room is made by RoomGen from the night's seed and the depth (map
+				# Stage 08: play what the generator makes).
+				_dev_gen = true
 		# Nessa's fish come down with you; Long Memory brings one mark from last night.
 		state.fish = []
 		for f in SaveManager.data.get("fish", []):
@@ -468,11 +472,14 @@ func _load_templates(dir: String) -> void:
 
 var _last_template: String = ""
 var _dev_room: RoomTemplate = null  # --room=<path>: every fighting room is this one
+var _dev_gen := false  # --gen: every fighting room is generated (RoomGen)
 
 
 func _pick_template(type: int) -> RoomTemplate:
 	if _dev_room != null and (type == RoomGraph.COMBAT or type == RoomGraph.ELITE):
 		return _dev_room
+	if _dev_gen and (type == RoomGraph.COMBAT or type == RoomGraph.ELITE):
+		return RoomGen.generate(int(biome().theme), hash([state.seed, state.biome, state.depth_total]))
 	var list: Array = _templates[type]
 	if list.is_empty():
 		# Never a black room: a fighting room stands in, and the log says which biome is short.
