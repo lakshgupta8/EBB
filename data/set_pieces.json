@@ -1,0 +1,765 @@
+{
+ "wreck": {
+  "look": "flats",
+  "region": [
+   0,
+   0,
+   128,
+   80
+  ],
+  "foot": [
+   "########",
+   "########"
+  ],
+  "origin": [
+   0,
+   35
+  ]
+ },
+ "arch": {
+  "look": "flats",
+  "region": [
+   130,
+   0,
+   112,
+   88
+  ],
+  "foot": [
+   "##...##",
+   "##...##"
+  ],
+  "origin": [
+   0,
+   48
+  ]
+ },
+ "boat": {
+  "look": "flats",
+  "region": [
+   244,
+   0,
+   56,
+   40
+  ],
+  "foot": [
+   "###"
+  ],
+  "origin": [
+   4,
+   14
+  ]
+ },
+ "tidepool": {
+  "look": "flats",
+  "region": [
+   302,
+   0,
+   72,
+   76
+  ],
+  "foot": [
+   ".##.",
+   "#__#",
+   "#__.",
+   ".##."
+  ],
+  "origin": [
+   4,
+   8
+  ]
+ },
+ "stones": {
+  "look": "flats",
+  "region": [
+   376,
+   0,
+   88,
+   72
+  ],
+  "foot": [
+   "#.#.#"
+  ],
+  "origin": [
+   4,
+   48
+  ]
+ },
+ "cairn": {
+  "look": "flats",
+  "region": [
+   466,
+   0,
+   40,
+   68
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   4,
+   32
+  ],
+  "light": {
+   "color": "WARM",
+   "energy": 0.6,
+   "scale": 2.0,
+   "at": [
+    20,
+    10
+   ]
+  }
+ },
+ "mast": {
+  "look": "flats",
+  "region": [
+   508,
+   0,
+   88,
+   44
+  ],
+  "foot": [
+   "#####"
+  ],
+  "origin": [
+   4,
+   20
+  ]
+ },
+ "whalebone": {
+  "look": "flats",
+  "region": [
+   598,
+   0,
+   88,
+   84
+  ],
+  "foot": [
+   "#...#"
+  ],
+  "origin": [
+   4,
+   60
+  ]
+ },
+ "kelplight": {
+  "look": "flats",
+  "region": [
+   688,
+   0,
+   24,
+   40
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   20
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.4,
+   "scale": 1.6,
+   "at": [
+    12,
+    16
+   ]
+  }
+ },
+ "house": {
+  "look": "streets",
+  "region": [
+   0,
+   90,
+   96,
+   96
+  ],
+  "foot": [
+   "######",
+   "######"
+  ],
+  "origin": [
+   0,
+   52
+  ]
+ },
+ "well": {
+  "look": "streets",
+  "region": [
+   98,
+   90,
+   40,
+   56
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   4,
+   15
+  ]
+ },
+ "stall": {
+  "look": "streets",
+  "region": [
+   140,
+   90,
+   64,
+   56
+  ],
+  "foot": [
+   "####",
+   "####"
+  ],
+  "origin": [
+   0,
+   15
+  ]
+ },
+ "tower": {
+  "look": "streets",
+  "region": [
+   206,
+   90,
+   88,
+   124
+  ],
+  "foot": [
+   "#####",
+   "#####",
+   ".###."
+  ],
+  "origin": [
+   4,
+   64
+  ]
+ },
+ "steps": {
+  "look": "streets",
+  "region": [
+   296,
+   90,
+   88,
+   52
+  ],
+  "foot": [
+   "#===#",
+   "#===#"
+  ],
+  "origin": [
+   4,
+   12
+  ]
+ },
+ "lamps": {
+  "look": "streets",
+  "region": [
+   386,
+   90,
+   72,
+   72
+  ],
+  "foot": [
+   "#..#"
+  ],
+  "origin": [
+   4,
+   48
+  ]
+ },
+ "fallen": {
+  "look": "streets",
+  "region": [
+   460,
+   90,
+   72,
+   52
+  ],
+  "foot": [
+   "####",
+   "####"
+  ],
+  "origin": [
+   4,
+   12
+  ]
+ },
+ "bridge": {
+  "look": "streets",
+  "region": [
+   534,
+   90,
+   104,
+   84
+  ],
+  "foot": [
+   "######",
+   "======",
+   "======",
+   "######"
+  ],
+  "origin": [
+   4,
+   8
+  ]
+ },
+ "shrine": {
+  "look": "streets",
+  "region": [
+   640,
+   90,
+   24,
+   48
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   28
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.4,
+   "scale": 1.6,
+   "at": [
+    12,
+    25
+   ]
+  }
+ },
+ "coldlamp": {
+  "look": "streets",
+  "region": [
+   666,
+   90,
+   24,
+   68
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   48
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.5,
+   "scale": 2.0,
+   "at": [
+    12,
+    11
+   ]
+  }
+ },
+ "column": {
+  "look": "deep",
+  "region": [
+   0,
+   216,
+   32,
+   96
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   0,
+   53
+  ]
+ },
+ "altar": {
+  "look": "deep",
+  "region": [
+   34,
+   216,
+   64,
+   64
+  ],
+  "foot": [
+   "####",
+   "####"
+  ],
+  "origin": [
+   0,
+   21
+  ],
+  "light": {
+   "color": "FLAME",
+   "energy": 0.45,
+   "scale": 1.6,
+   "at": [
+    8,
+    40
+   ]
+  }
+ },
+ "statue": {
+  "look": "deep",
+  "region": [
+   100,
+   216,
+   32,
+   72
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   0,
+   29
+  ]
+ },
+ "gate": {
+  "look": "deep",
+  "region": [
+   134,
+   216,
+   96,
+   112
+  ],
+  "foot": [
+   "##..##",
+   "##..##"
+  ],
+  "origin": [
+   0,
+   72
+  ]
+ },
+ "organ": {
+  "look": "deep",
+  "region": [
+   232,
+   216,
+   104,
+   132
+  ],
+  "foot": [
+   "######",
+   "######"
+  ],
+  "origin": [
+   4,
+   88
+  ]
+ },
+ "rose": {
+  "look": "deep",
+  "region": [
+   338,
+   216,
+   72,
+   72
+  ],
+  "foot": [
+   "....",
+   "....",
+   "....",
+   "...."
+  ],
+  "origin": [
+   4,
+   4
+  ]
+ },
+ "apse": {
+  "look": "deep",
+  "region": [
+   412,
+   216,
+   104,
+   104
+  ],
+  "foot": [
+   "######",
+   "######"
+  ],
+  "origin": [
+   4,
+   64
+  ]
+ },
+ "font": {
+  "look": "deep",
+  "region": [
+   518,
+   216,
+   40,
+   60
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   4,
+   20
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.4,
+   "scale": 1.4,
+   "at": [
+    20,
+    20
+   ]
+  }
+ },
+ "candles": {
+  "look": "deep",
+  "region": [
+   560,
+   216,
+   28,
+   32
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   6,
+   12
+  ],
+  "light": {
+   "color": "FLAME",
+   "energy": 0.35,
+   "scale": 1.2,
+   "at": [
+    14,
+    14
+   ]
+  }
+ },
+ "kelpglow": {
+  "look": "deep",
+  "region": [
+   590,
+   216,
+   24,
+   60
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   40
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.4,
+   "scale": 1.8,
+   "at": [
+    12,
+    24
+   ]
+  }
+ },
+ "crane": {
+  "look": "harbour",
+  "region": [
+   0,
+   350,
+   72,
+   104
+  ],
+  "foot": [
+   "###",
+   "###"
+  ],
+  "origin": [
+   4,
+   62
+  ],
+  "light": {
+   "color": "WARM",
+   "energy": 0.7,
+   "scale": 2.4,
+   "at": [
+    46,
+    21
+   ]
+  }
+ },
+ "warehouse": {
+  "look": "harbour",
+  "region": [
+   74,
+   350,
+   112,
+   88
+  ],
+  "foot": [
+   "#######",
+   "#######"
+  ],
+  "origin": [
+   0,
+   44
+  ]
+ },
+ "netrack": {
+  "look": "harbour",
+  "region": [
+   188,
+   350,
+   64,
+   48
+  ],
+  "foot": [
+   "####"
+  ],
+  "origin": [
+   0,
+   23
+  ]
+ },
+ "pier": {
+  "look": "harbour",
+  "region": [
+   254,
+   350,
+   56,
+   108
+  ],
+  "foot": [
+   "===",
+   "===",
+   "===",
+   "===",
+   "===",
+   "==="
+  ],
+  "origin": [
+   4,
+   4
+  ]
+ },
+ "moored": {
+  "look": "harbour",
+  "region": [
+   312,
+   350,
+   84,
+   64
+  ],
+  "foot": [
+   "####",
+   "####"
+  ],
+  "origin": [
+   10,
+   24
+  ]
+ },
+ "capstan": {
+  "look": "harbour",
+  "region": [
+   398,
+   350,
+   40,
+   56
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   4,
+   16
+  ]
+ },
+ "slipway": {
+  "look": "harbour",
+  "region": [
+   440,
+   350,
+   72,
+   84
+  ],
+  "foot": [
+   "....",
+   "....",
+   "....",
+   "....",
+   "...."
+  ],
+  "origin": [
+   4,
+   2
+  ]
+ },
+ "crates": {
+  "look": "harbour",
+  "region": [
+   514,
+   350,
+   56,
+   68
+  ],
+  "foot": [
+   "###",
+   "###"
+  ],
+  "origin": [
+   4,
+   28
+  ]
+ },
+ "lamppost": {
+  "look": "harbour",
+  "region": [
+   572,
+   350,
+   32,
+   72
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   51
+  ],
+  "light": {
+   "color": "WARM",
+   "energy": 0.6,
+   "scale": 2.2,
+   "at": [
+    24,
+    20
+   ]
+  }
+ },
+ "buoy": {
+  "look": "harbour",
+  "region": [
+   606,
+   350,
+   24,
+   36
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   16
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.45,
+   "scale": 1.6,
+   "at": [
+    12,
+    12
+   ]
+  }
+ }
+}
