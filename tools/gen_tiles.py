@@ -1490,13 +1490,96 @@ ICON_ORDER = ["combat", "elite", "fountain", "treasure", "boss", "shop", "altar"
 
 
 def build_icons():
+    """The door signboards (map review 2026-10-05): a weathered plank hung on two cords from a
+    peg, its corners clipped, the room's mark painted on in Bone with a Tar shadow so it reads
+    as paint on wood, not a framed icon."""
+    import gen_set_pieces as GS
     out = []
     for name in ICON_ORDER:
-        im = grid(BOARD, 24, 24)
-        im.alpha_composite(grid(BOARD_INNER, 12, 12), (6, 6))
-        im.alpha_composite(grid(SYMBOLS[name], 12, 12), (6, 6))
-        out.append(im)
+        c = GS.Canvas(24, 24)
+        c.line(4, 1, 19, 1, "IRON")                 # the bar it hangs from
+        c.px(4, 1, "IRON_LIGHT")
+        for x in (6, 17):                           # cords
+            c.line(x, 2, x, 3, "ROPE")
+        c.rect(3, 4, 20, 21, "WOOD")                # the plank, two boards
+        c.line(3, 4, 20, 4, "WOOD_LIGHT")
+        c.line(3, 4, 3, 21, "WOOD_LIGHT")
+        c.line(20, 5, 20, 21, "TAR")
+        c.line(4, 21, 20, 21, "TAR")
+        c.line(4, 12, 19, 12, "WEATHERED_BROWN")    # the seam between the boards
+        for x, y in ((3, 4), (20, 4), (3, 21), (4, 21), (3, 20), (20, 21), (19, 21), (20, 20)):
+            c.im.putpixel((x, y), (0, 0, 0, 0))     # clipped corners, the bottom ones worn round
+        c.px(4, 20, "TAR")
+        c.px(19, 20, "TAR")
+        for x, y in ((8, 7), (15, 17), (12, 9)):    # grain
+            c.line(x, y, x + 3, y, "WEATHERED_BROWN")
+        for x, y in ((5, 6), (18, 6), (5, 19), (18, 19)):
+            c.px(x, y, "IRON_LIGHT")                # nails
+        sym = grid(SYMBOLS[name], 12, 12)
+        for yy in range(12):
+            for xx in range(12):
+                if sym.getpixel((xx, yy))[3]:
+                    c.px(6 + xx + 1, 6 + yy + 1, "TAR")
+        for yy in range(12):
+            for xx in range(12):
+                if sym.getpixel((xx, yy))[3]:
+                    worn = (xx * 7 + yy * 3 + len(name)) % 9 == 0
+                    c.px(6 + xx, 6 + yy, "BONE_DARK" if worn else "BONE")
+        out.append(c.im)
     return strip(out, 24, 24)
+
+
+def draw_fountain():
+    """The fountain (map review 2026-10-05): a round stone basin seen from the south and above,
+    its water rippling, a pillar in the middle carrying a shell-shaped bowl that spills into it.
+    32x32, anchored at the bottom centre like the old one."""
+    import math
+    import gen_set_pieces as GS
+    c = GS.Canvas(32, 32)
+    c.shadow(1, 23, 31, 31)
+    # The basin wall, front face, coursed stone with moss at the foot.
+    c.ellipse(1, 12, 30, 28, "STONE_DARK")
+    c.rect(1, 18, 30, 25, "STONE")
+    c.ellipse(1, 20, 30, 29, "STONE")
+    for x in range(4, 30, 5):
+        c.line(x, 21, x, 27, "STONE_DARK")
+    c.line(2, 24, 29, 24, "STONE_DARK")
+    for x in range(3, 29, 3):
+        c.px(x, 27 + (x % 2), "MOSS")
+    # The rim and the water inside it.
+    c.ellipse(1, 11, 30, 23, "STONE_LIGHT")
+    c.ellipse(3, 12, 28, 21, "STONE")
+    c.ellipse(4, 13, 27, 21, "DEEP_SEA")
+    c.ellipse(5, 14, 26, 20, "SEA")
+    for k, (rx, ry) in enumerate(((9, 3), (5, 2))):        # ripples round the pillar
+        for a in range(0, 360, 14):
+            t = math.radians(a + k * 7)
+            if math.sin(t) > -0.2:
+                c.px(15.5 + rx * math.cos(t), 17 + ry * math.sin(t), "SHALLOW" if k else "SEA_PALE")
+    c.line(4, 12, 10, 11, "BONE")                           # rim catch-light, top left
+    # The pillar.
+    c.rect(14, 6, 17, 17, "STONE")
+    c.line(14, 6, 14, 17, "STONE_LIGHT")
+    c.line(17, 6, 17, 17, "STONE_DARK")
+    c.line(14, 16, 17, 16, "MOSS_DARK")
+    # The shell bowl on top: fluted, lit on its upper lip.
+    c.ellipse(9, 3, 22, 9, "STONE_LIGHT")
+    c.ellipse(10, 4, 21, 7, "SEA")
+    for x in (11, 13, 18, 20):
+        c.line(x, 7, x + (1 if x < 15 else -1), 9, "STONE_DARK")
+    c.line(10, 3, 15, 2, "BONE")
+    c.px(15, 1, "STONE_LIGHT")                              # the knop
+    c.px(16, 1, "STONE")
+    # Water spilling from the bowl's lip into the basin.
+    for x0 in (9, 22):
+        for y in range(8, 16):
+            if (y + x0) % 3:
+                c.px(x0 + (0 if y < 10 else (-1 if x0 < 15 else 1)), y, "SEA_PALE" if y % 2 else "SALT_WHITE")
+        c.px(x0 + (-1 if x0 < 15 else 1), 16, "FOAM_WHITE")
+        c.px(x0 + (-2 if x0 < 15 else 2), 16, "SALT_WHITE")
+    c.px(12, 5, "SEA_PALE")
+    c.px(18, 5, "FOAM_WHITE")
+    return c.im
 
 
 def main():
@@ -1508,7 +1591,7 @@ def main():
         "decor": strip([g16(DECOR_FLATS[n]) for n in ORDER_FLATS], 16, 16),
         "decor2": strip([g16(DECOR_STREETS[n]) for n in ORDER_STREETS], 16, 16),
         "decor3": strip([g16(DECOR_HALL[n]) for n in ORDER_HALL], 16, 16),
-        "prop_fountain": grid(FOUNTAIN, 32, 32),
+        "prop_fountain": draw_fountain(),
         "prop_altar": grid(ALTAR, 24, 32),
         "prop_cage": strip([grid(CAGE, 24, 24), grid(CAGE_OPEN, 24, 24)], 24, 24),
         "lighthouse": grid(LIGHTHOUSE, 32, 48),

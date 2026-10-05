@@ -482,9 +482,9 @@ def water_closed():
 
 
 def build_doors():
-    frames = [grid(GT.DOOR_SHUT, 32, 32), grid(GT.DOOR_OPEN_FRAME, 32, 32), water_closed(), grid(DOOR_FLOODED, 32, 32),
-              grid(DOOR_WET_SHUT, 32, 32), grid(DOOR_WET_OPEN, 32, 32)]
-    return strip(frames, 32, 32)
+    """door.png: a row per wall since the map review of 2026-10-05 (tools/gen_doors.py)."""
+    import gen_doors
+    return gen_doors.build_doors()
 
 
 # =============================================================================

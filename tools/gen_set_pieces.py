@@ -574,6 +574,85 @@ def rock_mass(c, cx, base, rx, ry, seed, top="STONE_LIGHT", face="STONE", dark="
                 c.px(x, y, top if rel < 0.35 else (face if rel < 0.8 else dark))
 
 
+GLOW = {
+    # glass ground, flame body, flame core
+    "cold": ("SEA", "SEA_PALE", "SALT_WHITE"),
+    "warm": ("AMBER_DEEP", "WARM_YELLOW", "PALE_CREAM"),
+    "dark": ("NIGHT_2", "NIGHT_2", "NIGHT_2"),
+}
+
+
+def lantern(c, cx, top, glow="cold", metal=("IRON_DARK", "IRON", "IRON_LIGHT")):
+    """An old ship's lantern, 7 px wide and 13 tall from its hanging ring at (cx, top): a pointed
+    cap, four panes split by a mullion with the flame showing through, a dished base. Returns
+    the flame's centre (where the light goes)."""
+    dark, mid, lit = metal
+    ground, body, core = GLOW[glow]
+    c.px(cx, top, mid)                      # ring
+    c.px(cx, top + 1, dark)
+    c.rect(cx - 1, top + 2, cx + 1, top + 2, mid)   # cap, widening down
+    c.px(cx, top + 2, lit)
+    c.rect(cx - 2, top + 3, cx + 2, top + 3, mid)
+    c.px(cx - 1, top + 3, lit)
+    c.rect(cx - 3, top + 4, cx + 3, top + 4, dark)
+    gy0, gy1 = top + 5, top + 10
+    c.rect(cx - 3, gy0, cx + 3, gy1, dark)      # frame
+    c.rect(cx - 2, gy0, cx + 2, gy1, ground)    # glass
+    if glow != "dark":
+        # The flame: a teardrop standing on the wick, brightest at its heart.
+        c.px(cx, gy0 + 1, body)
+        c.rect(cx - 1, gy0 + 2, cx + 1, gy1 - 1, body)
+        c.px(cx, gy0 + 2, core)
+        c.px(cx, gy0 + 3, core)
+        c.px(cx - 2, gy0, body, 150)            # the glass catching it at the top
+        c.px(cx + 2, gy0, body, 150)
+    else:
+        c.px(cx - 1, gy0 + 1, "SEA_PALE")       # a cold glint on the dead glass
+    c.line(cx, gy0, cx, gy1, dark if glow == "dark" else mid)  # mullion, over the flame
+    if glow != "dark":
+        c.px(cx, gy0 + 2, core)                 # the heart shows either side of the bar
+    c.rect(cx - 3, gy1 + 1, cx + 3, gy1 + 1, mid)   # base
+    c.px(cx - 3, gy1 + 1, lit)
+    c.rect(cx - 2, gy1 + 2, cx + 2, gy1 + 2, dark)
+    return (cx, gy0 + 3)
+
+
+def crook_post(c, x, base, top, reach, dark="IRON_DARK", mid="IRON", lit="IRON_LIGHT"):
+    """A cast-iron street post: a stepped plinth, a fluted shaft with a collar, and a shepherd's
+    crook at the top curling out `reach` px (negative curls left). Returns the crook's tip,
+    where a lantern hangs."""
+    c.rect(x - 3, base - 3, x + 4, base, dark)          # plinth
+    c.line(x - 3, base - 3, x + 4, base - 3, mid)
+    c.rect(x - 2, base - 6, x + 3, base - 4, mid)
+    c.line(x - 2, base - 6, x + 3, base - 6, lit)
+    c.rect(x, top, x + 1, base - 7, mid)                # shaft
+    c.line(x, top, x, base - 7, lit)
+    for y in (base - 16, top + 6):                       # collars
+        c.rect(x - 1, y, x + 2, y + 1, dark)
+        c.px(x - 1, y, mid)
+    c.px(x, top - 1, lit)                                # finial
+    c.px(x, top - 2, mid)
+    # The crook: up and over in a quarter circle, then a short drop to the hook.
+    s = 1 if reach > 0 else -1
+    r = abs(reach) // 2
+    for k in range(0, 91, 6):
+        a = math.radians(k)
+        px_ = x + s * (r - r * math.cos(a))
+        py_ = top + 1 - r * math.sin(a)
+        c.px(px_, py_, mid)
+        c.px(px_, py_ + 1, dark)
+    for k in range(0, 91, 6):
+        a = math.radians(k)
+        px_ = x + s * (r + r * math.sin(a))
+        py_ = top + 1 - r * math.cos(a)
+        c.px(px_, py_, mid)
+        c.px(px_, py_ + 1, dark)
+    tip = (x + s * 2 * r, top + 2)
+    c.px(tip[0] - s, tip[1] - 3, lit)                    # a curl of scrollwork under the arm
+    c.px(tip[0] - 2 * s, tip[1] - 2, mid)
+    return tip
+
+
 def tidepool():
     """A ring of barnacled rock round a pool the tide leaves behind; anemones on the inner rim,
     weed trailing into the water. The middle lays water into the plan; the east side is open."""
@@ -762,27 +841,30 @@ def steps():
 
 
 def lamps():
-    """Two street lamps, one bent over, their glass dark (they are lit only in story moments),
-    a sign hung from one."""
+    """Two cast-iron street lamps, one knocked crooked, their lanterns dark (they are lit only in
+    story moments), a tavern sign still hanging from the first."""
     c = Canvas(72, 72)
-    c.shadow(0, 60, 24, 70)
-    c.shadow(48, 60, 72, 70)
-    for x0, bend in ((12, 0), (60, 1)):
-        for y in range(16, 64):
-            dx = 0 if not bend or y > 30 else (30 - y) * 0.35
-            c.px(x0 + dx, y, "IRON")
-            c.px(x0 + dx + 1, y, "IRON_DARK")
-        c.rect(x0 - 2, 60, x0 + 3, 63, "IRON_DARK")
-        hx = x0 + (5 if bend else 0)
-        c.rect(hx - 3, 9, hx + 4, 16, "IRON_DARK")
-        c.rect(hx - 2, 10, hx + 3, 15, "NIGHT_2")
-        c.px(hx - 1, 11, "SEA_PALE")
-        c.line(hx - 4, 8, hx + 5, 8, "IRON")
-    c.line(14, 24, 24, 24, "IRON")
-    c.rect(18, 26, 30, 33, "WOOD")
-    c.line(18, 26, 30, 26, "WOOD_LIGHT")
-    for x in range(20, 29, 2):
-        c.px(x, 29, "BONE_DARK")
+    c.shadow(0, 60, 26, 70)
+    c.shadow(46, 60, 72, 70)
+    tip = crook_post(c, 10, 63, 20, 10)
+    c.px(tip[0], tip[1], "IRON_DARK")
+    lantern(c, tip[0], tip[1] + 1, "dark")
+    # The sign: a plank on two chains from a bar on the shaft, below the lantern.
+    c.line(11, 40, 25, 40, "IRON")
+    c.px(25, 39, "IRON_LIGHT")
+    for x in (14, 22):
+        c.px(x, 41, "IRON_DARK")
+        c.px(x, 42, "IRON")
+    c.rect(12, 43, 24, 50, "WOOD")
+    c.line(12, 43, 24, 43, "WOOD_LIGHT")
+    c.line(12, 50, 24, 50, "TAR")
+    for x, y in ((15, 46), (16, 45), (17, 46), (18, 47), (19, 46), (20, 45), (21, 46)):
+        c.px(x, y, "BONE_DARK")          # a painted fish, half worn off
+    c.px(16, 47, "BONE_DARK")
+    # The second post, its crook turned the other way, the lantern hanging by one chain, tipped.
+    t2 = crook_post(c, 61, 63, 20, -10)
+    c.px(t2[0], t2[1], "IRON_DARK")
+    lantern(c, t2[0], t2[1] + 1, "dark")
     c.foot(0, 72, 64)
     return fin(c, ["#..#"], 64, 4)
 
@@ -1140,90 +1222,118 @@ def kelplight():
 
 
 def lamppost():
-    """A quay lamp: a timber post, an iron bracket, the lamp hung from it (the Harbour's one warm
-    light in a room without the crane)."""
+    """A quay lamp: a tarred timber post, an iron bracket with a brace, the lantern hung from it
+    on a hook (the Harbour's one warm light in a room without the crane)."""
     c = Canvas(32, 72)
-    c.shadow(4, 60, 22, 70)
-    c.rect(10, 10, 13, 66, "WOOD")
-    c.line(10, 10, 10, 66, "WOOD_LIGHT")
-    c.line(13, 10, 13, 66, "TAR")
-    c.rect(9, 60, 14, 66, "TAR")
-    c.line(10, 12, 26, 12, "IRON")
-    c.line(14, 20, 24, 12, "IRON_DARK")
-    c.line(24, 13, 24, 16, "IRON")
-    c.rect(21, 17, 27, 24, "IRON_DARK")
-    c.rect(22, 18, 26, 23, "WARM_YELLOW")
-    c.rect(23, 19, 25, 21, "PALE_CREAM")
-    c.line(21, 24, 27, 24, "IRON")
-    for y in (30, 46):
+    c.shadow(2, 60, 24, 70)
+    c.rect(10, 8, 13, 66, "WOOD")
+    c.line(10, 8, 10, 66, "WOOD_LIGHT")
+    c.line(13, 8, 13, 66, "TAR")
+    c.rect(10, 7, 13, 7, "TAR")
+    c.rect(9, 59, 14, 66, "TAR")
+    c.line(9, 59, 14, 59, "WOOD")
+    for y in (28, 44):                       # iron bands
         c.line(10, y, 13, y, "IRON")
+        c.px(10, y, "IRON_LIGHT")
+    for y in range(36, 52, 5):               # weed at the tide line
+        c.px(10, y, "MOSS")
+    c.line(13, 11, 25, 11, "IRON")           # the arm
+    c.line(13, 12, 25, 12, "IRON_DARK")
+    c.line(14, 19, 22, 12, "IRON_DARK")      # brace
+    c.px(15, 18, "IRON")
+    c.px(25, 10, "IRON_LIGHT")
+    c.px(24, 13, "IRON")
+    flame = lantern(c, 24, 14, "warm", ("IRON_DARK", "BRONZE_DARK", "BRONZE"))
     c.foot(9, 14, 67)
-    return fin(c, ["#"], 67, 4, {"color": "WARM", "energy": 0.6, "scale": 2.2, "at": [24, 20]})
+    return fin(c, ["#"], 67, 4, {"color": "WARM", "energy": 0.6, "scale": 2.2, "at": list(flame)})
 
 
 def buoy():
-    """A channel buoy afloat, rusted, its cage lamp burning cold."""
+    """A channel buoy afloat: a rusted can hull with a pale band, an iron cage tower on it and the
+    lantern at the top burning cold."""
     c = Canvas(24, 36)
-    c.ellipse(3, 18, 20, 32, "RUST")
-    c.ellipse(3, 18, 20, 24, "RUST_LIGHT")
-    c.rect(3, 24, 20, 26, "BONE_DARK")
-    c.ellipse(5, 27, 18, 32, "IRON_DARK")
-    for x in range(2, 22):
-        c.px(x, 31 + (x % 2), "FOAM_WHITE" if x % 3 else "SEA_PALE")
-    c.line(8, 8, 8, 19, "IRON")
-    c.line(15, 8, 15, 19, "IRON")
-    c.line(8, 8, 15, 8, "IRON_LIGHT")
-    c.rect(10, 10, 13, 15, "SEA_PALE")
-    c.px(11, 11, "FOAM_WHITE")
-    return fin(c, ["#"], 32, 4, {"color": "COLD", "energy": 0.45, "scale": 1.6, "at": [12, 12]})
+    # Hull, seen from the south: a squat drum, lit on top.
+    c.ellipse(3, 19, 20, 33, "RUST")
+    c.ellipse(4, 19, 19, 25, "RUST_LIGHT")
+    c.ellipse(6, 20, 17, 24, "RUST")
+    c.rect(3, 26, 20, 27, "BONE_DARK")
+    c.line(3, 26, 20, 26, "BONE")
+    c.ellipse(4, 28, 19, 33, "IRON_DARK")
+    # The cage: two legs leaning in, cross braced.
+    c.line(6, 22, 9, 12, "IRON")
+    c.line(17, 22, 14, 12, "IRON_DARK")
+    c.line(7, 19, 16, 19, "IRON_DARK")
+    c.line(8, 15, 15, 15, "IRON_DARK")
+    c.line(7, 19, 15, 15, "IRON")
+    flame = lantern(c, 11, 0, "cold")
+    c.line(9, 12, 14, 12, "IRON")
+    # Water slapping round the waterline.
+    for x in range(1, 23):
+        c.px(x, 32 + (x % 3 == 0), "FOAM_WHITE" if x % 4 else "SEA_PALE")
+    return fin(c, ["#"], 32, 4, {"color": "COLD", "energy": 0.45, "scale": 1.6, "at": list(flame)})
 
 
 def shrine():
-    """A street shrine: a stone post with a niche, a jar of sea-light in it, shells left on the
-    ledge by whoever still comes this way."""
+    """A wayside shrine: a stone stele under a pitched slate cap, an arched niche with a glass jar
+    of sea-light in it, shells and a stub of candle left on the ledge by whoever still comes."""
     c = Canvas(24, 48)
-    c.shadow(2, 38, 22, 46)
-    c.rect(4, 8, 19, 43, "STONE")
-    c.rect(4, 8, 19, 10, "STONE_LIGHT")
-    c.line(4, 8, 4, 43, "STONE_LIGHT")
-    c.line(19, 8, 19, 43, "SLATE")
-    c.rect(2, 4, 21, 8, "SLATE")
-    c.line(2, 4, 21, 4, "WET_GREY")
-    for y in range(14, 30):
+    c.shadow(1, 38, 23, 46)
+    # Plinth and shaft.
+    c.rect(3, 38, 20, 43, "STONE_DARK")
+    c.line(3, 38, 20, 38, "STONE")
+    c.rect(5, 11, 18, 37, "STONE")
+    c.line(5, 11, 5, 37, "STONE_LIGHT")
+    c.line(18, 11, 18, 37, "STONE_DARK")
+    for y in (17, 24, 31):                       # courses, offset joints
+        c.line(6, y, 17, y, "STONE_DARK")
+    # Pitched cap with a cross-stone on the ridge.
+    c.poly([(2, 12), (11.5, 3), (21, 12)], "SLATE")
+    c.line(2, 12, 11, 3, "WET_GREY")
+    c.line(12, 3, 21, 12, "NIGHT_2")
+    c.line(2, 12, 21, 12, "NIGHT_1")
+    c.rect(11, 0, 12, 3, "STONE_LIGHT")
+    c.line(10, 1, 13, 1, "STONE_LIGHT")
+    # The niche: a round-headed arch cut into the shaft.
+    for y in range(15, 31):
         for x in range(7, 17):
-            if y > 18 or math.hypot(x - 11.5, y - 18) <= 4.8:
+            if y > 19 or math.hypot(x - 11.5, y - 19.5) <= 4.6:
                 c.px(x, y, "ABYSS")
-    c.rect(9, 22, 14, 29, "SEA")
-    c.rect(10, 23, 13, 28, "SEA_PALE")
-    c.line(9, 21, 14, 21, "IRON")
-    c.rect(6, 30, 17, 31, "STONE_LIGHT")
-    for x in (7, 10, 15):
-        c.px(x, 29, "BONE")
+    c.line(7, 20, 7, 30, "STONE_DARK")                # the niche's shadowed jamb
+    # The jar: a rounded glass body, a cord at the neck, light inside.
+    c.rect(10, 21, 13, 21, "IRON")                  # lid
+    c.rect(10, 22, 13, 22, "SEA")                   # neck
+    c.ellipse(8, 22, 15, 30, "SEA")
+    c.ellipse(9, 23, 14, 29, "SEA_PALE")
+    c.rect(11, 25, 12, 27, "SALT_WHITE")
+    c.px(9, 24, "FOAM_WHITE")                       # catch-light on the glass
+    c.line(10, 22, 13, 22, "ROPE")
+    # Ledge with offerings.
+    c.rect(6, 31, 17, 32, "STONE_LIGHT")
+    c.line(6, 32, 17, 32, "STONE_DARK")
+    c.px(7, 30, "BONE")
+    c.px(8, 30, "BONE_LIGHT")
+    c.px(15, 30, "BONE")
+    c.rect(16, 28, 16, 30, "BONE")                  # candle stub, cold
     for x in range(5, 19, 3):
-        c.px(x, 40, "MOSS")
-    c.foot(4, 19, 44)
-    return fin(c, ["#"], 44, 4, {"color": "COLD", "energy": 0.4, "scale": 1.6, "at": [12, 25]})
+        c.px(x, 36, "MOSS")
+        c.px(x + 1, 37, "MOSS_DARK")
+    c.foot(3, 20, 44)
+    return fin(c, ["#"], 44, 4, {"color": "COLD", "energy": 0.4, "scale": 1.6, "at": [11, 26]})
 
 
 def coldlamp():
-    """A street lamp burning cold: the drowned have lit it with the sea."""
+    """A cast-iron street lamp with a shepherd's crook, its lantern burning cold: the drowned
+    have lit it with the sea. Kelp hangs from the arm."""
     c = Canvas(24, 68)
-    c.shadow(4, 56, 20, 66)
-    c.rect(10, 16, 12, 62, "IRON")
-    c.line(10, 16, 10, 62, "IRON_LIGHT")
-    c.rect(8, 58, 14, 63, "IRON_DARK")
-    c.line(9, 30, 13, 30, "IRON_DARK")
-    c.rect(6, 6, 16, 16, "IRON_DARK")
-    c.rect(7, 7, 15, 15, "SEA")
-    c.rect(8, 8, 14, 14, "SEA_PALE")
-    c.rect(10, 9, 12, 12, "FOAM_WHITE")
-    c.line(5, 5, 17, 5, "IRON")
-    c.px(11, 3, "IRON")
-    c.px(11, 4, "IRON")
-    for y in range(17, 26):
-        c.px(12 + (y // 3) % 2, y, "KELP")
-    c.foot(8, 14, 64)
-    return fin(c, ["#"], 64, 4, {"color": "COLD", "energy": 0.5, "scale": 2.0, "at": [12, 11]})
+    c.shadow(2, 56, 22, 66)
+    tip = crook_post(c, 7, 63, 18, 10)
+    c.px(tip[0], tip[1], "IRON_DARK")
+    c.px(tip[0], tip[1] + 1, "IRON")
+    flame = lantern(c, tip[0], tip[1] + 2, "cold")
+    for y in range(13, 20):
+        c.px(10 + (y // 2) % 2, y + 3, "KELP" if y % 3 else "KELP_LIGHT")
+    c.foot(4, 11, 64)
+    return fin(c, ["#"], 64, 4, {"color": "COLD", "energy": 0.5, "scale": 2.0, "at": list(flame)})
 
 
 def candles():
