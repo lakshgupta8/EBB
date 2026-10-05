@@ -18,7 +18,7 @@ KEEP names the plans with an idea worth carrying into the chunk library (Stage 0
 With --shots=<dir> (the PNGs src/dev/room_sheet.tscn renders) it also writes one contact
 sheet per biome, sheet_<biome>.png, five rooms across at half size, named.
 Run:  godot --path . src/dev/room_sheet.tscn -- --out=<dir>
-      python tools/map_audit.py [--shots=<dir>] [--with=test]
+      python tools/map_audit.py [--shots=<dir>] [--with=test] [--tag=<prefix>]
 """
 import csv
 import json
@@ -133,7 +133,7 @@ def symmetry(p, inside):
     return max(lr, tb)
 
 
-def sheets(shots):
+def sheets(shots, tag=""):
     from PIL import Image, ImageDraw
     names = {"biome1": "flats", "harbour": "harbour", "biome2": "streets", "biome3": "hall"}
     for b in BIOMES:
@@ -147,10 +147,10 @@ def sheets(shots):
             x, y = (i % cols) * w, (i // cols) * (h + lab)
             sheet.paste(im, (x, y + lab))
             d.text((x + 4, y + 1), f.split("__")[1][:-4], fill=(230, 220, 180))
-        sheet.save(os.path.join(OUT, f"sheet_{names[b]}.png"))
+        sheet.save(os.path.join(OUT, f"{tag}sheet_{names[b]}.png"))
 
 
-def main(extra=()):
+def main(extra=(), tag=""):
     rooms = {}
     for b in BIOMES + list(extra):
         for f in sorted(os.listdir(os.path.join(ROOMS, b))):
@@ -186,7 +186,7 @@ def main(extra=()):
         d["s9"] = 2 if near_s >= 0.5 else (1 if near_s >= 0.3 else 0)
         d["total"] = d["s2"] + d["s3"] + d["s7"] + d["s9"] + 10
     os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, "audit.csv"), "w", newline="", encoding="utf-8") as fh:
+    with open(os.path.join(OUT, f"{tag}audit.csv"), "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["room", "plain", "hole", "sym", "rect", "features", "twin", "near", "near_score",
                     "p2", "p3", "p7", "p9", "of18", "keep"])
@@ -204,7 +204,9 @@ def main(extra=()):
 
 if __name__ == "__main__":
     # --with=test also measures data/rooms/test/ (the map samples) against the rest.
-    main([a[len("--with="):] for a in sys.argv[1:] if a.startswith("--with=")])
+    # --tag=s09_ writes s09_audit.csv and s09_sheet_*.png, keeping Stage 01's as the "before".
+    tag = next((a[len("--tag="):] for a in sys.argv[1:] if a.startswith("--tag=")), "")
+    main([a[len("--with="):] for a in sys.argv[1:] if a.startswith("--with=")], tag)
     for a in sys.argv[1:]:
         if a.startswith("--shots="):
-            sheets(a[len("--shots="):])
+            sheets(a[len("--shots="):], tag)

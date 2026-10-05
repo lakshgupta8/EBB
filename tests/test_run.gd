@@ -293,5 +293,13 @@ func test_clamp_inside_finds_floor() -> void:
 		assert_true(not t.is_solid(c.x, c.y), "%s lands on floor, not %s" % [p, c])
 		assert_true(t.char_at(c.x, c.y) != "D", "%s does not land in a door" % p)
 		assert_true(q.x > 0.0 and q.y > 0.0 and q.x < room.size_px().x and q.y < room.size_px().y, "%s lands inside" % p)
-	assert_eq(room.clamp_inside(Vector2(310, 178)), Vector2(310, 178), "open floor is left alone")
+	var open := room.cell_to_world(t.player_spawn)
+	assert_eq(room.clamp_inside(open), open, "open floor is left alone")
+	# Deep inside a thick mass (map Stage 09: rims and blocks of many cells), still out on floor.
+	for y in t.height:
+		for x in t.width:
+			if t.is_beyond(x, y):
+				var q: Vector2 = room.clamp_inside(room.cell_to_world(Vector2i(x, y)))
+				var c := room.world_to_cell(q)
+				assert_true(not t.is_solid(c.x, c.y), "from deep in the mass at %d,%d to floor" % [x, y])
 	room.free()

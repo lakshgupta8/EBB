@@ -16,9 +16,17 @@ const C_ROCK := 111  # 'o'
 const C_DOOR := 68   # 'D'
 const C_PLAYER := 80 # 'P'
 const C_ENEMY := 101 # 'e'
+const C_CHEST := 84  # 'T'
+const C_ALTAR := 65  # 'A'
 const TRIES := 12
 const SIZE_L := Vector2i(80, 46)
 const SIZE_M := Vector2i(60, 34)
+const SIZE_S := Vector2i(40, 23)
+## Room kinds (map Stage 09): what the run puts in the room besides its plan.
+## combat: the drowned's spawns. challenge: spawns and two chests on plinths. treasure: a hoard
+## of chests, no fight. vault: one vault in a walled strongroom with one way in. dive: the room
+## drowned, the altar and a chest on islands.
+const KINDS := ["combat", "challenge", "treasure", "vault", "dive"]
 const LOOK_NAME := {Tiles.Look.FLATS: "flats", Tiles.Look.HARBOUR: "harbour",
 	Tiles.Look.STREETS: "streets", Tiles.Look.DEEP: "hall"}
 ## The measured limits (STYLE.md 22).
@@ -28,34 +36,48 @@ const MAX_SYMMETRY := 0.80
 static var last_attempts := 0  # how many attempts the last `generate` took (the preview reports it)
 
 
-## A fighting room for a look and a seed: the same seed always gives the same room.
-static func generate(look: int, seed_value: int) -> RoomTemplate:
+## A room for a look and a seed: the same seed always gives the same room. `kind` is one of
+## KINDS; `size` 40x23, 60x34 or 80x46, or zero for the fighting mix (seven large in ten).
+static func generate(look: int, seed_value: int, kind: String = "combat", size: Vector2i = Vector2i.ZERO,
+		p_name: String = "") -> RoomTemplate:
 	var t: RoomTemplate = null
+	var name := p_name if p_name != "" else "gen_%s_%d" % [LOOK_NAME.get(look, "flats"), seed_value]
 	for attempt in TRIES:
 		last_attempts = attempt + 1
-		var g := build(look, hash([seed_value, attempt, look]))
-		t = RoomTemplate.parse(g.text(), "gen_%s_%d" % [LOOK_NAME.get(look, "flats"), seed_value])
-		if validate(t, look).is_empty():
+		var g := build(look, hash([seed_value, attempt, look]), kind, size)
+		t = RoomTemplate.parse(g.text(), name)
+		if validate(t, look, kind).is_empty():
 			return t
-	push_warning("RoomGen: %s seed %d failed %d attempts: %s" % [LOOK_NAME.get(look, "?"), seed_value, TRIES, validate(t, look)])
+	push_warning("RoomGen: %s %s seed %d failed %d attempts: %s" % [LOOK_NAME.get(look, "?"), kind, seed_value, TRIES,
+		validate(t, look, kind)])
 	return t
 
 
 ## One attempt, before validation (the preview tool shows these too).
-static func build(look: int, seed_value: int) -> Grid:
+static func build(look: int, seed_value: int, kind: String = "combat", size: Vector2i = Vector2i.ZERO) -> Grid:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	var size := SIZE_L if rng.randf() < 0.7 else SIZE_M
+	if size == Vector2i.ZERO:
+		size = SIZE_L if rng.randf() < 0.7 else SIZE_M
 	var g := Grid.new(size.x, size.y, rng)
 	match look:
 		Tiles.Look.HARBOUR: _harbour(g)
 		Tiles.Look.STREETS: _streets(g)
 		Tiles.Look.DEEP: _hall(g)
 		_: _flats(g)
+	match kind:
+		"challenge": _plinths(g, 2)
+		"treasure": _hoard(g)
+		"vault": _strongroom(g)
+		"dive": _islands(g)
 	_doors(g)
-	_stamp_chunks(g, look)
+	if kind == "dive":
+		_drown(g)
+	else:
+		_stamp_chunks(g, look)
 	_connect(g)
-	_spawns(g)
+	if kind == "combat" or kind == "challenge":
+		_spawns(g)
 	return g
 
 
@@ -234,11 +256,21 @@ static func _flats(g: Grid) -> void:
 		g.blob(p.x, p.y, r.randf_range(3.0, 6.0), r.randf_range(4.0, 8.0), C_WALL, 0.3)
 	var side := r.randi() % 4
 	var sea := _side_point(g, side, 0.2, 0.8)
-	var inward := (Vector2(g.w, g.h) * 0.5 - sea).normalized()
-	var sea_c := sea + inward * g.h * 0.18
-	g.blob(sea_c.x, sea_c.y, g.w * r.randf_range(0.22, 0.3), g.h * r.randf_range(0.26, 0.34), C_LOW, 0.22, [C_FLOOR])
-	var bar_a := sea_c - inward.orthogonal() * g.h * 0.2
-	g.path([bar_a, bar_a.lerp(sea_c, 0.5) + inward * 3.0, sea_c + inward.orthogonal() * g.h * 0.15], 1.2, C_FLOOR, 0.5, [C_LOW])
+	if r.randf() < 0.25 and g.w >= 60:
+		# The island: a moat of low ground round a dune, one spit across (it floods round you).
+		var c := Vector2(g.w * r.randf_range(0.4, 0.6), g.h * r.randf_range(0.42, 0.58))
+		g.blob(c.x, c.y, g.w * 0.2, g.h * 0.3, C_LOW, 0.2, [C_FLOOR])
+		g.blob(c.x, c.y, g.w * 0.11, g.h * 0.16, C_FLOOR, 0.25, [C_LOW])
+		var out := c + Vector2.from_angle(r.randf_range(0.0, TAU)) * g.w * 0.25
+		g.path([c, out], 1.3, C_FLOOR, 0.4, [C_LOW])
+		sea = Vector2(-100, -100)
+	var sea_c := Vector2(g.w, g.h) * 0.5
+	if sea.x > -50:
+		var inward := (Vector2(g.w, g.h) * 0.5 - sea).normalized()
+		sea_c = sea + inward * g.h * 0.18
+		g.blob(sea_c.x, sea_c.y, g.w * r.randf_range(0.22, 0.3), g.h * r.randf_range(0.26, 0.34), C_LOW, 0.22, [C_FLOOR])
+		var bar_a := sea_c - inward.orthogonal() * g.h * 0.2
+		g.path([bar_a, bar_a.lerp(sea_c, 0.5) + inward * 3.0, sea_c + inward.orthogonal() * g.h * 0.15], 1.2, C_FLOOR, 0.5, [C_LOW])
 	for i in r.randi_range(2, 4):
 		var p := _random_cell(g, C_FLOOR)
 		g.blob(p.x, p.y, r.randf_range(2.5, 4.5), r.randf_range(1.8, 3.0), C_LOW, 0.3, [C_FLOOR])
@@ -266,6 +298,35 @@ static func _flats(g: Grid) -> void:
 ## in the rim, basins cut in from the channel, a causeway or a pier across, cargo on the decks.
 static func _harbour(g: Grid) -> void:
 	var r := g.rng
+	# Four in ten run north to south: the plan is laid on a turned grid and turned back, before
+	# any piece goes down (the pieces only face one way).
+	var vertical := r.randf() < 0.4 and g.w >= 60
+	var y0: int
+	if vertical:
+		var tg := Grid.new(g.h, g.w, r)
+		y0 = _harbour_plan(tg, false)
+		for y in g.h:
+			for x in g.w:
+				g.c[y * g.w + x] = tg.c[x * tg.w + y]
+	else:
+		y0 = _harbour_plan(g, true)
+	# Pieces: the warehouse against the north mass, the crane at the quay's edge (its lamp is
+	# the room's one warm light, else a quay lamp), cargo, buoys cold in the channel.
+	g.scatter("warehouse", "floor", func(px: int, py: int) -> bool:
+		return g.against_north("warehouse", px, py) and (vertical or py < y0))
+	var crane := g.scatter("crane", "floor", func(px: int, py: int) -> bool: return g.near(px + 1, py + 1, C_LOW, 2))
+	for id in _pick(r, ["netrack", "capstan", "crates", "crates"], r.randi_range(1, 3)):
+		g.scatter(id)
+	if not crane:
+		g.scatter("lamppost", "floor", func(px: int, py: int) -> bool: return g.near(px, py, C_LOW, 2))
+	for i in r.randi_range(1, 2):
+		g.scatter("buoy", "water")
+
+
+## The Harbour's plan, west to east: returns the channel's first row. `pier` allows the pier
+## (a piece, so never on a turned grid).
+static func _harbour_plan(g: Grid, pier: bool) -> int:
+	var r := g.rng
 	g.rect(3, 3, g.w - 4, g.h - 4, C_FLOOR)
 	for i in r.randi_range(4, 6):
 		var side := r.randi() % 4
@@ -284,7 +345,7 @@ static func _harbour(g: Grid) -> void:
 	var bx0 := 3 if west else g.w - 4 - bw0
 	var by0 := 3 if north else g.h - 4 - bh0
 	g.rect(bx0, by0, bx0 + bw0, by0 + bh0, C_WALL)
-	var th := r.randi_range(6, 9)
+	var th := r.randi_range(4, 6) if g.h < 30 else r.randi_range(6, 9)
 	var y0 := int(g.h * 0.5 + r.randf_range(-0.18, 0.18) * g.h) - th / 2
 	# The channel runs out into the dark at one end and stops at a dock wall at the other.
 	var dock := r.randi_range(8, g.w / 4)
@@ -309,7 +370,7 @@ static func _harbour(g: Grid) -> void:
 			g.rect(bx, y0 + th, bx + bw, y0 + th - 1 + r.randi_range(5, 8), C_LOW, [C_FLOOR])
 	var cx := r.randi_range(g.w / 4, g.w * 3 / 4)
 	var crossed := false
-	if r.randf() < 0.5:
+	if pier and r.randf() < 0.5:
 		# A pier off a quay into the channel, a boat moored at it.
 		var from_south := r.randf() < 0.5
 		var py := y0 + th - 6 if from_south else y0
@@ -323,16 +384,7 @@ static func _harbour(g: Grid) -> void:
 		g.rect(cx - 2, y0 + th / 2 - 1, cx + 4, y0 + th / 2 + 1, C_RAISED, [C_LOW])
 	for i in r.randi_range(3, 6):
 		_drift(g, _random_cell(g, C_FLOOR), r.randi_range(2, 4))
-	# Pieces: the warehouse against the north mass, the crane at the quay's edge (its lamp is
-	# the room's one warm light, else a quay lamp), cargo, buoys cold in the channel.
-	g.scatter("warehouse", "floor", func(px: int, py: int) -> bool: return g.against_north("warehouse", px, py) and py < y0)
-	var crane := g.scatter("crane", "floor", func(px: int, py: int) -> bool: return py + 2 == y0 - 1 or py + 2 == y0)
-	for id in _pick(r, ["netrack", "capstan", "crates", "crates"], r.randi_range(1, 3)):
-		g.scatter(id)
-	if not crane:
-		g.scatter("lamppost", "floor", func(px: int, py: int) -> bool: return g.near(px, py, C_LOW, 2))
-	for i in r.randi_range(1, 2):
-		g.scatter("buoy", "water")
+	return y0
 
 
 ## The Streets: a square off centre, a street through it door to door with jogs, a cross street,
@@ -376,6 +428,11 @@ static func _streets(g: Grid) -> void:
 	for i in r.randi_range(2, 3):
 		var corner := Vector2i(sx if r.randf() < 0.5 else sx + sw - r.randi_range(3, 5), sy if r.randf() < 0.5 else sy + sh - r.randi_range(2, 3))
 		g.rect(corner.x, corner.y, corner.x + r.randi_range(2, 4), corner.y + r.randi_range(1, 3), C_WALL)
+	if r.randf() < 0.25:
+		# The square is two courtyards under water either side of a causeway of raised flags.
+		g.rect(sx + 1, sy + 1, sx + sw - 1, sy + sh - 1, C_LOW, [C_FLOOR])
+		var cy := sy + sh / 2 + r.randi_range(-1, 1)
+		g.rect(sx, cy - 1, sx + sw, cy + 1, C_RAISED, [C_FLOOR, C_LOW])
 	var canal := r.randf() < 0.6
 	if not canal or r.randf() < 0.4:
 		# A sunken corner of the square: the first ground the tide takes.
@@ -413,17 +470,121 @@ static func _streets(g: Grid) -> void:
 ## its axis and broken: a column down, a gutter buried, a wall fallen into the dark, chapels
 ## that do not match.
 static func _hall(g: Grid) -> void:
+	# Three plans (map Stage 09): the nave (half the rooms), the crossing and the crypt, so a
+	# Hall room is not always the same building broken differently.
+	var pick := g.rng.randf()
+	if g.w >= 60 and pick < 0.25:
+		_hall_cross(g)
+	elif g.w >= 60 and pick < 0.5:
+		_hall_crypt(g)
+	else:
+		_hall_nave(g)
+
+
+## The crossing: a nave met by a transept that runs the room's width, each arm ending in a
+## half-round apse; columns at the crossing's four corners, the altar where the arms meet or at
+## the nave's head, gutters along the arms, one arm fallen in.
+static func _hall_cross(g: Grid) -> void:
 	var r := g.rng
-	var nw := r.randi_range(10, 13) * 2
+	var nw := r.randi_range(7, 9) * 2
+	var tw := r.randi_range(9, 12)
+	var cx := g.w / 2 + r.randi_range(-8, 8)
+	var cy := g.h / 2 + r.randi_range(-4, 4)
+	var nx0 := cx - nw / 2
+	var ty0 := cy - tw / 2
+	g.rect(nx0, 4, nx0 + nw - 1, g.h - 5, C_FLOOR)
+	g.rect(5, ty0, g.w - 6, ty0 + tw - 1, C_FLOOR)
+	for end in [5, g.w - 6]:
+		g.blob(end, cy, 4.0, tw * 0.5, C_FLOOR, 0.1)
+	g.blob(cx, 5, nw * 0.5, 3.5, C_FLOOR, 0.1)
+	for gy in [ty0 + 1, ty0 + tw - 2]:
+		g.rect(8, gy, nx0 - 3, gy, C_LOW, [C_FLOOR])
+		g.rect(nx0 + nw + 2, gy, g.w - 9, gy, C_LOW, [C_FLOOR])
+	# One arm has fallen in: its end a rubble field under water.
+	var west := r.randf() < 0.5
+	var fx := 9 if west else g.w - 10
+	g.blob(fx, cy, 5.0, tw * 0.45, C_LOW, 0.3, [C_FLOOR])
+	_drift(g, Vector2(fx + (4 if west else -4), cy), 4)
+	for c in [Vector2i(nx0 - 2, ty0 - 2), Vector2i(nx0 + nw, ty0 - 2), Vector2i(nx0 - 2, ty0 + tw), Vector2i(nx0 + nw, ty0 + tw)]:
+		if g.fits("column", c.x, c.y, "any"):
+			g.place("column", c.x, c.y)
+	g.rect(cx - 5, 6, cx + 4, 9, C_RAISED, [C_FLOOR])
+	if not g.scatter("altar", "shelf"):
+		g.scatter("altar", "floor", func(x: int, y: int) -> bool: return absi(y - cy) < tw / 2)
+	g.want_doors = [[1, (cx + 0.5) / g.w]]
+	_hall_furnish(g)
+
+
+## The crypt: a low hall on a grid of piers, vaults of brine sunk between some of them, a dais at
+## one end with the altar, the keepers' statues among the piers.
+static func _hall_crypt(g: Grid) -> void:
+	var r := g.rng
+	var x0 := 5
+	var y0 := 5
+	var x1 := g.w - 6
+	var y1 := g.h - 6
+	g.rect(x0, y0, x1, y1, C_FLOOR)
+	# Bays knocked through the outer wall, never two alike.
+	for i in r.randi_range(2, 4):
+		var p := _side_point(g, r.randi() % 4, 0.2, 0.8)
+		g.blob(p.x + signf(g.w * 0.5 - p.x) * 3.0, p.y + signf(g.h * 0.5 - p.y) * 3.0, r.randf_range(3.0, 5.0), r.randf_range(2.5, 4.0), C_FLOOR, 0.25)
+	var sx := r.randi_range(7, 9)
+	var sy := r.randi_range(6, 7)
+	var ox := x0 + r.randi_range(3, 5)
+	var oy := y0 + r.randi_range(3, 4)
+	var gap_x := ox + sx * r.randi_range(1, 3)
+	var y := oy
+	while y < y1 - 3:
+		var x := ox
+		while x < x1 - 3:
+			# A row of piers with one lane left clear down the crypt.
+			if x != gap_x:
+				if r.randf() < 0.15:
+					_drift(g, Vector2(x + 1, y + 1), 3)
+				elif g.fits("column", x, y, "any"):
+					g.place("column", x, y)
+			if r.randf() < 0.18:
+				g.rect(x + 3, y + 2, x + sx - 2, y + sy - 3, C_LOW, [C_FLOOR])
+			x += sx
+		y += sy
+	var top := r.randf() < 0.5
+	var dy := y0 + 1 if top else y1 - 3
+	g.rect(g.w / 2 - 5, dy, g.w / 2 + 4, dy + 2, C_RAISED, [C_FLOOR])
+	g.scatter("altar", "shelf")
+	g.want_doors = [[1 if top else 0, r.randf_range(0.3, 0.7)]]
+	for i in 2:
+		g.scatter("statue")
+	_hall_furnish(g)
+
+
+## What any Hall plan gets after its shape: the furniture, the clutter and the light.
+static func _hall_furnish(g: Grid) -> void:
+	var r := g.rng
+	for id in _pick(r, ["rose", "organ", "apse", "font"], r.randi_range(1, 2)):
+		var test := Callable()
+		if id == "organ" or id == "apse":
+			test = func(x: int, y: int) -> bool: return g.against_north(id, x, y)
+		g.scatter(id, "floor", test)
+	_rock_drifts(g, r.randi_range(2, 4))
+	for i in r.randi_range(1, 2):
+		g.scatter("candles", "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_WALL, 1))
+	if r.randf() < 0.6:
+		g.scatter("kelpglow", "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_LOW, 2))
+
+
+static func _hall_nave(g: Grid) -> void:
+	var r := g.rng
+	var small := g.w < 60
+	var nw := r.randi_range(6, 8) * 2 if small else r.randi_range(10, 13) * 2
 	# The aisles are of their own widths and the nave stands off the room's centre: the plan is
 	# symmetric about the nave, not the room.
-	var aw_w := r.randi_range(6, 11)
-	var aw_e := r.randi_range(6, 11)
-	while absi(aw_w - aw_e) < 3:
-		aw_e = r.randi_range(5, 12)
+	var aw_w := r.randi_range(3, 6) if small else r.randi_range(6, 11)
+	var aw_e := r.randi_range(3, 6) if small else r.randi_range(6, 11)
+	while absi(aw_w - aw_e) < (2 if small else 3):
+		aw_e = r.randi_range(2, 7) if small else r.randi_range(5, 12)
 	var nx0 := clampi(g.w / 2 - nw / 2 + r.randi_range(-6, 6) + (aw_w - aw_e) / 2, aw_w + 4, g.w - nw - aw_e - 4)
 	var nx1 := nx0 + nw - 1
-	var top := 8 if g.h >= 40 else 6
+	var top := 8 if g.h >= 40 else (6 if g.h >= 30 else 4)
 	g.rect(nx0, top + 2, nx1, g.h - 5, C_FLOOR)
 	g.rect(nx0 - aw_w, top + 6, nx0 - 1, g.h - 5, C_FLOOR)
 	g.rect(nx1 + 1, top + 6, nx1 + aw_e, g.h - 5, C_FLOOR)
@@ -450,7 +611,12 @@ static func _hall(g: Grid) -> void:
 		if buried == k:
 			gy0 = r.randi_range(g.h / 2, g.h - 12)
 		g.rect(gx[k], gy0, gx[k] + 1, g.h - 7, C_LOW, [C_FLOOR])
-	if r.randf() < 0.65:
+	var flooded := r.randf() < 0.33
+	if flooded:
+		# The nave has drowned: brine down its middle, the columns either side of it.
+		var half := r.randi_range(2, 3) if not small else 1
+		g.rect(int(cx) - half, top + 9, int(cx) + half + 1, g.h - 8, C_LOW, [C_FLOOR, C_RAISED])
+	elif r.randf() < 0.65:
 		var ty := float(r.randi_range(g.h / 2 - 4, g.h / 2 + 4))
 		g.path([Vector2(nx0 - aw_w + 1, ty), Vector2(cx, ty + r.randf_range(-1.5, 1.5)), Vector2(nx1 + aw_e - 1, ty + r.randf_range(-1, 1))], 1.1, C_LOW, 0.35, [C_FLOOR, C_RAISED])
 	if r.randf() < 0.6:
@@ -488,16 +654,124 @@ static func _hall(g: Grid) -> void:
 	g.want_doors = [[1, (cx + 0.5) / g.w]]  # the entrance at the foot of the nave (side 1 is south)
 	if g.fits("gate", int(cx) - 2, g.h - 9, "floor"):
 		g.place("gate", int(cx) - 2, g.h - 9)
-	for id in _pick(r, ["rose", "organ", "apse", "font"], r.randi_range(1, 2)):
-		var test := Callable()
-		if id == "organ" or id == "apse":
-			test = func(x: int, y: int) -> bool: return g.against_north(id, x, y)
-		g.scatter(id, "floor", test)
-	_rock_drifts(g, r.randi_range(2, 4))
-	for i in r.randi_range(1, 2):
-		g.scatter("candles", "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_WALL, 1))
-	if r.randf() < 0.6:
-		g.scatter("kelpglow", "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_LOW, 2))
+	_hall_furnish(g)
+
+
+# --- room kinds (map Stage 09) -------------------------------------------------------------------
+
+## A spot of bare floor for a w x h block, clear of pieces and anything taken, `gap` cells clear
+## round it too; (-1, -1) if there is none.
+static func _clear_spot(g: Grid, w: int, h: int, gap: int = 1) -> Vector2i:
+	for k in 300:
+		var x := g.rng.randi_range(4, g.w - 5 - w)
+		var y := g.rng.randi_range(4, g.h - 5 - h)
+		var ok := true
+		for j in range(-gap, h + gap):
+			for i in range(-gap, w + gap):
+				var c := Vector2i(x + i, y + j)
+				if g.at(c.x, c.y) != C_FLOOR or g.taken.has(c) or g.solid.has(c):
+					ok = false
+					break
+			if not ok:
+				break
+		if ok:
+			return Vector2i(x, y)
+	return Vector2i(-1, -1)
+
+
+static func _own(g: Grid, at: Vector2i, w: int, h: int, gap: int = 1) -> void:
+	for j in range(-gap, h + gap):
+		for i in range(-gap, w + gap):
+			g.taken[at + Vector2i(i, j)] = true
+
+
+## Chests on raised plinths (a challenge's reward), as far apart as they can be.
+static func _plinths(g: Grid, n: int) -> void:
+	var placed: Array[Vector2i] = []
+	for i in n:
+		var best := Vector2i(-1, -1)
+		var bd := -1
+		for k in 8:
+			var at := _clear_spot(g, 3, 3)
+			if at.x < 0:
+				continue
+			var d := 999
+			for o in placed:
+				d = mini(d, absi(o.x - at.x) + absi(o.y - at.y))
+			if d > bd:
+				bd = d
+				best = at
+		if best.x < 0:
+			return
+		g.rect(best.x, best.y, best.x + 2, best.y + 2, C_RAISED)
+		g.set_at(best.x + 1, best.y + 1, C_CHEST)
+		_own(g, best, 3, 3)
+		placed.append(best)
+
+
+## A hoard: one chest (two in a large room) on a raised step, a drift of the look's clutter by it.
+static func _hoard(g: Grid) -> void:
+	for i in (2 if g.w >= 80 else 1):
+		var at := _clear_spot(g, 5, 3)
+		if at.x < 0:
+			return
+		g.rect(at.x, at.y, at.x + 4, at.y + 2, C_RAISED)
+		g.set_at(at.x + 2, at.y + 1, C_CHEST)
+		_own(g, at, 5, 3)
+		_drift(g, Vector2(at.x + (7 if g.rng.randf() < 0.5 else -3), at.y + 1), 3)
+
+
+## A strongroom: walls round a room with the vault in it and one way in, facing the room's middle.
+static func _strongroom(g: Grid) -> void:
+	var w := 12 if g.w >= 60 else 10
+	var h := 8 if g.h >= 30 else 7
+	var at := _clear_spot(g, w, h, 1)
+	if at.x < 0:
+		# No room for it as the plan stands: clear a place near the middle.
+		at = Vector2i(g.w / 2 - w / 2 + g.rng.randi_range(-4, 4), g.h / 2 - h / 2 + g.rng.randi_range(-2, 2))
+		g.rect(at.x - 1, at.y - 1, at.x + w, at.y + h, C_FLOOR)
+	g.rect(at.x, at.y, at.x + w - 1, at.y + h - 1, C_WALL)
+	g.rect(at.x + 1, at.y + 1, at.x + w - 2, at.y + h - 2, C_FLOOR)
+	# The way in, on the side that faces the room's middle.
+	var mid := Vector2(g.w, g.h) * 0.5
+	var c := Vector2(at) + Vector2(w, h) * 0.5
+	if absf(mid.x - c.x) / g.w > absf(mid.y - c.y) / g.h:
+		var x := at.x + w - 1 if mid.x > c.x else at.x
+		g.rect(x, at.y + h / 2 - 1, x, at.y + h / 2, C_FLOOR)
+	else:
+		var y := at.y + h - 1 if mid.y > c.y else at.y
+		g.rect(at.x + w / 2 - 1, y, at.x + w / 2, y, C_FLOOR)
+	g.set_at(at.x + w / 2, at.y + h / 2, C_CHEST)
+	_own(g, at, w, h, 1)
+
+
+## The dive's islands: the altar on one, a chest on another, before the room is drowned.
+static func _islands(g: Grid) -> void:
+	for mark: int in [C_ALTAR, C_CHEST]:
+		var at := _clear_spot(g, 5, 4, 0)
+		if at.x < 0:
+			at = Vector2i(g.w / 2 + (-8 if mark == C_ALTAR else 6), g.h / 2 - 2)
+			g.rect(at.x, at.y, at.x + 4, at.y + 3, C_FLOOR)
+		g.blob(at.x + 2.0, at.y + 1.5, 3.2, 2.4, C_RAISED, 0.25)
+		g.set_at(at.x + 2, at.y + 2, mark)
+		_own(g, at, 5, 4, 1)
+
+
+## The dive: every bit of floor more than three cells from the keeper's landing goes under.
+static func _drown(g: Grid) -> void:
+	var start := Vector2i(-1, -1)
+	for i in g.c.size():
+		if g.c[i] == C_PLAYER:
+			start = Vector2i(i % g.w, i / g.w)
+	for i in g.c.size():
+		var cell := Vector2i(i % g.w, i / g.w)
+		if g.c[i] == C_FLOOR and not g.taken.has(cell) and maxi(absi(cell.x - start.x), absi(cell.y - start.y)) > 3:
+			var near_door := false
+			for d in g.doors:
+				if absi(cell.x - d.x) + absi(cell.y - d.y) <= 2:
+					near_door = true
+			if not near_door:
+				g.c[i] = C_LOW
 
 
 # --- doors, chunks, reach, spawns ----------------------------------------------------------------
@@ -723,9 +997,11 @@ static func _connect(g: Grid) -> void:
 			if not g.solid.has(q) and not Grid.is_open(g.at(q.x, q.y)) and g.at(q.x, q.y) != C_PLAYER:
 				g.set_at(q.x, q.y, C_FLOOR)
 		seen = _reach(g, start)
+	# Ground no one can reach (a pool behind a piece, a corner cut off) goes back to rock. The
+	# pieces' own open cells are left: a gap in an arch is walked through from either side.
 	for i in g.c.size():
 		var cell := Vector2i(i % g.w, i / g.w)
-		if (g.c[i] == C_FLOOR or g.c[i] == C_RAISED) and not seen.has(cell) and not g.taken.has(cell):
+		if Grid.is_open(g.c[i]) and not seen.has(cell) and not g.solid.has(cell):
 			g.c[i] = C_WALL
 
 
@@ -744,6 +1020,18 @@ static func _reach(g: Grid, start: Vector2i) -> Dictionary:
 	return seen
 
 
+## Walkable cells in the 5x5 round a cell: a spawn stands in a pocket, never in a door's cut or
+## a one-wide gap (map Stage 09: the bot spent its time hunting crabs down corridors).
+static func _openness(g: Grid, c: Vector2i) -> int:
+	var n := 0
+	for dy in range(-2, 3):
+		for dx in range(-2, 3):
+			var p := c + Vector2i(dx, dy)
+			if Grid.is_open(g.at(p.x, p.y)) and not g.solid.has(p):
+				n += 1
+	return n
+
+
 ## The drowned's spawns: spread over the reachable floor by farthest-point picking, ten in a
 ## large room and seven in a medium one, none within eight cells of the keeper.
 static func _spawns(g: Grid) -> void:
@@ -756,12 +1044,13 @@ static func _spawns(g: Grid) -> void:
 	var seen := _reach(g, start)
 	var pool: Array[Vector2i] = []
 	for c: Vector2i in seen:
-		if g.at(c.x, c.y) == C_FLOOR and maxi(absi(c.x - start.x), absi(c.y - start.y)) >= 8 and not g.taken.has(c):
+		if g.at(c.x, c.y) == C_FLOOR and maxi(absi(c.x - start.x), absi(c.y - start.y)) >= 8 and not g.taken.has(c) \
+				and _openness(g, c) >= 15:
 			pool.append(c)
 	if pool.is_empty():
 		return
 	pool.sort()
-	var want := 10 if g.w >= 80 else 7
+	var want := 10 if g.w >= 80 else (7 if g.w >= 60 else 5)
 	var chosen: Array[Vector2i] = [pool[g.rng.randi() % pool.size()]]
 	while chosen.size() < want:
 		var best := Vector2i(-1, -1)
@@ -784,7 +1073,7 @@ static func _spawns(g: Grid) -> void:
 # --- the validator -------------------------------------------------------------------------------
 
 ## The map rules a fighting room must keep (STYLE.md 22): an empty list when it does.
-static func validate(t: RoomTemplate, look: int) -> PackedStringArray:
+static func validate(t: RoomTemplate, look: int, kind: String = "combat") -> PackedStringArray:
 	var out := PackedStringArray()
 	if t.width < 40 or t.width > 80 or t.height < 23 or t.height > 46:
 		out.append("size %dx%d" % [t.width, t.height])
@@ -801,8 +1090,23 @@ static func validate(t: RoomTemplate, look: int) -> PackedStringArray:
 				ok = true
 		if not ok:
 			out.append("door %s unreachable" % d)
-	if t.enemy_spawns.size() < (6 if t.width >= 80 else 4):
+	var fights := kind == "combat" or kind == "challenge"
+	if fights and t.enemy_spawns.size() < (6 if t.width >= 80 else 4):
 		out.append("%d spawns" % t.enemy_spawns.size())
+	var chests := t.marker_cells("T").size()
+	if (kind == "challenge" or kind == "treasure") and chests < 1:
+		out.append("no chest")
+	if kind == "vault" and chests != 1:
+		out.append("%d vaults" % chests)
+	if kind == "dive" and (chests != 1 or t.marker_cells("A").size() != 1):
+		out.append("no altar and chest")
+	for ch in t.markers:
+		for c: Vector2i in t.markers[ch]:
+			var by := false
+			for off: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				by = by or reach.has(c + off)
+			if not by:
+				out.append("marker %s unreachable" % ch)
 	for e in t.enemy_spawns:
 		if not reach.has(e):
 			out.append("spawn %s unreachable" % e)
@@ -815,6 +1119,14 @@ static func validate(t: RoomTemplate, look: int) -> PackedStringArray:
 				var first := d + _inward_t(t, d)
 				if absi(c.x - first.x) <= 1 and absi(c.y - first.y) <= 1:
 					out.append("%s before a door" % p.id)
+	var cut := 0
+	for y in t.height:
+		for x in t.width:
+			var c := Vector2i(x, y)
+			if not t.is_solid(x, y) and not t.char_at(x, y) in ["D", "T", "A"] and not reach.has(c) and c != t.player_spawn:
+				cut += 1
+	if cut > 0:
+		out.append("%d cells cut off" % cut)
 	var hole := _hole(t)
 	if hole > MAX_HOLE:
 		out.append("bare square %d" % hole)
@@ -822,7 +1134,7 @@ static func validate(t: RoomTemplate, look: int) -> PackedStringArray:
 	if sym > MAX_SYMMETRY:
 		out.append("symmetry %.2f" % sym)
 	var pockets := fight_pockets(t, reach)
-	if pockets < (2 if t.width >= 80 else 1):
+	if pockets < (2 if t.width >= 80 and fights else 1):
 		out.append("%d fight pockets" % pockets)
 	var low := 0
 	for c: Vector2i in reach:
