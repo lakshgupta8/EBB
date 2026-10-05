@@ -9,6 +9,7 @@ const DECOR := preload("res://assets/sprites/decor.png")
 const DECOR_STREETS := preload("res://assets/sprites/decor2.png")
 const DECOR_DEEP := preload("res://assets/sprites/decor3.png")
 const DECOR_HARBOUR := preload("res://assets/sprites/decor4.png")
+const DECOR_REEF := preload("res://assets/sprites/decor5.png")
 const WATER_SHADER := preload("res://src/world/water.gdshader")
 const GROUND_DECALS := preload("res://assets/sprites/ground_decals.png")
 ## One-cell obstacles per look (map Stage 06, tools/gen_obstacles.py): 16x24, the cell and 8 px
@@ -38,6 +39,7 @@ var _ground: TileMapLayer  # collision only since map Stage 03: the terrain laye
 var _terrain: Array[TileMapLayer] = []  # dual grid: low, floor, raised, wall (STYLE.md 22, Edges)
 var _patch_layers: Array[TileMapLayer] = []  # dual grid: the look's three ground patches (map Stage 04)
 var patches: Dictionary = {}  # floor cell -> patch index (GroundPatches.plan)
+var current: Current = null   # the water that runs (map Stage 11e), if the room has `~` lines
 var _cells: TileMapLayer   # what is drawn per cell over the terrain: rocks and doors
 var _water: TileMapLayer   # shallow water on the dual grid, its foam and the wet band beside it
 var _deep: TileMapLayer    # deep water over it
@@ -118,6 +120,10 @@ func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS
 	_build_foreground(rng)
 	_build_nav()
 	_build_spray()
+	if not t.currents.is_empty():
+		current = Current.new()
+		add_child(current)
+		current.setup(self)
 	_find_drips()
 	set_tide(0.0)
 
@@ -203,7 +209,7 @@ func _build_pieces() -> void:
 					by_water = by_water or template.height_at(x + d.x, y + d.y) == 0
 				v = 2 if by_water else posmod(hash(Vector2i(x, y)), 2)
 			var at := Vector2(x, y) * Tiles.SIZE
-			var row := clampi(theme, 0, 4) * 24
+			var row := clampi(theme, 0, Tiles.LAST_LOOK) * 24
 			for part in [[under, OBSTACLE_RISE, Tiles.SIZE, at], [over, 0, OBSTACLE_RISE, at - Vector2(0, OBSTACLE_RISE)]]:
 				var s := Sprite2D.new()
 				s.texture = OBSTACLES
@@ -263,7 +269,7 @@ func _lay_decals() -> void:
 		var s := Sprite2D.new()
 		var at := AtlasTexture.new()
 		at.atlas = GROUND_DECALS
-		at.region = Rect2(int(d.kind) * 32, clampi(theme, 0, 4) * 32, 32, 32)
+		at.region = Rect2(int(d.kind) * 32, clampi(theme, 0, Tiles.LAST_LOOK) * 32, 32, 32)
 		s.texture = at
 		s.position = Vector2(d.cell + Vector2i.ONE) * Tiles.SIZE
 		s.flip_h = posmod(hash(d.cell), 2) == 1
@@ -284,6 +290,7 @@ func _scatter_decor(decor_seed: int) -> void:
 		Tiles.Look.DEEP: atlas = DECOR_DEEP
 		Tiles.Look.STREETS: atlas = DECOR_STREETS
 		Tiles.Look.HARBOUR: atlas = DECOR_HARBOUR
+		Tiles.Look.REEF: atlas = DECOR_REEF
 	for d in DecorRules.plan(template, theme, rng):
 		var s := Sprite2D.new()
 		var at := AtlasTexture.new()
@@ -332,7 +339,7 @@ static func vertex_pick(v: Vector2i, n: int, salt: int = 0) -> int:
 ## show their face where their edge runs south, steps and banks a smaller one, and each throws
 ## its shadow (STYLE.md 22, Edges; tools/gen_terrain.py).
 func _paint_terrain() -> void:
-	var look := clampi(theme, 0, 4)
+	var look := clampi(theme, 0, Tiles.LAST_LOOK)
 	for la in Tiles.TERRAIN_LAYERS:
 		var layer := _terrain[la]
 		layer.clear()
@@ -451,6 +458,19 @@ static func _rings(radius: int) -> Array[Vector2i]:
 func height_at(pos: Vector2) -> int:
 	var c := world_to_cell(pos)
 	return template.height_at(c.x, c.y)
+
+
+func tide_level() -> float:
+	return _tide_level
+
+
+## The current carries a body standing in it (map Stage 11e); walls stop it as they stop walking.
+func carry(body: CharacterBody2D, delta: float) -> void:
+	if current == null:
+		return
+	var p := current.push_at(body.global_position)
+	if p != Vector2.ZERO:
+		body.move_and_collide(p * delta)
 
 
 func is_flooded_at(pos: Vector2) -> bool:

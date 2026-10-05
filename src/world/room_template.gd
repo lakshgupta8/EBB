@@ -14,7 +14,10 @@ var doors: Array[Vector2i] = []
 var markers: Dictionary = {}  # char -> Array[Vector2i]
 var pieces: Array[Dictionary] = []  # [{id, cell}] set pieces (map Stage 05), from `@ id x y` lines
 var piece_cells: Dictionary = {}    # cell -> piece id: the solid footprints
-var directives: PackedStringArray = []  # the `@` lines as written, kept for the room editor
+var directives: PackedStringArray = []  # the `@` and `~` lines as written, kept for the room editor
+## `~ x0 y0 x1 y1 ...`: a channel's current, its line in cells read downstream (map Stage 11e,
+## Current). Any number of points, two or more.
+var currents: Array[PackedVector2Array] = []
 
 
 static func parse(text: String, p_name: String = "") -> RoomTemplate:
@@ -25,6 +28,9 @@ static func parse(text: String, p_name: String = "") -> RoomTemplate:
 			continue
 		if line.begins_with("@"):
 			t._directive(line.strip_edges())
+			continue
+		if line.begins_with("~"):
+			t._current(line.strip_edges())
 			continue
 		t.rows.append(line.strip_edges(false, true))
 	t.height = t.rows.size()
@@ -62,6 +68,18 @@ func _directive(line: String) -> void:
 		if c.y >= 0 and c.y < rows.size() and c.x >= 0 and c.x < rows[c.y].length() and not rows[c.y][c.x] in ["#", "D"]:
 			var row := rows[c.y]
 			rows[c.y] = row.substr(0, c.x) + str(lay[c]) + row.substr(c.x + 1)
+
+
+func _current(line: String) -> void:
+	directives.append(line)
+	var n := line.substr(1).strip_edges().split(" ", false)
+	var pts := PackedVector2Array()
+	for i in range(0, n.size() - 1, 2):
+		pts.append(Vector2(float(n[i]), float(n[i + 1])))
+	if pts.size() < 2:
+		push_warning("%s: a current needs two points: '%s'" % [name, line])
+		return
+	currents.append(pts)
 
 
 static func load_file(path: String) -> RoomTemplate:

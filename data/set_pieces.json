@@ -761,5 +761,189 @@
     8
    ]
   }
+ },
+ "brainhead": {
+  "look": "reef",
+  "region": [
+   0,
+   460,
+   56,
+   64
+  ],
+  "foot": [
+   "###",
+   "###"
+  ],
+  "origin": [
+   4,
+   28
+  ]
+ },
+ "breach": {
+  "look": "reef",
+  "region": [
+   58,
+   460,
+   112,
+   76
+  ],
+  "foot": [
+   "##...##",
+   "##...##"
+  ],
+  "origin": [
+   0,
+   37
+  ]
+ },
+ "clam": {
+  "look": "reef",
+  "region": [
+   172,
+   460,
+   40,
+   44
+  ],
+  "foot": [
+   "##",
+   "##"
+  ],
+  "origin": [
+   4,
+   8
+  ]
+ },
+ "fans": {
+  "look": "reef",
+  "region": [
+   214,
+   460,
+   56,
+   52
+  ],
+  "foot": [
+   "###"
+  ],
+  "origin": [
+   4,
+   32
+  ]
+ },
+ "staghorn": {
+  "look": "reef",
+  "region": [
+   272,
+   460,
+   72,
+   52
+  ],
+  "foot": [
+   "####",
+   "####"
+  ],
+  "origin": [
+   4,
+   16
+  ]
+ },
+ "anchor": {
+  "look": "reef",
+  "region": [
+   346,
+   460,
+   40,
+   64
+  ],
+  "foot": [
+   "##"
+  ],
+  "origin": [
+   4,
+   42
+  ]
+ },
+ "wallsteps": {
+  "look": "reef",
+  "region": [
+   388,
+   460,
+   72,
+   52
+  ],
+  "foot": [
+   "#==#",
+   "#==#"
+  ],
+  "origin": [
+   4,
+   16
+  ]
+ },
+ "ribcoral": {
+  "look": "reef",
+  "region": [
+   462,
+   460,
+   88,
+   64
+  ],
+  "foot": [
+   "#####",
+   "#####"
+  ],
+  "origin": [
+   4,
+   28
+  ]
+ },
+ "glowcoral": {
+  "look": "reef",
+  "region": [
+   552,
+   460,
+   24,
+   40
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   20
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.4,
+   "scale": 1.6,
+   "at": [
+    12,
+    18
+   ]
+  }
+ },
+ "jelly": {
+  "look": "reef",
+  "region": [
+   578,
+   460,
+   24,
+   44
+  ],
+  "foot": [
+   "#"
+  ],
+  "origin": [
+   4,
+   24
+  ],
+  "light": {
+   "color": "COLD",
+   "energy": 0.35,
+   "scale": 1.5,
+   "at": [
+    12,
+    14
+   ]
+  }
  }
 }

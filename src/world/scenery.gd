@@ -20,12 +20,12 @@ const PARALLAX := 0.03
 ## Far scenery pieces (scenery.png, 48 px cells, anchored bottom centre): [w, h, looks].
 ## Mirrors tools/gen_scenery.py.
 const PIECES := [
-	[24, 28, [Tiles.Look.FLATS, Tiles.Look.HUB, Tiles.Look.HARBOUR]],  # 0 rock stack
+	[24, 28, [Tiles.Look.FLATS, Tiles.Look.HUB, Tiles.Look.HARBOUR, Tiles.Look.REEF]],  # 0 rock stack
 	[40, 24, [Tiles.Look.FLATS, Tiles.Look.HARBOUR]],                  # 1 wreck ribs
 	[48, 12, [Tiles.Look.FLATS]],                                      # 2 dune
 	[48, 32, [Tiles.Look.HUB]],                                        # 3 village roofs
 	[24, 44, [Tiles.Look.HUB]],                                        # 4 chapel
-	[32, 14, [Tiles.Look.FLATS, Tiles.Look.HUB, Tiles.Look.HARBOUR]],  # 5 low rock
+	[32, 14, [Tiles.Look.FLATS, Tiles.Look.HUB, Tiles.Look.HARBOUR, Tiles.Look.REEF]],  # 5 low rock
 	[48, 32, [Tiles.Look.STREETS]],                                    # 6 roofline
 	[32, 32, [Tiles.Look.STREETS]],                                    # 7 broken arch
 	[24, 48, [Tiles.Look.STREETS]],                                    # 8 leaning tower
@@ -38,7 +38,7 @@ const PIECES := [
 ## Foreground pieces (foreground.png, 16x24, anchored bottom centre): looks.
 const FORE := [
 	[Tiles.Look.FLATS, Tiles.Look.HUB, Tiles.Look.HARBOUR],  # 0 mooring post and rope
-	[Tiles.Look.FLATS, Tiles.Look.HUB],                      # 1 kelp rising
+	[Tiles.Look.FLATS, Tiles.Look.HUB, Tiles.Look.REEF],     # 1 kelp rising
 	[Tiles.Look.FLATS, Tiles.Look.HARBOUR],                  # 2 wreck rib
 	[Tiles.Look.STREETS],                                    # 3 broken beam
 	[Tiles.Look.STREETS],                                    # 4 signpost

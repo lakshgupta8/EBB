@@ -22,8 +22,11 @@ const SOLID := [WALL, WALL2, DOOR, ROCK, RUIN, RUIN2, HALLWALL, HALLWALL2, HULL,
 ## The shade tiles (38-44) are no longer drawn: since map Stage 03 the terrain tiles carry
 ## each edge's shadow. They keep their indices so the enum and the strip stay in step.
 ## Themes: the flats (sand and wet rock), the drowned streets (cobbles and brick), the deep
-## hall (basalt), the sunken harbour (deck planks, tarred hulls, silt and quay).
-enum Look { FLATS, STREETS, DEEP, HARBOUR, HUB }
+## hall (basalt), the sunken harbour (deck planks, tarred hulls, silt and quay), the hub, and the
+## reef (map Stage 11: the sea wall and the dead coral; drawn by terrain.png only, its cells layer
+## takes the Flats' tiles).
+enum Look { FLATS, STREETS, DEEP, HARBOUR, HUB, REEF }
+const LAST_LOOK := Look.REEF  # the atlases with a row per look (terrain, patch, obstacles, decals)
 
 static var _tileset: TileSet
 static var _beyond_tileset: TileSet

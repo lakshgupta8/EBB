@@ -28,7 +28,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOMS = os.path.join(ROOT, "data", "rooms")
 OUT = os.path.join(ROOT, "assets", "reference", "maps")
-BIOMES = ["biome1", "harbour", "biome2", "biome3"]
+BIOMES = ["biome1", "harbour", "biome2", "biome3", "reef"]
 PIECES = json.load(open(os.path.join(ROOT, "data", "set_pieces.json"), encoding="utf-8"))
 WALKABLE = set("._=PeDFTXAMOEBWCNKSILVYld")
 # What a cell is for the plan, markers folded into the floor they stand on.
@@ -53,7 +53,8 @@ KEEP = {
 def load(path):
     """The plan's rows, each set piece's footprint (`@ id x y`, map Stage 05) drawn in as rock."""
     lines = [r.rstrip() for r in open(path, encoding="utf-8").read().split("\n") if r.strip()]
-    rows = [list(r) for r in lines if not r.startswith("@")]
+    # `~` lines are a channel's current (map Stage 11e), not plan rows.
+    rows = [list(r) for r in lines if not r.startswith("@") and not r.startswith("~")]
     for r in lines:
         if r.startswith("@"):
             pid, x, y = r[1:].split()
@@ -135,7 +136,7 @@ def symmetry(p, inside):
 
 def sheets(shots, tag=""):
     from PIL import Image, ImageDraw
-    names = {"biome1": "flats", "harbour": "harbour", "biome2": "streets", "biome3": "hall"}
+    names = {"biome1": "flats", "harbour": "harbour", "biome2": "streets", "biome3": "hall", "reef": "reef"}
     for b in BIOMES:
         files = sorted(f for f in os.listdir(shots) if f.startswith(b + "__"))
         cols, w, h, lab = 5, 320, 180, 14

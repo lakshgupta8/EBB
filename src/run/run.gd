@@ -118,6 +118,9 @@ var _drown_t: float = 0.0        # Drowning: tick timer
 var _water_shield_t: float = 0.0  # Drowned Skin: seconds spent in water toward a shield
 var _second_wind_used: bool = false
 var _deep_tick: float = 0.0
+var _cut_tick: float = 0.0
+const CUT_TICK := 0.6    # living coral cuts a body the current carries over it this often
+const CUT_DAMAGE := 3
 var _transitioning: bool = false
 var _echo_queue: Array = []  # echo ids still to be found in this biome, in depth order
 var _skip: int = 0           # the wet way is a shortcut: its door goes this many rooms further
@@ -321,6 +324,7 @@ func _physics_process(delta: float) -> void:
 	if player.glow_full():
 		announcer.hint("flare")
 	_apply_water(delta)
+	_apply_current(delta)
 	_tick_challenge(delta)
 	_tick_marks(delta)
 	_tick_actives(delta)
@@ -352,6 +356,38 @@ func _apply_water(delta: float) -> void:
 			player.take_tide_damage(info)
 	else:
 		_deep_tick = 0.0
+
+
+## Map Stage 11e: the Reef's current carries Tam and every drowned that walks; living coral cuts
+## whoever it carries across it (Room.current, Current).
+func _apply_current(delta: float) -> void:
+	if room == null or room.current == null or player.dead:
+		return
+	room.carry(player, delta)
+	if room.current.cuts_at(player.global_position):
+		_cut_tick += delta
+		if _cut_tick >= CUT_TICK:
+			_cut_tick = 0.0
+			var info := DamageInfo.make(CUT_DAMAGE, null, Vector2.ZERO, 0.0)
+			info.tags = PackedStringArray(["coral"])
+			info.hitstop = 0.0
+			player.take_tide_damage(info)
+	else:
+		_cut_tick = 0.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not (e is Enemy) or e.flying or e.is_boss or not is_instance_valid(e):
+			continue
+		room.carry(e, delta)
+		if room.current.cuts_at(e.global_position):
+			var t: float = float(e.get_meta("cut_t", 0.0)) + delta
+			if t >= CUT_TICK:
+				t = 0.0
+				var info := DamageInfo.make(CUT_DAMAGE, null, Vector2.ZERO, 0.0)
+				info.tags = PackedStringArray(["coral"])
+				info.hitstop = 0.0
+				if e.hurtbox.receive(info):
+					EventBus.damage_dealt.emit(e, info)
+			e.set_meta("cut_t", t)
 
 
 # --- biomes ------------------------------------------------------------------------

@@ -8,6 +8,8 @@
         deep:        the tide sigil inlaid in the floor, a slab broken in a star, a ring of
                      old candle wax
         harbour:     a hatch cover, a hawser coiled flat, a tar spill
+        reef:        a sunken anchor, a sea fan fallen flat, a course of the sea wall sunk in the
+                     rubble (map Stage 11b)
     assets/reference/maps/ground_decals_sheet.png   at 4x over each look's floor
 
 Run:  python tools/gen_ground_decals.py
@@ -25,7 +27,7 @@ import palette as P  # noqa: E402
 SPRITES = os.path.join(P.ROOT, "assets", "sprites")
 REF = os.path.join(P.ROOT, "assets", "reference", "maps")
 C = 32
-LOOKS = ["flats", "streets", "deep", "harbour", "hub"]
+LOOKS = ["flats", "streets", "deep", "harbour", "hub", "reef"]
 
 
 def new():
@@ -240,14 +242,78 @@ def tar():
     return im
 
 
+def anchor():
+    """A ship's anchor lying on its side, half sunk, rust on iron, coral on the crown."""
+    im = new()
+    for y in range(6, 25):
+        px(im, 16, y, "IRON")
+        px(im, 17, y, "IRON_DARK")
+    for x in range(12, 22):
+        px(im, x, 8, "IRON")
+    px(im, 16, 4, "IRON")
+    px(im, 15, 5, "IRON")
+    px(im, 17, 5, "IRON")
+    for k in range(9):
+        t = k / 8 * math.pi
+        x = 16 + 8 * math.cos(t)
+        y = 24 + 3 * math.sin(t)
+        px(im, x, y, "IRON")
+        px(im, x, y + 1, "RUST")
+    for x, y in ((8, 23), (24, 23), (9, 22), (23, 22)):
+        px(im, x, y, "IRON")
+    for x, y in ((16, 25), (15, 26), (18, 26)):
+        px(im, x, y, "DROWNED_SKIN")
+    return im
+
+
+def fan():
+    """A sea fan broken off and lying flat: a stem, its lattice fanned out, bleached."""
+    im = new()
+    for y in range(16, 28):
+        px(im, 16, y, "DROWNED_SKIN")
+    rnd = random.Random("fan")
+    for k in range(7):
+        a = math.pi * (0.15 + 0.7 * k / 6)
+        for r in range(3, 13):
+            x = 16 - r * math.cos(a)
+            y = 17 - r * math.sin(a)
+            if rnd.random() < 0.85:
+                px(im, x, y, "DROWNED_SKIN" if r % 3 else "PALE_SLATE")
+    for r in (6, 10):
+        for k in range(24):
+            a = math.pi * (0.15 + 0.7 * k / 23)
+            if k % 3:
+                px(im, 16 - r * math.cos(a), 17 - r * math.sin(a), "PALE_SLATE")
+    return im
+
+
+def course():
+    """Three blocks of the sea wall sunk level with the rubble, their joints grown over."""
+    im = new()
+    for i, (x0, w) in enumerate(((3, 8), (12, 8), (21, 8))):
+        y0 = 13 + (1 if i == 1 else 0)
+        for y in range(y0, y0 + 6):
+            for x in range(x0, x0 + w):
+                px(im, x, y, "STONE" if y > y0 else "STONE_DARK")
+        for y in range(y0, y0 + 6):
+            px(im, x0 + w, y, "BASALT")
+        px(im, x0 + 2, y0 + 3, "DROWNED_SHADE")
+    for x in (11, 20):
+        px(im, x, 15, "DROWNED_SKIN")
+        px(im, x, 16, "DROWNED_SKIN")
+    return im
+
+
 DECALS = {
     "flats": [ribs, drag, wrack],
     "hub": [ribs, drag, wrack],
     "streets": [grate, cracked, well],
     "deep": [sigil, star, wax],
     "harbour": [hatch, hawser, tar],
+    "reef": [anchor, fan, course],
 }
-FLOOR = {"flats": "SAND", "hub": "SAND_LIGHT", "streets": "STONE", "deep": "BASALT", "harbour": "WOOD"}
+FLOOR = {"flats": "SAND", "hub": "SAND_LIGHT", "streets": "STONE", "deep": "BASALT", "harbour": "WOOD",
+         "reef": "DROWNED_SHADE"}
 
 
 def main():

@@ -24,7 +24,7 @@ from gen_set_pieces import Canvas, SPRITES, REF  # noqa: E402
 
 W, H = 16, 24
 RISE = 8  # px above the cell
-LOOKS = ["flats", "streets", "hall", "harbour", "hub"]  # Tiles.Look order
+LOOKS = ["flats", "streets", "hall", "harbour", "hub", "reef"]  # Tiles.Look order
 
 
 def _shade(c, x0, x1, y_mid=20):
@@ -155,8 +155,40 @@ def hub_rock(v):
     return c
 
 
-DRAW = {"flats": boulder, "streets": rubble, "hall": masonry, "harbour": crate, "hub": hub_rock}
-FLOOR = {"flats": "SAND", "streets": "STONE_DARK", "hall": "BASALT_DARK", "harbour": "WOOD", "hub": "SAND_LIGHT"}
+def coral(v):
+    """The Reef's (map Stage 11b): a dead brain-coral head, a stand of bleached staghorn, a block
+    fallen from the sea wall with coral grown over its top."""
+    c = Canvas(W, H)
+    if v == 0:
+        _shade(c, 1, 15)
+        # Its face is Pale slate: the floor is Drowned shade, and a head must stand off it.
+        _rock(c, 8, 21, 6, 5, "DROWNED_SKIN", "PALE_SLATE", "OILSKIN_LIGHT", "c0")
+        for y, x0, x1 in ((12, 5, 9), (14, 4, 11), (16, 5, 12)):
+            for x in range(x0, x1):
+                c.px(x, y + (1 if (x * 3) % 5 == 0 else 0), "PALE_SLATE")
+    elif v == 1:
+        _shade(c, 2, 14)
+        for x0, top in ((4, 9), (8, 6), (11, 10)):
+            c.line(x0, 21, x0, top, "DROWNED_SKIN")
+            c.line(x0 + 1, 21, x0 + 1, top + 2, "PALE_SLATE")
+            c.px(x0 - 1, top + 2, "DROWNED_SKIN")
+            c.px(x0 + 2, top + 1, "DROWNED_SKIN")
+        c.px(8, 6, "SALT_WHITE")
+    else:
+        _shade(c, 0, 15)
+        c.rect(1, 13, 14, 21, "STONE_DARK")
+        c.rect(1, 13, 14, 14, "STONE")
+        c.rect(1, 20, 14, 21, "BASALT")
+        c.line(7, 15, 7, 19, "BASALT")
+        _rock(c, 6, 14, 5, 2, "DROWNED_SKIN", "PALE_SLATE", "PALE_SLATE", "c2")
+        c.px(12, 13, "DROWNED_SKIN")
+    c.foot(0, 15, 22)
+    return c
+
+
+DRAW = {"flats": boulder, "streets": rubble, "hall": masonry, "harbour": crate, "hub": hub_rock, "reef": coral}
+FLOOR = {"flats": "SAND", "streets": "STONE_DARK", "hall": "BASALT_DARK", "harbour": "WOOD", "hub": "SAND_LIGHT",
+         "reef": "DROWNED_SHADE"}
 
 
 def main():

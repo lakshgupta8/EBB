@@ -4,12 +4,13 @@ extends Node2D
 ## than the screen is framed whole at 1/2x or 1/4x (map Stage 02).
 ## A test room takes the look its name says (map Stage 06). --only=<text> renders the rooms whose
 ## path holds it; --full renders each whole at 1x, the camera stepped across it and the frames
-## stitched.
+## stitched. --flow draws a room's current as arrows (map Stage 11e).
 ##   godot --path . src/dev/room_sheet.tscn -- --out=<dir> [--tide=0.6] [--only=sample] [--full]
 
 const DIRS := {"biome1": Tiles.Look.FLATS, "harbour": Tiles.Look.HARBOUR,
-	"biome2": Tiles.Look.STREETS, "biome3": Tiles.Look.DEEP, "test": Tiles.Look.FLATS}
-const TEST_LOOKS := {"streets": Tiles.Look.STREETS, "harbour": Tiles.Look.HARBOUR, "hall": Tiles.Look.DEEP}
+	"biome2": Tiles.Look.STREETS, "biome3": Tiles.Look.DEEP, "reef": Tiles.Look.REEF, "test": Tiles.Look.FLATS}
+const TEST_LOOKS := {"streets": Tiles.Look.STREETS, "harbour": Tiles.Look.HARBOUR, "hall": Tiles.Look.DEEP,
+	"reef": Tiles.Look.REEF}
 const VIEW := Vector2(640, 368)
 
 
@@ -18,6 +19,7 @@ func _ready() -> void:
 	var tide := 0.6
 	var only := ""
 	var full := false
+	var flow := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
@@ -27,6 +29,8 @@ func _ready() -> void:
 			only = a.trim_prefix("--only=")
 		elif a == "--full":
 			full = true
+		elif a == "--flow":
+			flow = true
 	DirAccess.make_dir_recursive_absolute(out)
 	Atmosphere.build(self, Vector2(640, 368), Palette.NIGHT_TINT_RUN)
 	var n := 0
@@ -47,6 +51,8 @@ func _ready() -> void:
 						look = TEST_LOOKS[k]
 			room.build(RoomTemplate.load_file("res://data/rooms/%s/%s" % [dir, f]), 7, look)
 			room.set_tide(tide)
+			if flow and room.current != null:
+				room.current.show_arrows = true
 			var cam: Camera2D = $Camera
 			if full:
 				await _full(room, cam, "%s/%s__%s_full.png" % [out, dir, f.get_basename()])

@@ -112,3 +112,36 @@ func test_two_hundred_shaped_rooms_keep_the_map_rules() -> void:
 					failed += 1
 					print("  room_gen %d %s seed %d: %s" % [look, shape, s, bad])
 	assert_eq(failed, 0, "every one of the 200 passes")
+
+
+## Map Stage 11d: the Reef's grammar. A seed is a room, its chunks read, and its gate: 50 open
+## rooms and ten of each shape keep the map rules (cold light only among them).
+func test_the_reef_keeps_the_map_rules() -> void:
+	var look := Tiles.Look.REEF
+	var a := RoomGen.generate(look, 17)
+	assert_eq(a.rows, RoomGen.generate(look, 17).rows, "the same seed, the same Reef room")
+	assert_eq(RoomGen.from_name(a.name).rows, a.rows, "a Reef room is made again from its name")
+	var chunks := RoomChunks.for_look(look)
+	assert_true(chunks.size() >= 10, "ten Reef chunks")
+	for ch: Dictionary in chunks:
+		for p in ch.pieces:
+			assert_true(SetPieces.has(str(p[0])) and not SetPieces.info(str(p[0])).has("light"), "%s places a known, unlit piece" % ch.name)
+	var failed := 0
+	var reef_pieces := 0
+	var runs: Array = []
+	for s in range(1, 51):
+		runs.append([s, ""])
+	for shape: String in RoomGen.SHAPES:
+		for s in range(1, 11):
+			runs.append([s, shape])
+	for run: Array in runs:
+		var t := RoomGen.generate(look, run[0], "combat", Vector2i.ZERO, "", run[1])
+		var bad := RoomGen.validate(t, look)
+		if not bad.is_empty():
+			failed += 1
+			print("  reef %s seed %d: %s" % [run[1], run[0], bad])
+		for p in t.pieces:
+			if str(SetPieces.info(str(p.id)).get("look", "")) == "reef":
+				reef_pieces += 1
+	assert_eq(failed, 0, "every one of the 100 Reef rooms passes")
+	assert_true(reef_pieces > 300, "the Reef's rooms stand on the Reef's own pieces (%d)" % reef_pieces)
