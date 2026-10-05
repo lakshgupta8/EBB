@@ -9,7 +9,7 @@ extends RefCounted
 
 const DIR := "res://data/chunks/"
 const DIRS := {Tiles.Look.FLATS: "flats", Tiles.Look.HARBOUR: "harbour", Tiles.Look.STREETS: "streets",
-	Tiles.Look.DEEP: "hall"}
+	Tiles.Look.DEEP: "hall", Tiles.Look.REEF: "reef"}
 
 static var _cache: Dictionary = {}
 

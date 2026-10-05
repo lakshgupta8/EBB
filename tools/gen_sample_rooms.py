@@ -25,6 +25,7 @@ class Plan:
         self.w, self.h = w, h
         self.g = [["#"] * w for _ in range(h)]
         self.pieces = []
+        self.currents = []  # channels' lines, downstream (map Stage 11e): `~` lines
         self.doors = []
         self.bad = []
 
@@ -113,7 +114,8 @@ class Plan:
 
     def text(self):
         rows = ["".join(r) for r in self.g]
-        return "\n".join(rows + [f"@ {p} {x} {y}" for p, x, y in self.pieces]) + "\n"
+        return "\n".join(rows + [f"@ {p} {x} {y}" for p, x, y in self.pieces]
+                         + ["~ " + " ".join(f"{x} {y}" for x, y in c) for c in self.currents]) + "\n"
 
     # -- checks -----------------------------------------------------------------------------
     def check(self, name):
@@ -471,11 +473,79 @@ def hall():
     return p
 
 
+def reef():
+    """The Reef, L (map Stage 11b): Saltmere's sea wall runs straight across the north, broken
+    in two breaches. Outside it the outer reef and a channel along the wall's foot; inside, the
+    current comes through the breaches and runs south in two channels between the coral heads
+    (raised, the last ground to flood), rubble from the wall at its foot."""
+    p = Plan(80, 46)
+    p.rect(3, 3, 76, 42, ".")
+    # The rim bitten back: the reef's edge is never a straight line, only the wall is.
+    for (x, y, rx, ry, sd) in [(3, 22, 3, 5, 51), (76, 36, 3, 4, 52), (30, 43, 6, 2, 53), (60, 3, 7, 2, 54),
+                               (3, 40, 4, 3, 55), (76, 8, 3, 3, 56), (16, 3, 5, 2, 57)]:
+        p.blob(x, y, rx, ry, "#", sd, 0.3)
+    # The sea wall: three courses thick, straight, a jog where a length of it slid, two breaches.
+    p.rect(3, 13, 76, 15, "#")
+    p.rect(35, 12, 42, 12, "#")
+    p.rect(35, 15, 42, 15, ".")
+    p.rect(19, 13, 25, 15, ".")
+    p.rect(53, 13, 57, 15, ".")
+    # Outside: the channel at the wall's foot, the outer reef's coral heads.
+    p.path([(4, 9), (20, 10), (40, 8), (60, 10), (75, 9)], 1.6, "_", 61, 0.5, only=".")
+    p.blob(11, 6, 4, 2, "=", 62, 0.3, only=".")
+    p.blob(45, 5, 4, 1.5, "=", 63, 0.3, only=".")
+    p.blob(68, 6, 3, 1.5, "=", 64, 0.3, only=".")
+    # Inside: the current through each breach and away south.
+    p.path([(22, 16), (17, 25), (13, 33), (9, 41)], 1.8, "_", 65, 0.6, only=".")
+    p.path([(55, 16), (59, 25), (64, 33), (71, 41)], 1.6, "_", 66, 0.6, only=".")
+    # The coral heads: one great head mid-room, smaller ones by the channels.
+    p.blob(37, 26, 6.5, 4, "=", 71, 0.28, only=".")
+    p.blob(48, 36, 5, 3.2, "=", 72, 0.3, only="._")
+    p.blob(26, 37, 4, 2.6, "=", 73, 0.3, only=".")
+    p.blob(68, 22, 3.5, 2.4, "=", 74, 0.3, only=".")
+    p.blob(8, 19, 2.5, 2, "=", 75, 0.3, only=".")
+    # Pools left in the hollows, and the wall's rubble at its foot.
+    p.blob(44, 21, 3, 1.6, "_", 76, 0.35, only=".")
+    p.blob(32, 33, 2.5, 1.5, "_", 77, 0.35, only=".")
+    p.blob(58, 40, 3, 1.5, "_", 78, 0.35, only=".")
+    for (x, y) in [(29, 16), (30, 16), (30, 17), (46, 16), (47, 16), (66, 16), (67, 17), (11, 16), (12, 17),
+                   (50, 28), (51, 28), (20, 31), (21, 30), (60, 34), (40, 40), (41, 40)]:
+        p.put(x, y, "o", ".")
+    # The Reef's pieces (map Stage 11c): the breach's broken stubs standing in the west gap, a
+    # great brain-coral head and a staghorn thicket as cover mid-room, the clam and the living fans
+    # by the water, an anchor driven in by the wall, a ship's ribs grown over in the south-west,
+    # the wall's stair up onto the great coral head. Light, all cold: glowing coral by both
+    # channels and a jellyfish bloom over the pool under the wall.
+    p.piece("breach", 19, 13)
+    p.piece("brainhead", 26, 24)
+    p.piece("staghorn", 44, 27)
+    p.piece("clam", 51, 33)
+    p.piece("fans", 60, 37)
+    p.piece("anchor", 72, 18)
+    p.piece("ribcoral", 15, 38)
+    p.piece("wallsteps", 35, 31)
+    p.piece("glowcoral", 15, 28)
+    p.piece("glowcoral", 62, 29)
+    p.piece("jelly", 44, 21)
+    # The currents (map Stage 11e): along the wall's outer foot to the east; through each breach
+    # and away south down its channel.
+    p.currents.append([(4, 9), (20, 10), (40, 8), (60, 10), (75, 9)])
+    p.currents.append([(22, 13), (22, 16), (17, 25), (13, 33), (9, 41)])
+    p.currents.append([(55, 13), (55, 16), (59, 25), (64, 33), (71, 41)])
+    p.door(0, 30)
+    p.door(79, 26)
+    p.door(30, 0)
+    p.mark([(5, 30)], "P")
+    p.mark([(12, 24), (28, 29), (45, 26), (36, 35), (20, 40), (52, 22), (60, 19), (72, 28), (66, 38), (48, 6),
+            (24, 7)], "e")
+    return p
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     bad = False
     for name, fn in [("sample_flats", flats), ("sample_harbour", harbour),
-                     ("sample_streets", streets), ("sample_hall", hall)]:
+                     ("sample_streets", streets), ("sample_hall", hall), ("sample_reef", reef)]:
         p = fn()
         errs = p.check(name)
         for e in errs:

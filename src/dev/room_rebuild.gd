@@ -16,6 +16,7 @@ const BIOMES := [
 	["harbour", Tiles.Look.HARBOUR, "harbour", 10],
 	["biome2", Tiles.Look.STREETS, "streets", 10],
 	["biome3", Tiles.Look.DEEP, "hall", 10],
+	["reef", Tiles.Look.REEF, "reef", 10],  # map Stage 11f: the Reef, as many as the Harbour
 ]
 const CSV := "res://docs/ROOM_REBUILD.csv"
 

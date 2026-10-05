@@ -14,7 +14,7 @@ func test_every_piece_fits_its_atlas() -> void:
 		var o: Array = info.origin
 		assert_true(o[0] + size.x * Tiles.SIZE <= r[2] + 16, id + " footprint as wide as its sprite")
 		assert_true(o[1] + size.y * Tiles.SIZE <= r[3], id + " footprint ends inside the sprite")
-		assert_true(str(info.look) in ["flats", "streets", "deep", "harbour"], id + " has a look")
+		assert_true(str(info.look) in ["flats", "streets", "deep", "harbour", "reef"], id + " has a look")
 
 
 func test_a_placed_piece_is_solid() -> void:
@@ -102,11 +102,11 @@ func test_rocks_are_drawn_as_the_looks_obstacles() -> void:
 		r.free()
 
 
-## The four sample rooms (tools/gen_sample_rooms.py) keep STYLE.md 22: a major piece each, a
+## The sample rooms (tools/gen_sample_rooms.py; the Reef's since map Stage 11c) keep STYLE.md 22: a major piece each, a
 ## rim two cells thick, and the ground broken up by patches.
 func test_sample_rooms_keep_the_map_rules() -> void:
 	var looks := {"flats": Tiles.Look.FLATS, "harbour": Tiles.Look.HARBOUR,
-		"streets": Tiles.Look.STREETS, "hall": Tiles.Look.DEEP}
+		"streets": Tiles.Look.STREETS, "hall": Tiles.Look.DEEP, "reef": Tiles.Look.REEF}
 	for k: String in looks:
 		var t := RoomTemplate.load_file("res://data/rooms/test/sample_%s.txt" % k)
 		assert_true(t.width >= 60 and t.height >= 34, k + " is M or L")
@@ -126,6 +126,7 @@ func test_sample_rooms_keep_the_map_rules() -> void:
 		assert_true(l.WARM + l.FLAME + l.candles <= 3, k + ": Tam plus three warm at most")
 		match k:
 			"streets": assert_eq(l.WARM + l.FLAME, 0, "the Streets' lamps burn cold")
+			"reef": assert_eq(l.WARM + l.FLAME + l.candles, 0, "on the Reef only Tam's lantern is warm")
 			"harbour", "flats": assert_true(l.WARM <= 1 and l.FLAME == 0, k + ": one warm lamp or the beacon")
 			"hall": assert_true(l.candles >= 1 and l.WARM == 0, "the Hall's warm light is its candles")
 		var share := GroundPatches.base_share(t, GroundPatches.plan(t, looks[k], 7))

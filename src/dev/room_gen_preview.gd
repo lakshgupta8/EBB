@@ -9,7 +9,7 @@ extends Node2D
 ## passed on the first attempt, the first attempts' failures by reason, and the time per room.
 
 const LOOKS := {"flats": Tiles.Look.FLATS, "harbour": Tiles.Look.HARBOUR, "streets": Tiles.Look.STREETS,
-	"hall": Tiles.Look.DEEP}
+	"hall": Tiles.Look.DEEP, "reef": Tiles.Look.REEF}
 const VIEW := Vector2(640, 368)
 const CELL := Vector2i(320, 184)
 

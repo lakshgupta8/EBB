@@ -22,6 +22,11 @@ const HALL := [[Rule.CORNER, 4, 2], [Rule.ANY, 0], [Rule.WALL_NORTH, 0], [Rule.B
 ## Harbour (its decor is Stage 19): anything anywhere.
 const HARBOUR := [[Rule.ANY, 0], [Rule.ANY, 0], [Rule.ANY, 0], [Rule.ANY, 0], [Rule.ANY, 0], [Rule.ANY, 0],
 	[Rule.ANY, 0], [Rule.ANY, 0]]
+## Reef (map Stage 11c, tools/gen_reef_decor.py): shell, coral finger, urchin, starfish, sea grass,
+## shards, pot sherd, crab's shell. The living things keep by the water, as the living coral does;
+## the city's sherds lie at the wall's foot.
+const REEF := [[Rule.ANY, 0], [Rule.ANY, 0], [Rule.BY_WATER, 2], [Rule.BY_WATER, 1], [Rule.BY_WATER, 0],
+	[Rule.ANY, 0], [Rule.DRY_BY_WALL, 1], [Rule.ANY, 1]]
 
 ## How many pieces a room gets, by its template's name: [lo, hi, one_side].
 const DENSITY := {
@@ -45,6 +50,7 @@ static func rules_for(look: int) -> Array:
 		Tiles.Look.STREETS: return STREETS
 		Tiles.Look.DEEP: return HALL
 		Tiles.Look.HARBOUR: return HARBOUR
+		Tiles.Look.REEF: return REEF
 		_: return FLATS
 
 

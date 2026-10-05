@@ -16,6 +16,8 @@ const REASONS := {
 	Tiles.Look.DEEP: [Reason.PATH, Reason.NOISE, Reason.WET],
 	Tiles.Look.HARBOUR: [Reason.PATH, Reason.NOISE, Reason.WET],
 	Tiles.Look.HUB: [Reason.WET, Reason.NOISE, Reason.FOOT],
+	# The Reef: living coral by the moving water, bleached ground in blobs, rubble at the wall's foot.
+	Tiles.Look.REEF: [Reason.WET, Reason.NOISE, Reason.FOOT],
 }
 const SPREAD := 1  # the patch that grows by noise until the floor is broken up enough
 const MAX_BASE := 0.55

@@ -226,7 +226,7 @@ func test_run_result_conversion() -> void:
 ## diagonal-only gaps, no sealed chest rooms). Pure flood fill on the template.
 func test_templates_are_connected() -> void:
 	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/",
-			"res://data/rooms/test/"]:
+			"res://data/rooms/reef/", "res://data/rooms/test/"]:
 		for f in DirAccess.get_files_at(dir):
 			var t := RoomTemplate.load_file(dir + f)
 			var seen := {}
@@ -257,7 +257,8 @@ func test_templates_are_connected() -> void:
 func test_spawn_cells_never_stack() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 202
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
+	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/",
+			"res://data/rooms/reef/"]:
 		for f in DirAccess.get_files_at(dir):
 			var t := RoomTemplate.load_file(dir + f)
 			if t.enemy_spawns.is_empty():

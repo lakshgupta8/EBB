@@ -32,7 +32,7 @@ const BRUSHES := [
 	{"ch": "E", "name": "cage"},
 ]
 const THEME_BY_DIR := {"biome1": Tiles.Look.FLATS, "harbour": Tiles.Look.HARBOUR,
-	"biome2": Tiles.Look.STREETS, "biome3": Tiles.Look.DEEP}
+	"biome2": Tiles.Look.STREETS, "biome3": Tiles.Look.DEEP, "reef": Tiles.Look.REEF}
 
 var path: String = DEFAULT_ROOM
 var rows: PackedStringArray = []
@@ -98,7 +98,7 @@ func _load() -> void:
 	for line in text.split("\n"):
 		if line.strip_edges() == "":
 			continue
-		if line.begins_with("@"):
+		if line.begins_with("@") or line.begins_with("~"):
 			directives.append(line.strip_edges())
 			continue
 		rows.append(line.strip_edges(false, true))

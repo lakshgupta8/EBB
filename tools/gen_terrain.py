@@ -24,6 +24,10 @@ the Flats, dressed stone in the Streets, cut basalt in the Hall, timber and quay
 
 Map Stage 04 adds patch.png: three overlay materials per look (see PATCHES).
 
+Map Stage 11 adds the Reef (the fifth biome, docs/BIOME5_CONCEPT.md) as a sixth look after the hub.
+Its source tiles are drawn here (reef_sources), not in tiles.png, and appended to the strip the
+terrain is cut from, so the other looks come out exactly as before.
+
 Run:  python tools/gen_terrain.py
 """
 import math
@@ -41,7 +45,7 @@ REF = os.path.join(P.ROOT, "assets", "reference", "maps")
 T = 16
 VARIANTS = 3
 FILL_COL = 48
-LOOKS = ["flats", "streets", "deep", "harbour", "hub"]
+LOOKS = ["flats", "streets", "deep", "harbour", "hub", "reef"]
 LAYERS = ["low", "floor", "raised", "wall"]
 
 # Tile indices in tiles.png (Tiles enum) per look: low, floor, floor variant, raised, wall top, wall face.
@@ -51,7 +55,9 @@ SRC = {
     "deep":    dict(low=24, floor=20, floor2=21, raised=25, top=23, face=22),
     "harbour": dict(low=30, floor=26, floor2=27, raised=31, top=29, face=28),
     "hub":     dict(low=36, floor=32, floor2=33, raised=37, top=35, face=34),
+    "reef":    dict(low=47, floor=45, floor2=46, raised=48, top=49, face=50),
 }
+REEF_BASE = 45  # tiles.png has 45 cells; the Reef's six follow them in the working strip
 # How far each layer's edge wanders (share of a tile) and how fine the wander is, per look.
 WANDER = {
     "flats":   {"floor": (0.30, 1.0), "raised": (0.24, 1.0), "wall": (0.22, 1.0)},
@@ -59,6 +65,8 @@ WANDER = {
     "streets": {"floor": (0.18, 2.0), "raised": (0.06, 1.0), "wall": (0.08, 2.0)},
     "harbour": {"floor": (0.20, 1.0), "raised": (0.04, 1.0), "wall": (0.06, 1.0)},
     "deep":    {"floor": (0.10, 1.0), "raised": (0.03, 1.0), "wall": (0.04, 1.0)},
+    # Coral grows lumpy (floor and the coral heads wander); the sea wall is laid straight.
+    "reef":    {"floor": (0.26, 1.6), "raised": (0.28, 1.4), "wall": (0.05, 1.0)},
 }
 # Face height (px) on the south side of each layer's edge, and its shadow band below.
 FACE = {"floor": 2, "raised": 4, "wall": 8}
@@ -314,8 +322,11 @@ PATCHES = {
                 ("silt", "INK", 24, "specks:SAND_DARK,WEATHERED_BROWN")],
     "deep":    [("polished", None, 0, "sheen:BASALT_LIGHT"), ("veins", None, 0, "veins:BASALT_DARK,IRON"),
                 ("brine", "INK", 40, "specks:KELP,DEEP_SEA")],
+    # The reef died white; it lives again only where the water moves (by the channels).
+    "reef":    [("living", "KELP", 26, "coral:SALT_RED,VIOLET_LIGHT,AMBER_DEEP"), ("bleached", "SALT_WHITE", 18, "glints:DROWNED_SKIN"),
+                ("rubble", None, 0, "shards:PALE_SLATE,DROWNED_SKIN")],
 }
-PATCH_WANDER = {"flats": 0.36, "hub": 0.36, "streets": 0.26, "harbour": 0.22, "deep": 0.24}
+PATCH_WANDER = {"flats": 0.36, "hub": 0.36, "streets": 0.26, "harbour": 0.22, "deep": 0.24, "reef": 0.3}
 
 
 def marks_map(kind, colours, variant):
@@ -371,6 +382,24 @@ def marks_map(kind, colours, variant):
             x, y = rnd.randint(1, 12), rnd.randint(1, 13)
             for k in range(rnd.randint(2, 3)):
                 put(x + k, y + (k if rnd.random() < 0.5 else 0), cols[0])
+    elif kind == "coral":
+        # The reef alive again: one or two small growths a tile, each of one colour, some tiles bare.
+        for _ in range(rnd.choice((0, 0, 1, 1, 1, 2))):
+            x, y = rnd.randint(3, 11), rnd.randint(4, 11)
+            c = rnd.choice(cols)
+            # A growth, not a speck: a small fan or knot four or five pixels across.
+            for dx, dy in ((0, 0), (1, 0), (2, 0), (0, -1), (1, -1), (2, -1), (1, -2), (-1, -1), (3, -2)):
+                if rnd.random() < 0.8:
+                    put(x + dx, y + dy, c)
+            for dx in range(3):
+                put(x + dx, y + 1, P.rgb("OILSKIN"))
+    elif kind == "shards":
+        for _ in range(4):
+            x, y = rnd.randint(1, 13), rnd.randint(1, 14)
+            c = rnd.choice(cols)
+            put(x, y, c)
+            if rnd.random() < 0.4:
+                put(x + 1, y, c)
     elif kind == "veins":
         x, y = rnd.randint(2, 6), rnd.randint(2, 13)
         for _ in range(14):
@@ -416,6 +445,104 @@ def build_patches():
             for k in range(3):
                 atlas.alpha_composite(draw_patch(15, k, look, spec, True), ((FILL_COL + k) * T, row * T))
     return atlas
+
+
+# --- the Reef's source tiles (map Stage 11) ----------------------------------------------------
+# Saltmere's sea wall and the reef that grew on it. The Ebb held the water still for three hundred
+# years and the coral bleached and died standing: cool grey-green rubble, pale coral heads, the
+# wall's dark courses. Colour only comes back where the water moves (the "living" patch).
+
+def reef_sources():
+    """Six 16 px tiles: floor, floor variant, low, raised, wall top, wall face."""
+    im = Image.new("RGBA", (6 * T, T), (0, 0, 0, 0))
+    rnd = random.Random("reef")
+
+    def fill(i, key):
+        for y in range(T):
+            for x in range(T):
+                im.putpixel((i * T + x, y), P.rgba(key))
+
+    def put(i, x, y, key):
+        if 0 <= x < T and 0 <= y < T:
+            im.putpixel((i * T + x, y), P.rgba(key))
+
+    def branch(i, x, y, key):
+        # A broken finger of staghorn: a stem and one fork.
+        for k in range(3):
+            put(i, x + k, y - k // 2, key)
+        put(i, x + 2, y - 2, key)
+
+    # 0 floor: bleached rubble, a few fingers of dead staghorn, a dark pit or two.
+    fill(0, "DROWNED_SHADE")
+    for (x, y) in ((2, 5), (9, 12), (11, 3)):
+        branch(0, x, y, "DROWNED_SKIN")
+    for (x, y) in ((6, 9), (14, 8)):
+        put(0, x, y, "WET_GREY")
+    # 1 floor variant: rubble and one larger fragment.
+    fill(1, "DROWNED_SHADE")
+    for (x, y) in ((3, 11), (10, 6)):
+        branch(1, x, y, "DROWNED_SKIN")
+    for (x, y) in ((7, 2), (12, 13), (1, 7)):
+        put(1, x, y, "PALE_SLATE")
+    # 2 low: the channel's bed, dark silt laid in the current's ripples.
+    fill(2, "OILSKIN_LIGHT")
+    for y in (3, 8, 13):
+        x0 = rnd.randint(0, 5)
+        for k in range(rnd.randint(4, 6)):
+            put(2, x0 + k, y + (1 if k % 3 == 2 else 0), "OILSKIN")
+        put(2, (x0 + 9) % T, y + 1, "OILSKIN")
+    for (x, y) in ((12, 5), (4, 11)):
+        put(2, x, y, "SEA_PALE")
+    # 3 raised: the top of a coral head, brain coral: short grooves that meander and break off.
+    fill(3, "DROWNED_SKIN")
+    for y0 in (1, 5, 9, 13):
+        ph = y0 * 1.7
+        for x in range(T):
+            y = y0 + round(1.3 * math.sin(x * 0.75 + ph))
+            if math.sin(x * 0.45 + ph * 2.1) > -0.55:
+                put(3, x, y % T, "DROWNED_SHADE")
+    for (x, y) in ((4, 3), (12, 11)):
+        put(3, x, y, "PALE_SLATE")
+    # 4 wall top: the sea wall's coping, dressed blocks, coral crusting the joints.
+    fill(4, "STONE")
+    for y in (0, 8):
+        for x in range(T):
+            put(4, x, y, "STONE_DARK")
+    for (x, y0) in ((5, 1), (13, 1), (1, 9), (9, 9)):
+        for y in range(y0, y0 + 7):
+            put(4, x, y, "STONE_DARK")
+    # The reef has grown over the coping: crusts of coral across the joints, so a mass of wall
+    # reads as wall overgrown, not as a street's brickwork.
+    for (cx, cy, r) in ((4, 4, 2.6), (12, 11, 2.2), (14, 3, 1.5)):
+        for y in range(T):
+            for x in range(T):
+                dx = min(abs(x - cx), T - abs(x - cx))
+                dy = min(abs(y - cy), T - abs(y - cy))
+                if dx * dx + dy * dy <= r * r:
+                    put(4, x, y, "DROWNED_SHADE" if dx * dx + dy * dy > (r - 1) ** 2 else "PALE_SLATE")
+    # 5 wall face: 4 px of coping, then courses of block, coral grown in the joints, a dark foot.
+    for y in range(4):
+        for x in range(T):
+            im.putpixel((5 * T + x, y), im.getpixel((4 * T + x, y)))
+    for y in range(4, 15):
+        for x in range(T):
+            course = (y - 4) // 4
+            joint = (y - 4) % 4 == 3 or (x + course * 5) % 8 == 0
+            put(5, x, y, "BASALT" if joint else "STONE_DARK")
+    for (x, y) in ((3, 7), (4, 7), (11, 11), (12, 11), (11, 12)):
+        put(5, x, y, "DROWNED_SHADE")
+    for x in range(T):
+        put(5, x, 15, "BASALT_DARK")
+    return im
+
+
+def working_strip(tiles):
+    """tiles.png with the Reef's sources after it, the strip SRC indexes."""
+    reef = reef_sources()
+    out = Image.new("RGBA", (tiles.width + reef.width, T), (0, 0, 0, 0))
+    out.alpha_composite(tiles.crop((0, 0, tiles.width, T)), (0, 0))
+    out.alpha_composite(reef, (REEF_BASE * T, 0))
+    return out
 
 
 # --- the review sheet -------------------------------------------------------------------------
@@ -477,7 +604,7 @@ PLAN = """
 
 
 def main():
-    tiles = Image.open(os.path.join(SPRITES, "tiles.png")).convert("RGBA")
+    tiles = working_strip(Image.open(os.path.join(SPRITES, "tiles.png")).convert("RGBA"))
     water = Image.open(os.path.join(SPRITES, "water.png")).convert("RGBA")
     terrain = build_terrain(tiles)
     terrain.save(os.path.join(SPRITES, "terrain.png"))

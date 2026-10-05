@@ -1,6 +1,6 @@
 # EBB — Visual Style Bible (STYLE.md)
 
-Version 1.33, after map Stage 10, 2026-10-05 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
+Version 1.39, after map Stage 11f, 2026-10-05 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
 
 Target in one sentence: **small, expressive, atmospheric pixel art with exceptional silhouette and lighting discipline** — a cold, wet, quiet northern shore at night, with one warm light in the player's hand.
 
@@ -660,7 +660,7 @@ The rooms are a place before they are an arena. This section governs every room 
 | The Sunken Harbour | channels between hard quays, piers over water, slipways | moored boat, crane, warehouse front, capstan, net racks | water in straight channels, wood over water |
 | The Drowned Streets | streets, alleys, squares, steps, a canal | house fronts with doors and windows, a well, market stalls, a fallen tower | crowded, vertical, enclosed |
 | The Deep Hall | nave, aisles, apses, gutters of water | column rows, an altar, the organ, keeper statues, a broken rose window on the floor | architecture, symmetric and broken |
-| The fifth biome | chosen at map Stage 11 | | |
+| The Reef (fifth biome, map Stage 11; the road beside the Harbour) | Saltmere's sea wall in straight broken courses, lumpy coral heads, sand channels where the current runs | a great brain-coral head, the sea wall's breach, a giant clam, sea fans, a staghorn thicket, an anchor driven in, the wall's stair, a ship's ribs grown over; cold light only (glowing coral, a jellyfish bloom) | dead and pale (the coral bleached when the Ebb held the water still), colour only by the moving water |
 
 **Measured limits** (`tools/map_audit.py`, every new or rebuilt plan; `--with=test` scores the samples, set-piece footprints counted as rock): bare floor share 0.60 or less on the ground as drawn (the patches of Stage 04 hold it to 0.55; the plan's own share of `.` runs 0.62-0.72 in the samples and is not the measure), the largest bare square 8 or less, symmetry 0.80 or less for combat rooms, no plan shared with another biome, and no other room nearer than 0.40.
 
@@ -668,6 +668,12 @@ The rooms are a place before they are an arena. This section governs every room 
 
 ## Change log
 
+- 1.39 (2026-10-05, map Stage 11f): the Reef's 19 saved rooms (22), as many as the Harbour, in `data/rooms/reef/`.
+- 1.38 (2026-10-05, map Stage 11e): the Reef's current (22): `~` lines in a room, the flow three cells either side of a channel's line, carrying only in water (shallow 20, deep 44 to 60 px/s), living coral cutting whoever it carries; foam flecks drift with it so it is seen before it is felt.
+- 1.37 (2026-10-05, map Stage 11d): the Reef's grammar (22): the sea wall across (half), down (three in ten) or gone (the reef flat, two in ten); breaches with the stubs standing, the current running from each in a channel, coral heads between, the rim bitten hard; ten unlit chunks.
+- 1.36 (2026-10-05, map Stage 11c): the Reef's ten set pieces and its decor (22): coral in Drowned skin with Pale slate and Oilskin light shades (never the floor's own Pale slate alone), colour only where a thing lives (the clam's mantle, one fan, the glowing coral, the starfish), its light all cold.
+- 1.35 (2026-10-05, map Stage 11b): the Reef as a look in the game (22): its obstacles (a dead brain-coral head, bleached staghorn, a wall block grown over; faces in Pale slate to stand off the Drowned shade floor), decals (a sunken anchor, a fallen sea fan, a sunk course of the wall), patch reasons (living coral by the water, bleached in blobs, rubble at the wall's foot), the coping crusted with coral so a wall mass reads as overgrown, living coral as growths of four or five pixels, never specks.
+- 1.34 (2026-10-05, map Stage 11a): the Reef in the biome table (22); its ground: Drowned shade rubble, Drowned skin coral heads, Oilskin channel beds, the sea wall in Stone and Basalt, living coral (Salt red, Violet light, Amber deep) only by the channels; coral edges lumpy, the wall's straight.
 - 1.33 (2026-10-05, map Stage 10): room shapes (corridor, L, ring, split level, flooded), ten chunks a look, one saved room of each shape a biome, half the fights generated in play (22).
 - 1.32 (2026-10-05, map Stage 09): the 58 rooms rebuilt (22): the manifest, sizes, room kinds, plan variants, spawns in pockets, no cut-off ground.
 - 1.31 (2026-10-05, map Stage 08): rooms from a seed (22): the generator, the four grammars, chunks, the validator.

@@ -18,6 +18,8 @@ harbour crane, warehouse, netrack; hall column, altar, statue. Second batch (fiv
 flats tidepool, stones, cairn (the lit beacon), mast, whalebone; streets tower, steps, lamps,
 fallen, bridge; harbour pier, moored, capstan, slipway, crates; hall gate, organ, rose, apse,
 font (cold brine). Footprint rows: '#' solid, '.' open, '=' lays a deck, '_' lays water.
+The Reef (map Stage 11c, its own row): brainhead, breach, clam, fans, staghorn, anchor,
+wallsteps, ribcoral; cold lights glowcoral and jelly.
 
 Run:  python tools/gen_set_pieces.py
 """
@@ -1371,6 +1373,257 @@ def kelpglow():
     return fin(c, ["#"], 56, 4, {"color": "COLD", "energy": 0.4, "scale": 1.8, "at": [12, 24]})
 
 
+# --- the Reef (map Stage 11c) ------------------------------------------------------------------
+# Saltmere's sea wall and the reef the Ebb held still: the coral died white and standing. Pale
+# coral (Drowned skin, Pale slate faces so it stands off the Drowned shade floor), the wall's
+# stone, and colour only where something lives again (the clam's mantle, one fan, the glowing
+# coral). Its lights are all cold: Tam's lantern is the only warm thing on the reef.
+
+def brainhead():
+    """A great brain-coral head, dead and bleached, its grooves wandering over the dome; a crack
+    where a piece fell away, and rubble at its foot."""
+    c = Canvas(56, 64)
+    c.shadow(2, 50, 54, 62)
+    rock_mass(c, 28, 58, 25, 16, "bh", "DROWNED_SKIN", "PALE_SLATE", "OILSKIN_LIGHT")
+    for k, y0 in enumerate(range(31, 52, 4)):
+        ph = k * 1.9
+        half = 22 * math.sqrt(max(0.0, 1 - ((y0 - 42) / 17.0) ** 2))
+        for x in range(int(28 - half) + 2, int(28 + half) - 1):
+            y = y0 + round(1.3 * math.sin(x * 0.55 + ph))
+            if math.sin(x * 0.31 + ph * 2.3) > -0.6 and c.get(x, y)[3]:
+                c.px(x, y, "PALE_SLATE")
+    c.line(38, 34, 42, 44, "OILSKIN")
+    c.line(42, 44, 41, 50, "OILSKIN")
+    for x, y in ((6, 58), (8, 57), (47, 58), (50, 57), (51, 58)):
+        c.px(x, y, "DROWNED_SKIN")
+    c.foot(0, 56, 60)
+    return fin(c, ["###", "###"], 60, 4)
+
+
+def breach():
+    """The sea wall broken through: two stubs of coursed block, their ends ragged where the sea
+    pushed them out, coral crusting the coping. You walk through the gap."""
+    c = Canvas(112, 76)
+    c.shadow(0, 62, 36, 74)
+    c.shadow(76, 62, 112, 74)
+    for side in (0, 1):
+        x0, x1 = (2, 33) if side == 0 else (79, 110)
+        for x in range(x0, x1 + 1):
+            # The broken end steps down toward the gap.
+            inner = (x1 - x) if side == 0 else (x - x0)
+            top = 14 + (0 if inner > 8 else (9 - inner) * 2)
+            for y in range(top, 69):
+                course = (y - 22) // 7
+                if y < top + 4:
+                    key = "STONE" if y > top else "STONE_LIGHT"
+                else:
+                    joint = (y - 22) % 7 == 6 or (x + course * 9) % 14 == 0
+                    key = "BASALT" if joint else "STONE_DARK"
+                c.px(x, y, key)
+        # Coral grown over the coping and down the face.
+        rnd = random.Random("breach%d" % side)
+        for _ in range(16):
+            x, y = rnd.randint(x0, x1), rnd.randint(14, 30)
+            if c.get(x, y)[3]:
+                c.px(x, y, rnd.choice(["DROWNED_SKIN", "DROWNED_SKIN", "PALE_SLATE", "DROWNED_SHADE"]))
+    for x, y in ((38, 66), (40, 67), (72, 66), (70, 67), (36, 67)):
+        c.rect(x, y, x + 2, y + 1, "STONE_DARK")
+        c.px(x, y, "STONE")
+    c.foot(0, 112, 69)
+    return fin(c, ["##...##", "##...##"], 69, 0)
+
+
+def clam():
+    """A giant clam half open on the rubble, its ribbed shells bleached, the mantle inside alive
+    (Violet light), a pearl at its heart."""
+    c = Canvas(40, 44)
+    c.shadow(2, 32, 38, 42)
+    c.ellipse(4, 22, 36, 39, "PALE_SLATE")                # the lower shell
+    c.ellipse(5, 10, 35, 28, "DROWNED_SKIN")              # the upper, tipped back
+    for x in range(7, 34, 4):                             # ribs
+        c.line(x, 13, 20 + (x - 20) * 0.6, 27, "PALE_SLATE")
+    for x in range(6, 35):                                # the gape: the mantle's wavy lip
+        y = 27 + round(1.2 * math.sin(x * 0.9))
+        c.px(x, y, "DEEP_VIOLET")
+        c.px(x, y + 1, "VIOLET_LIGHT")
+        c.px(x, y + 2, "DEEP_VIOLET")
+    c.ellipse(18, 27, 22, 30, "FOAM_WHITE")
+    c.px(19, 27, "SALT_WHITE")
+    for x in range(8, 33, 4):
+        c.px(x, 34, "DROWNED_SKIN")
+    c.foot(2, 38, 40)
+    return fin(c, ["##", "##"], 40, 4)
+
+
+def _fan(c, x0, base, h, w, key, shade, seed):
+    """A sea fan: a stem, then a fan of lattice, filled solid and pierced with holes."""
+    rnd = random.Random(seed)
+    c.line(x0, base, x0, base - 5, shade)
+    c.line(x0 + 1, base, x0 + 1, base - 5, shade)
+    cy = base - 5
+    for y in range(int(cy - h), int(cy) + 1):
+        for x in range(int(x0 - w), int(x0 + w) + 2):
+            dx, dy = (x - x0) / w, (cy - y) / h
+            if dy >= 0 and dx * dx + (dy - 0.15) ** 2 / 0.75 <= 1.0 and not (dy < 0.12 and abs(dx) > 0.25):
+                edge = dx * dx + (dy - 0.15) ** 2 / 0.75 > 0.8
+                hole = (x + y) % 3 == 0 and (x * 7 + y * 3) % 5 < 2 and not edge
+                if not hole:
+                    c.px(x, y, shade if edge or (x - x0) % 4 == 0 else key)
+
+
+def fans():
+    """Sea fans standing on the rubble: two bleached, one alive again where the water runs."""
+    c = Canvas(56, 52)
+    c.shadow(2, 40, 54, 50)
+    _fan(c, 12, 46, 30, 12, "DROWNED_SKIN", "PALE_SLATE", "f1")
+    _fan(c, 40, 46, 24, 11, "DROWNED_SKIN", "PALE_SLATE", "f3")
+    _fan(c, 27, 47, 36, 13, "VIOLET_LIGHT", "DEEP_VIOLET", "f2")
+    for x in range(6, 50, 3):
+        c.px(x, 47, "PALE_SLATE")
+    c.foot(2, 54, 48)
+    return fin(c, ["###"], 48, 4)
+
+
+def staghorn():
+    """A thicket of dead staghorn, waist high: forked branches two pixels thick, bleached, lit on
+    the west; a body can hide behind it."""
+    c = Canvas(72, 52)
+    c.shadow(0, 38, 72, 50)
+    rnd = random.Random("stag")
+
+    def branch(x, y, a, n, depth):
+        for _ in range(n):
+            nx, ny = x + math.cos(a) * 1.5, y - math.sin(a) * 1.5
+            c.line(x, y, nx, ny, "DROWNED_SKIN")
+            # Its shaded side in Oilskin light: Pale slate is the floor's own value and vanished.
+            c.line(x + 1, y, nx + 1, ny, "OILSKIN_LIGHT")
+            x, y = nx, ny
+            a += rnd.uniform(-0.15, 0.15)
+        c.px(x, y, "SALT_WHITE")
+        if depth > 0:
+            branch(x, y, a + 0.55, max(3, n - 2), depth - 1)
+            branch(x, y, a - 0.45, max(3, n - 2), depth - 1)
+
+    for x0 in range(8, 66, 6):
+        branch(x0 + rnd.uniform(-2, 2), 46, math.pi / 2 + rnd.uniform(-0.45, 0.45), rnd.randint(6, 9), 2)
+    for x in range(3, 70):
+        c.px(x, 46, "PALE_SLATE" if x % 2 else "OILSKIN_LIGHT")
+        c.px(x, 47, "OILSKIN_LIGHT")
+    c.foot(0, 72, 48)
+    return fin(c, ["####", "####"], 48, 4)
+
+
+def anchor():
+    """A ship's anchor driven fluke-first into the rubble and left standing, its stock still on,
+    rust running down it, coral crusting the crown."""
+    c = Canvas(40, 64)
+    c.shadow(2, 52, 38, 62)
+    c.rect(19, 10, 21, 55, "IRON")
+    c.line(19, 10, 19, 55, "IRON_LIGHT")
+    c.line(21, 10, 21, 55, "IRON_DARK")
+    c.rect(8, 14, 32, 16, "WOOD")                         # the stock
+    c.line(8, 14, 32, 14, "WOOD_LIGHT")
+    for k in range(16):                                   # the ring
+        a = k / 16 * 2 * math.pi
+        c.px(20 + 3 * math.cos(a), 6 + 3 * math.sin(a), "IRON_DARK" if k % 4 else "IRON_LIGHT")
+    for k in range(13):                                   # the arms
+        t = k / 12 * math.pi
+        x = 20 - 13 * math.cos(t)
+        y = 50 - 8 * math.sin(t)
+        c.rect(x - 1, y, x + 1, y + 1, "IRON")
+    c.poly([(5, 44), (9, 40), (10, 47)], "IRON_DARK")
+    c.poly([(35, 44), (31, 40), (30, 47)], "IRON_DARK")
+    for y in range(20, 52, 3):
+        c.px(21, y, "RUST")
+        c.px(20, y + 1, "RUST_LIGHT")
+    for x, y in ((17, 54), (19, 55), (22, 55), (24, 54), (20, 53)):
+        c.px(x, y, "DROWNED_SKIN")
+    c.foot(2, 38, 58)
+    return fin(c, ["##"], 58, 4)
+
+
+def wallsteps():
+    """A stair in the sea wall's side, its cheeks of coursed block: the way up onto a coral shelf.
+    The treads lay a deck (raised ground)."""
+    c = Canvas(72, 52)
+    c.shadow(0, 40, 72, 50)
+    for x0 in (4, 52):
+        c.rect(x0, 8, x0 + 15, 47, "STONE_DARK")
+        c.rect(x0, 8, x0 + 15, 10, "STONE")
+        for y in range(16, 46, 7):
+            c.line(x0, y, x0 + 15, y, "BASALT")
+        c.px(x0 + 3, 9, "DROWNED_SKIN")
+        c.px(x0 + 11, 9, "DROWNED_SKIN")
+    for k, y in enumerate(range(12, 46, 5)):
+        c.rect(20, y, 51, y + 4, "STONE" if k % 2 else "STONE_LIGHT")
+        c.line(20, y + 4, 51, y + 4, "STONE_DARK")
+    c.foot(0, 72, 48)
+    return fin(c, ["#==#", "#==#"], 48, 4)
+
+
+def ribcoral():
+    """A ship's ribs on the reef, so long under that the coral has grown over them: the keel along
+    the ground, the ribs curving up and over toward the far side, dark timber between white crusts."""
+    c = Canvas(88, 64)
+    c.shadow(0, 50, 88, 62)
+    rnd = random.Random("ribcoral")
+    for x in range(4, 86):                                 # the keel
+        c.px(x, 57, "WOOD" if x % 4 else "TAR")
+        c.px(x, 58, "TAR")
+    for i, x0 in enumerate(range(8, 82, 11)):
+        h = [20, 30, 36, 38, 32, 24, 16][i]
+        # A rib: up from the keel, bowing out and curling back at its broken top.
+        pts = []
+        for k in range(40):
+            t = k / 39
+            pts.append((x0 + 7 * math.sin(t * math.pi * 0.8), 57 - h * t))
+        for (x, y) in pts:
+            c.rect(x, y, x + 2, y, "WOOD")
+            c.px(x + 2, y, "TAR")
+        # Coral crusts along it, thickest near the top.
+        for k in range(rnd.randint(3, 4)):
+            x, y = pts[rnd.randint(12, 39)]
+            c.ellipse(x - 2, y - 2, x + 3, y + 2, "DROWNED_SKIN")
+            c.px(x + 2, y + 1, "PALE_SLATE")
+            c.px(x - 1, y - 2, "SALT_WHITE")
+    for x in range(4, 86, 7):
+        c.px(x, 56, "DROWNED_SKIN")
+    c.foot(0, 88, 60)
+    return fin(c, ["#####", "#####"], 60, 4)
+
+
+def glowcoral():
+    """A knot of coral alive again on a stone, its fingers glowing cold: the reef's one kind of lamp."""
+    c = Canvas(24, 40)
+    c.shadow(2, 28, 22, 38)
+    rock_mass(c, 12, 35, 8, 3, "gc", "DROWNED_SKIN", "PALE_SLATE", "OILSKIN_LIGHT")
+    for x0, h, ph in ((6, 15, 0.3), (10, 22, 1.1), (14, 19, 2.0), (18, 12, 0.6)):
+        for y in range(33 - h, 33):
+            x = x0 + math.sin(y * 0.45 + ph)
+            c.px(x, y, "VIOLET_LIGHT")
+            c.px(x + 1, y, "DEEP_VIOLET" if y % 3 else "VIOLET_LIGHT")
+        tx = x0 + math.sin((33 - h) * 0.45 + ph)
+        c.rect(tx - 1, 33 - h - 1, tx + 1, 33 - h + 1, "SEA_PALE")
+        c.px(tx, 33 - h, "FOAM_WHITE")
+    c.foot(2, 22, 36)
+    return fin(c, ["#"], 36, 4, {"color": "COLD", "energy": 0.4, "scale": 1.6, "at": [12, 18]})
+
+
+def jelly():
+    """A bloom of jellyfish hanging over a pool, pale bells and trailing threads, glowing faintly."""
+    c = Canvas(24, 44)
+    c.shadow(4, 34, 20, 42)
+    for cx, top, key in ((8, 8, "SEA_PALE"), (16, 4, "VIOLET_LIGHT"), (12, 18, "SEA_PALE")):
+        c.ellipse(cx - 4, top, cx + 4, top + 6, key)
+        c.line(cx - 4, top + 5, cx + 4, top + 5, "FOAM_WHITE")
+        c.px(cx - 1, top + 1, "FOAM_WHITE")
+        for k, dx in enumerate((-3, -1, 1, 3)):
+            for y in range(top + 6, top + 14 + k * 2):
+                c.px(cx + dx + (1 if (y // 3) % 2 else 0), y, key, 170)
+    c.foot(4, 20, 40)
+    return fin(c, ["#"], 40, 4, {"color": "COLD", "energy": 0.35, "scale": 1.5, "at": [12, 14]})
+
+
 PIECES = [
     ("wreck", "flats", wreck), ("arch", "flats", arch), ("boat", "flats", boat),
     ("house", "streets", house), ("well", "streets", well), ("stall", "streets", stall),
@@ -1389,9 +1642,14 @@ PIECES = [
     ("kelplight", "flats", kelplight), ("lamppost", "harbour", lamppost), ("buoy", "harbour", buoy),
     ("shrine", "streets", shrine), ("coldlamp", "streets", coldlamp),
     ("candles", "deep", candles), ("kelpglow", "deep", kelpglow),
+    # The Reef (map Stage 11c): its own row, after the others, so their regions stay as they were.
+    ("brainhead", "reef", brainhead), ("breach", "reef", breach), ("clam", "reef", clam),
+    ("fans", "reef", fans), ("staghorn", "reef", staghorn), ("anchor", "reef", anchor),
+    ("wallsteps", "reef", wallsteps), ("ribcoral", "reef", ribcoral),
+    ("glowcoral", "reef", glowcoral), ("jelly", "reef", jelly),
 ]
-LOOK_ROW = ["flats", "streets", "deep", "harbour"]
-FLOOR = {"flats": "SAND", "streets": "STONE", "deep": "BASALT", "harbour": "WOOD"}
+LOOK_ROW = ["flats", "streets", "deep", "harbour", "reef"]
+FLOOR = {"flats": "SAND", "streets": "STONE", "deep": "BASALT", "harbour": "WOOD", "reef": "DROWNED_SHADE"}
 
 
 def main():

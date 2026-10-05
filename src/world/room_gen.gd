@@ -36,7 +36,7 @@ const SIZE_LONG := Vector2i(80, 23)  # a corridor east to west
 const SIZE_TALL := Vector2i(40, 46)  # a corridor north to south
 const OPEN_SHARE := 0.4  # the open plan's share when the shape is left to the seed
 const LOOK_NAME := {Tiles.Look.FLATS: "flats", Tiles.Look.HARBOUR: "harbour",
-	Tiles.Look.STREETS: "streets", Tiles.Look.DEEP: "hall"}
+	Tiles.Look.STREETS: "streets", Tiles.Look.DEEP: "hall", Tiles.Look.REEF: "reef"}
 ## The measured limits (STYLE.md 22).
 const MAX_HOLE := 8
 const MAX_SYMMETRY := 0.80
@@ -105,6 +105,7 @@ static func build(look: int, seed_value: int, kind: String = "combat", size: Vec
 		Tiles.Look.HARBOUR: _harbour(g)
 		Tiles.Look.STREETS: _streets(g)
 		Tiles.Look.DEEP: _hall(g)
+		Tiles.Look.REEF: _reef(g)
 		_: _flats(g)
 	g.clip()
 	# A corridor's bays stay open ground whatever the grammar built there (the Streets' blocks).
@@ -150,6 +151,7 @@ class Grid:
 	var shape_doors: Array = []     # the same, from the room's shape (they win)
 	var bays: Array = []            # [centre, rx, ry] of a corridor's bays: kept open to fight in
 	var mask := PackedByteArray()   # 1 outside the room's outline (map Stage 10); empty: no outline
+	var currents: Array = []        # channels' lines, downstream (map Stage 11e): `~` lines
 
 	func _init(p_w: int, p_h: int, p_rng: RandomNumberGenerator) -> void:
 		w = p_w
@@ -302,6 +304,11 @@ class Grid:
 			lines.append(c.slice(y * w, (y + 1) * w).get_string_from_ascii())
 		for p in pieces:
 			lines.append("@ %s %d %d" % [p[0], p[1], p[2]])
+		for line: Array in currents:
+			var nums := PackedStringArray()
+			for pt: Vector2 in line:
+				nums.append("%d %d" % [roundi(pt.x), roundi(pt.y)])
+			lines.append("~ " + " ".join(nums))
 		return "\n".join(lines) + "\n"
 
 
@@ -535,6 +542,121 @@ static func _streets(g: Grid) -> void:
 		g.scatter("coldlamp")
 	if r.randf() < 0.5:
 		g.scatter("shrine", "floor", func(x: int, y: int) -> bool: return g.against_north("shrine", x, y))
+
+
+## The Reef (map Stage 11d): Saltmere's sea wall laid straight across the room (or down it), three
+## courses thick, a length of it slid out of line, broken through in one or two breaches where
+## the breach's stubs stand; outside it a channel along its foot, inside the current running away
+## from each breach in a channel; coral heads (raised, the last to flood) between, pools in the
+## hollows, the wall's rubble at its foot. Two rooms in ten are the reef flat with the wall gone.
+static func _reef(g: Grid) -> void:
+	var r := g.rng
+	g.rect(3, 3, g.w - 4, g.h - 4, C_FLOOR)
+	# The reef's edge is never straight: only the wall is.
+	for i in r.randi_range(7, 11):
+		var p := _side_point(g, r.randi() % 4, 0.05, 0.95)
+		g.blob(p.x, p.y, r.randf_range(3.0, 7.0), r.randf_range(2.5, 5.0), C_WALL, 0.32)
+	# A corner or two worn right back.
+	for i in r.randi_range(1, 2):
+		var c := Vector2(3 if r.randf() < 0.5 else g.w - 4, 3 if r.randf() < 0.5 else g.h - 4)
+		g.blob(c.x, c.y, r.randf_range(5.0, 9.0), r.randf_range(4.0, 7.0), C_WALL, 0.3)
+	var breaches: Array[Vector2] = []
+	var inward := Vector2(0, 1)
+	var plan := r.randf()
+	if plan < 0.5 or (plan < 0.8 and g.w < 60):
+		# Across: the sea to the north or the south.
+		var north := r.randf() < 0.5
+		var y0 := int(g.h * r.randf_range(0.2, 0.32))
+		if not north:
+			y0 = g.h - 3 - y0
+		inward = Vector2(0, 1) if north else Vector2(0, -1)
+		g.rect(2, y0, g.w - 3, y0 + 2, C_WALL)
+		var jx := r.randi_range(g.w / 4, g.w * 3 / 5)
+		var jl := r.randi_range(5, 9)
+		var dy := 1 if r.randf() < 0.5 else -1
+		g.rect(jx, y0, jx + jl, y0 + 2, C_FLOOR)
+		g.rect(jx, y0 + dy, jx + jl, y0 + 2 + dy, C_WALL)
+		var n := 2 if g.w >= 60 else 1
+		for k in n:
+			var bx := int(lerpf(g.w * 0.12, g.w * 0.8, (k + r.randf_range(0.15, 0.85)) / n))
+			if absi(bx + 3 - (jx + jl / 2)) < jl / 2 + 5:
+				bx = clampi(bx + jl + 6, 4, g.w - 11)
+			g.rect(bx, y0 - 1, bx + 6, y0 + 3, C_FLOOR)
+			if g.fits("breach", bx, y0, "floor"):
+				g.place("breach", bx, y0)
+			breaches.append(Vector2(bx + 3, y0 + 1))
+		var yc := y0 - 4 if north else y0 + 6
+		if yc >= 4 and yc <= g.h - 5:
+			var line := [Vector2(2, yc), Vector2(g.w * 0.35, yc + r.randf_range(-1.5, 1.5)), Vector2(g.w * 0.7, yc + r.randf_range(-1.5, 1.5)),
+				Vector2(g.w - 3, yc)]
+			g.path(line, r.randf_range(1.3, 1.8), C_LOW, 0.5, [C_FLOOR])
+			# Along the wall's outer foot the water runs one way or the other.
+			if r.randf() < 0.5:
+				line.reverse()
+			g.currents.append(line)
+	elif plan < 0.8:
+		# Down the room: the sea to the west or the east; the breaches are plain gaps.
+		var west := r.randf() < 0.5
+		var x0 := int(g.w * r.randf_range(0.2, 0.3))
+		if not west:
+			x0 = g.w - 3 - x0
+		inward = Vector2(1, 0) if west else Vector2(-1, 0)
+		g.rect(x0, 2, x0 + 2, g.h - 3, C_WALL)
+		for k in r.randi_range(1, 2):
+			var by := int(lerpf(g.h * 0.2, g.h * 0.75, (k + r.randf_range(0.2, 0.8)) / 2.0))
+			g.rect(x0 - 1, by, x0 + 3, by + r.randi_range(4, 5), C_FLOOR)
+			_drift(g, Vector2(x0 + 1 + inward.x * 3, by - 1), 3)
+			breaches.append(Vector2(x0 + 1, by + 2))
+		var xc := x0 - 4 if west else x0 + 6
+		if xc >= 4 and xc <= g.w - 5:
+			var line := [Vector2(xc, 2), Vector2(xc + r.randf_range(-1.5, 1.5), g.h * 0.5), Vector2(xc, g.h - 3)]
+			g.path(line, r.randf_range(1.3, 1.7), C_LOW, 0.5, [C_FLOOR])
+			if r.randf() < 0.5:
+				line.reverse()
+			g.currents.append(line)
+	else:
+		# The reef flat: no wall; the current crosses the room in two channels.
+		for k in 2:
+			var a := _side_point(g, k * 2, 0.2, 0.8)
+			var b := _side_point(g, 1 + k * 2, 0.2, 0.8)
+			breaches.append(a)
+			var line := [a, a.lerp(b, 0.5) + Vector2(r.randf_range(-6, 6), r.randf_range(-4, 4)), b]
+			g.path(line, r.randf_range(1.4, 1.9), C_LOW, 0.6, [C_FLOOR])
+			g.currents.append(line)
+	# The current from each breach runs away from the wall and bends toward the far side.
+	for b in breaches:
+		if plan >= 0.8:
+			break
+		var side := Vector2(inward.y, inward.x) * r.randf_range(-0.3, 0.3)
+		var far := b + (inward + side) * maxf(g.w, g.h)
+		far = Vector2(clampf(far.x, 3, g.w - 4), clampf(far.y, 3, g.h - 4))
+		var mid := b.lerp(far, 0.5) + Vector2(inward.y, inward.x) * r.randf_range(-5, 5)
+		g.path([b + inward * 2, mid, far], r.randf_range(1.4, 1.9), C_LOW, 0.6, [C_FLOOR])
+		# The sea comes in through the breach: the water runs away from the wall.
+		g.currents.append([b - inward, b + inward * 2, mid, far])
+	# Coral heads between the channels, pools in the hollows, the wall's rubble at its foot.
+	for i in r.randi_range(3, 5) + (2 if plan >= 0.8 else 0):
+		var p := _random_cell(g, C_FLOOR)
+		g.blob(p.x, p.y, r.randf_range(3.0, 6.5), r.randf_range(2.0, 4.0), C_RAISED, 0.28, [C_FLOOR])
+	for i in r.randi_range(1, 3):
+		var p := _random_cell(g, C_FLOOR)
+		g.blob(p.x, p.y, r.randf_range(2.0, 3.5), r.randf_range(1.4, 2.2), C_LOW, 0.35, [C_FLOOR])
+	_rock_drifts(g, r.randi_range(3, 5))
+	# Pieces: one or two great things off the centre as cover, the living ones by the water, the
+	# anchor by the wall, the wall's stair up onto a coral head; the light all cold.
+	var off_centre := func(x: int, y: int) -> bool: return absf(x - g.w * 0.5) + absf(y - g.h * 0.5) > g.w * 0.1
+	for id in _pick(r, ["brainhead", "ribcoral", "staghorn"], r.randi_range(1, 2)):
+		g.scatter(id, "floor", off_centre)
+	for id in _pick(r, ["clam", "fans"], r.randi_range(1, 2)):
+		g.scatter(id, "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_LOW, 2))
+	if r.randf() < 0.6:
+		g.scatter("anchor", "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_WALL, 1))
+	if r.randf() < 0.4:
+		g.scatter("wallsteps", "floor", func(x: int, y: int) -> bool: return g.near(x + 1, y - 1, C_RAISED, 1))
+	for i in r.randi_range(1, 2):
+		g.scatter("glowcoral", "floor", func(x: int, y: int) -> bool: return g.near(x, y, C_LOW, 2))
+	if r.randf() < 0.4:
+		g.scatter("jelly", "water")
 
 
 ## The Deep Hall: a nave north to south, aisles behind column rows, the apse with its dais and the
@@ -1398,9 +1520,10 @@ static func validate(t: RoomTemplate, look: int, kind: String = "combat") -> Pac
 	if l.WARM + l.FLAME + l.candles > 3:
 		out.append("too many warm lights")
 	match look:
-		Tiles.Look.STREETS:
+		Tiles.Look.STREETS, Tiles.Look.REEF:
+			# The Streets' lamps burn cold; on the Reef only Tam's lantern is warm (map Stage 11c).
 			if l.WARM + l.FLAME > 0:
-				out.append("a warm light in the Streets")
+				out.append("a warm light in the Streets or the Reef")
 		Tiles.Look.FLATS, Tiles.Look.HARBOUR:
 			if l.WARM > 1 or l.FLAME > 0:
 				out.append("more than one warm light")
