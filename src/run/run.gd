@@ -473,13 +473,23 @@ func _load_templates(dir: String) -> void:
 var _last_template: String = ""
 var _dev_room: RoomTemplate = null  # --room=<path>: every fighting room is this one
 var _dev_gen := false  # --gen: every fighting room is generated (RoomGen)
+## Map Stage 10: the share of a night's fighting rooms RoomGen makes from the night's own draws
+## (in any shape); the rest are the biome's saved rooms.
+const GEN_SHARE := 0.5
 
 
 func _pick_template(type: int) -> RoomTemplate:
 	if _dev_room != null and (type == RoomGraph.COMBAT or type == RoomGraph.ELITE):
 		return _dev_room
-	if _dev_gen and (type == RoomGraph.COMBAT or type == RoomGraph.ELITE):
-		return RoomGen.generate(int(biome().theme), hash([state.seed, state.biome, state.depth_total]))
+	if type == RoomGraph.COMBAT or type == RoomGraph.ELITE:
+		var s := _rng.randi()
+		if _dev_gen or (s % 1000) * 0.001 < GEN_SHARE:
+			var look := int(biome().theme)
+			var g := RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", "any")
+			# A plan that never passed (rare) is not played: a saved room stands in.
+			if RoomGen.validate(g, look).is_empty():
+				_last_template = g.name
+				return g
 	var list: Array = _templates[type]
 	if list.is_empty():
 		# Never a black room: a fighting room stands in, and the log says which biome is short.
@@ -1443,7 +1453,7 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 	cage = null
 	_wet_room = wet
 	_challenge_t = -1.0
-	var t: RoomTemplate = null
+	var t: RoomTemplate = RoomGen.from_name(template_name)
 	for cand in _templates.get(type, []):
 		if cand.name == template_name:
 			t = cand

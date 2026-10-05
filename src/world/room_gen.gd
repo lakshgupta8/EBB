@@ -7,6 +7,9 @@ extends RefCounted
 ## hand-authored chunks (data/chunks/<look>/*.txt, RoomChunks) stamped where the floor runs bare,
 ## then the spawns. The result is a RoomTemplate like any hand-made one, and `validate` holds it
 ## to the map rules; a plan that fails is made again from the next attempt's seed.
+## Map Stage 10: a room may take a shape (SHAPES) besides the open plan. The corridor, the L and
+## the ring are outlines the grammar draws inside; the split level raises one side behind a
+## retaining wall with ramps; the flooded room goes under but for islands and causeways.
 
 const C_WALL := 35   # '#'
 const C_FLOOR := 46  # '.'
@@ -27,6 +30,11 @@ const SIZE_S := Vector2i(40, 23)
 ## of chests, no fight. vault: one vault in a walled strongroom with one way in. dive: the room
 ## drowned, the altar and a chest on islands.
 const KINDS := ["combat", "challenge", "treasure", "vault", "dive"]
+## Room shapes (map Stage 10). "" is the open plan of Stages 08-09; "any" asks `pick_shape`.
+const SHAPES := ["corridor", "ell", "ring", "split", "flooded"]
+const SIZE_LONG := Vector2i(80, 23)  # a corridor east to west
+const SIZE_TALL := Vector2i(40, 46)  # a corridor north to south
+const OPEN_SHARE := 0.4  # the open plan's share when the shape is left to the seed
 const LOOK_NAME := {Tiles.Look.FLATS: "flats", Tiles.Look.HARBOUR: "harbour",
 	Tiles.Look.STREETS: "streets", Tiles.Look.DEEP: "hall"}
 ## The measured limits (STYLE.md 22).
@@ -38,13 +46,19 @@ static var last_attempts := 0  # how many attempts the last `generate` took (the
 
 ## A room for a look and a seed: the same seed always gives the same room. `kind` is one of
 ## KINDS; `size` 40x23, 60x34 or 80x46, or zero for the fighting mix (seven large in ten).
+## `shape` is one of SHAPES, "" for the open plan, or "any" for the seed's pick. A generated
+## room's default name says how to make it again (`from_name`).
 static func generate(look: int, seed_value: int, kind: String = "combat", size: Vector2i = Vector2i.ZERO,
-		p_name: String = "") -> RoomTemplate:
+		p_name: String = "", shape: String = "") -> RoomTemplate:
 	var t: RoomTemplate = null
-	var name := p_name if p_name != "" else "gen_%s_%d" % [LOOK_NAME.get(look, "flats"), seed_value]
+	var name := p_name
+	if name == "":
+		name = "gen_%s_%d" % [LOOK_NAME.get(look, "flats"), seed_value] + ("_" + shape if shape != "" else "")
+	if shape == "any":
+		shape = pick_shape(seed_value)
 	for attempt in TRIES:
 		last_attempts = attempt + 1
-		var g := build(look, hash([seed_value, attempt, look]), kind, size)
+		var g := build(look, hash([seed_value, attempt, look]), kind, size, shape)
 		t = RoomTemplate.parse(g.text(), name)
 		if validate(t, look, kind).is_empty():
 			return t
@@ -53,18 +67,52 @@ static func generate(look: int, seed_value: int, kind: String = "combat", size: 
 	return t
 
 
+## The shape a seed takes when it is left to it: the open plan four times in ten, else one of
+## SHAPES (a stream of its own, so the plan's draws are the same whatever the shape).
+static func pick_shape(seed_value: int) -> String:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([seed_value, "shape"])
+	if r.randf() < OPEN_SHARE:
+		return ""
+	return SHAPES[r.randi() % SHAPES.size()]
+
+
+## The room a generated name stands for ("gen_<look>_<seed>[_<shape>]"), or null if the name is
+## not one: a night left in a generated room is rebuilt from it.
+static func from_name(p_name: String) -> RoomTemplate:
+	var parts := p_name.split("_")
+	if parts.size() < 3 or parts[0] != "gen" or not parts[2].is_valid_int():
+		return null
+	var look: Variant = LOOK_NAME.find_key(parts[1])
+	if look == null:
+		return null
+	return generate(int(look), int(parts[2]), "combat", Vector2i.ZERO, p_name, parts[3] if parts.size() > 3 else "")
+
+
 ## One attempt, before validation (the preview tool shows these too).
-static func build(look: int, seed_value: int, kind: String = "combat", size: Vector2i = Vector2i.ZERO) -> Grid:
+static func build(look: int, seed_value: int, kind: String = "combat", size: Vector2i = Vector2i.ZERO,
+		shape: String = "") -> Grid:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	if size == Vector2i.ZERO:
-		size = SIZE_L if rng.randf() < 0.7 else SIZE_M
+		if shape == "corridor":
+			size = SIZE_LONG if rng.randf() < 0.6 else SIZE_TALL
+		else:
+			size = SIZE_L if rng.randf() < 0.7 else SIZE_M
 	var g := Grid.new(size.x, size.y, rng)
+	_outline(g, shape)
 	match look:
 		Tiles.Look.HARBOUR: _harbour(g)
 		Tiles.Look.STREETS: _streets(g)
 		Tiles.Look.DEEP: _hall(g)
 		_: _flats(g)
+	g.clip()
+	# A corridor's bays stay open ground whatever the grammar built there (the Streets' blocks).
+	for b: Array in g.bays:
+		var at: Vector2 = b[0]
+		g.blob(at.x, at.y, b[1], b[2], C_FLOOR, 0.2, [C_WALL])
+	if not g.shape_doors.is_empty():
+		g.want_doors = g.shape_doors
 	match kind:
 		"challenge": _plinths(g, 2)
 		"treasure": _hoard(g)
@@ -75,6 +123,11 @@ static func build(look: int, seed_value: int, kind: String = "combat", size: Vec
 		_drown(g)
 	else:
 		_stamp_chunks(g, look)
+	# After the chunks: the terrace keeps what they put on its floor.
+	if shape == "split":
+		_terrace(g)
+	if shape == "flooded":
+		_flood(g)
 	_connect(g)
 	if kind == "combat" or kind == "challenge":
 		_spawns(g)
@@ -94,6 +147,9 @@ class Grid:
 	var doors: Array[Vector2i] = []
 	var entry := Vector2i(-1, -1)   # the door Tam comes in by (the first)
 	var want_doors: Array = []      # [side, along] a builder asks for
+	var shape_doors: Array = []     # the same, from the room's shape (they win)
+	var bays: Array = []            # [centre, rx, ry] of a corridor's bays: kept open to fight in
+	var mask := PackedByteArray()   # 1 outside the room's outline (map Stage 10); empty: no outline
 
 	func _init(p_w: int, p_h: int, p_rng: RandomNumberGenerator) -> void:
 		w = p_w
@@ -101,6 +157,15 @@ class Grid:
 		rng = p_rng
 		c.resize(w * h)
 		c.fill(C_WALL)
+
+	## Back to rock wherever the outline says there is no room (after a builder that writes the
+	## plan directly, as the turned Harbour does).
+	func clip() -> void:
+		if mask.is_empty():
+			return
+		for i in c.size():
+			if mask[i] != 0 and not solid.has(Vector2i(i % w, i / w)):
+				c[i] = C_WALL
 
 	func at(x: int, y: int) -> int:
 		return c[y * w + x] if x >= 0 and y >= 0 and x < w and y < h else C_WALL
@@ -112,7 +177,7 @@ class Grid:
 	## Never into the outer two rings: the rim is a mass (doors cut it on their own).
 	func put(x: int, y: int, ch: int, only: Array = []) -> void:
 		if x >= 2 and y >= 2 and x < w - 2 and y < h - 2 and (only.is_empty() or c[y * w + x] in only) \
-				and not solid.has(Vector2i(x, y)):
+				and not solid.has(Vector2i(x, y)) and (mask.is_empty() or mask[y * w + x] == 0):
 			c[y * w + x] = ch
 
 	static func is_open(ch: int) -> bool:
@@ -310,6 +375,7 @@ static func _harbour(g: Grid) -> void:
 				g.c[y * g.w + x] = tg.c[x * tg.w + y]
 	else:
 		y0 = _harbour_plan(g, true)
+	g.clip()
 	# Pieces: the warehouse against the north mass, the crane at the quay's edge (its lamp is
 	# the room's one warm light, else a quay lamp), cargo, buoys cold in the channel.
 	g.scatter("warehouse", "floor", func(px: int, py: int) -> bool:
@@ -396,6 +462,12 @@ static func _streets(g: Grid) -> void:
 	var sh := r.randi_range(10, 13)
 	var sx := r.randi_range(6, g.w - sw - 6)
 	var sy := r.randi_range(5, g.h - sh - 5)
+	# Inside the room's outline (map Stage 10): an L or a ring has no square in its dark.
+	for k in 12:
+		if g.mask.is_empty() or g.mask[(sy + sh / 2) * g.w + sx + sw / 2] == 0:
+			break
+		sx = r.randi_range(6, g.w - sw - 6)
+		sy = r.randi_range(5, g.h - sh - 5)
 	g.rect(sx, sy, sx + sw, sy + sh, C_FLOOR)
 	if g.w >= 80:
 		# A second, smaller square away from the first.
@@ -655,6 +727,183 @@ static func _hall_nave(g: Grid) -> void:
 	if g.fits("gate", int(cx) - 2, g.h - 9, "floor"):
 		g.place("gate", int(cx) - 2, g.h - 9)
 	_hall_furnish(g)
+
+
+# --- room shapes (map Stage 10) ------------------------------------------------------------------
+
+## The outline of a corridor, an L or a ring, drawn on a scratch grid and kept as the mask: the
+## biome's grammar then draws only inside it. The open plan, the split level and the flooded
+## room keep the whole box.
+static func _outline(g: Grid, shape: String) -> void:
+	if not shape in ["corridor", "ell", "ring"]:
+		return
+	var r := g.rng
+	var m := Grid.new(g.w, g.h, r)
+	match shape:
+		"corridor":
+			# A long way through, its line wandering, two or three bays opening off it to fight in.
+			var long := g.w >= g.h
+			var ln := g.w if long else g.h
+			var across := g.h if long else g.w
+			var pts: Array = []
+			for k in 5:
+				var a := lerpf(2.0, ln - 3.0, k / 4.0)
+				var b := across * 0.5 + r.randf_range(-0.14, 0.14) * across
+				pts.append(Vector2(a, b) if long else Vector2(b, a))
+			m.path(pts, r.randf_range(3.6, 4.6), C_FLOOR, 0.8)
+			for k in r.randi_range(2, 3):
+				var p: Vector2 = pts[1 + k]
+				p = p.lerp(pts[k], r.randf_range(0.0, 0.5))
+				var off := r.randf_range(2.0, 4.0) * (1.0 if r.randf() < 0.5 else -1.0)
+				p += Vector2(0, off) if long else Vector2(off, 0)
+				var rx := r.randf_range(6.0, 8.0) if long else r.randf_range(5.0, 7.0)
+				var ry := r.randf_range(5.0, 7.0) if long else r.randf_range(6.0, 8.0)
+				m.blob(p.x, p.y, rx, ry, C_FLOOR, 0.25)
+				g.bays.append([p, rx * 0.7, ry * 0.7])
+			var a0: Vector2 = pts[0]
+			var a1: Vector2 = pts[4]
+			g.shape_doors = [[2, a0.y / g.h], [3, a1.y / g.h]] if long else [[0, a0.x / g.w], [1, a1.x / g.w]]
+		"ell":
+			# One corner of the box is the dark: an L, the inner corner worn round.
+			m.rect(2, 2, g.w - 3, g.h - 3, C_FLOOR)
+			var cw := int(g.w * r.randf_range(0.4, 0.5))
+			var chh := int(g.h * r.randf_range(0.42, 0.52))
+			var west := r.randf() < 0.5
+			var north := r.randf() < 0.5
+			var x0 := 0 if west else g.w - cw
+			var y0 := 0 if north else g.h - chh
+			m.rect(x0, y0, x0 + cw - 1, y0 + chh - 1, C_WALL)
+			var ix := x0 + cw if west else x0
+			var iy := y0 + chh if north else y0
+			m.blob(ix, iy, r.randf_range(3.0, 5.0), r.randf_range(2.5, 4.0), C_WALL, 0.3)
+			for k in r.randi_range(2, 3):
+				var e := Vector2(x0 + r.randf_range(0.2, 0.8) * cw, iy) if r.randf() < 0.5 else Vector2(ix, y0 + r.randf_range(0.2, 0.8) * chh)
+				m.blob(e.x, e.y, r.randf_range(2.0, 3.5), r.randf_range(1.5, 2.5), C_WALL if r.randf() < 0.5 else C_FLOOR, 0.3)
+		"ring":
+			# A loop round a pit: the middle of the room has fallen into the dark.
+			m.rect(2, 2, g.w - 3, g.h - 3, C_FLOOR)
+			var cx := g.w * 0.5 + r.randi_range(-4, 4)
+			var cy := g.h * 0.5 + r.randi_range(-2, 2)
+			m.blob(cx, cy, g.w * r.randf_range(0.16, 0.2), g.h * r.randf_range(0.19, 0.23), C_WALL, 0.2)
+	g.mask.resize(g.w * g.h)
+	for i in g.c.size():
+		g.mask[i] = 0 if m.c[i] == C_FLOOR else 1
+
+
+## The split level: one side of the room raised (it floods last) behind a retaining wall two cells
+## thick, broken by two or three ramps. The pieces, chunks and doors already down keep their ground.
+static func _terrace(g: Grid) -> void:
+	var r := g.rng
+	var side := r.randi() % 4  # the terrace's side: 0 north, 1 south, 2 west, 3 east
+	var deep := g.h if side < 2 else g.w
+	var span := g.w if side < 2 else g.h
+	var base := deep * r.randf_range(0.34, 0.44)
+	var amp := r.randf_range(1.0, 2.5)
+	var ph := r.randf_range(0.0, TAU)
+	var edge := PackedInt32Array()
+	edge.resize(span)
+	for a in span:
+		edge[a] = int(base + amp * sin(a * 0.22 + ph))
+	# depth from the terrace's own side
+	var cell := func(a: int, d: int) -> Vector2i:
+		match side:
+			0: return Vector2i(a, d)
+			1: return Vector2i(a, g.h - 1 - d)
+			2: return Vector2i(d, a)
+			_: return Vector2i(g.w - 1 - d, a)
+	for a in span:
+		for d in edge[a]:
+			var p: Vector2i = cell.call(a, d)
+			if g.at(p.x, p.y) == C_FLOOR and not g.solid.has(p):
+				g.set_at(p.x, p.y, C_RAISED)
+	# Where a ramp can go: open ground both above and below the wall.
+	var ramps: Array = []
+	var cands: Array = []
+	for a in range(4, span - 5):
+		var up: Vector2i = cell.call(a, edge[a] - 2)
+		var down: Vector2i = cell.call(a, edge[a] + 1)
+		if Grid.is_open(g.at(up.x, up.y)) and Grid.is_open(g.at(down.x, down.y)):
+			cands.append(a)
+	if cands.is_empty():
+		return
+	for k in r.randi_range(2, 3):
+		var best := -1
+		var bd := -1
+		for t in 20:
+			var a: int = cands[r.randi() % cands.size()]
+			var d := 999
+			for o: int in ramps:
+				d = mini(d, absi(o - a))
+			if d > bd:
+				bd = d
+				best = a
+		if bd >= 8 or ramps.is_empty():
+			ramps.append(best)
+	for a in span:
+		var ramp := false
+		for o: int in ramps:
+			ramp = ramp or absi(a - o) <= 1
+		for d in [edge[a] - 1, edge[a]]:
+			var p: Vector2i = cell.call(a, d)
+			if not Grid.is_open(g.at(p.x, p.y)) or g.solid.has(p) or g.taken.has(p):
+				continue
+			if ramp:
+				g.set_at(p.x, p.y, C_RAISED if d < edge[a] else C_FLOOR)
+			else:
+				g.set_at(p.x, p.y, C_WALL)
+
+
+## The flooded room: islands of ground and the causeways between them stand; the rest of the floor
+## is low, the first the tide takes. The keeper's landing and the causeways from the doors stay
+## dry; the pieces and the chunks' rocks stand in the water.
+static func _flood(g: Grid) -> void:
+	var r := g.rng
+	var start := Vector2i(-1, -1)
+	for i in g.c.size():
+		if g.c[i] == C_PLAYER:
+			start = Vector2i(i % g.w, i / g.w)
+	if start.x < 0:
+		return
+	var keep := Grid.new(g.w, g.h, r)
+	var isles: Array[Vector2] = [Vector2(start)]
+	for k in (r.randi_range(4, 6) if g.w >= 80 else r.randi_range(3, 4)):
+		var p := _far_from_all(g, isles)
+		isles.append(p)
+		keep.blob(p.x, p.y, r.randf_range(3.5, 5.0), r.randf_range(2.8, 3.8), C_FLOOR, 0.3)
+	# Each island tied by a causeway to the nearest one before it, the doors to the landing.
+	for k in range(1, isles.size()):
+		var near := isles[0]
+		for j in k:
+			if isles[j].distance_to(isles[k]) < near.distance_to(isles[k]):
+				near = isles[j]
+		keep.path([near, isles[k]], 1.0, C_FLOOR, 0.3)
+	for d in g.doors:
+		keep.path([Vector2(d + _inward(g, d)), Vector2(start)], 1.0, C_FLOOR, 0.3)
+	for i in g.c.size():
+		var c := Vector2i(i % g.w, i / g.w)
+		if g.c[i] != C_FLOOR or keep.c[i] == C_FLOOR or g.solid.has(c):
+			continue
+		if maxi(absi(c.x - start.x), absi(c.y - start.y)) <= 3:
+			continue
+		g.c[i] = C_LOW
+
+
+## A floor cell as far as can be found from all of the points.
+static func _far_from_all(g: Grid, pts: Array[Vector2]) -> Vector2:
+	var best := Vector2(g.w * 0.5, g.h * 0.5)
+	var bd := -1.0
+	var cells := g.open_cells(C_FLOOR)
+	if cells.is_empty():
+		return best
+	for k in 60:
+		var c := Vector2(cells[g.rng.randi() % cells.size()])
+		var d := INF
+		for p in pts:
+			d = minf(d, c.distance_to(p))
+		if d > bd:
+			bd = d
+			best = c
+	return best
 
 
 # --- room kinds (map Stage 09) -------------------------------------------------------------------
