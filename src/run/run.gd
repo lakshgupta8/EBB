@@ -523,6 +523,11 @@ func _enter_room(type: int, wet: bool = false) -> void:
 	room.build(template, _room_seed, biome().theme)
 	room.tide_bonus = _room_bonus(type, wet)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
+	# Dev aid for screenshots: `--spawn=x,y` starts Tam on that cell (to look at a far door).
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--spawn="):
+			var xy := a.trim_prefix("--spawn=").split(",")
+			player.global_position = room.cell_to_world(Vector2i(int(xy[0]), int(xy[1])))
 	player.velocity = Vector2.ZERO
 	player.rally = 0.0
 	state.tide.room_entered()
@@ -541,7 +546,8 @@ func _enter_room(type: int, wet: bool = false) -> void:
 		RoomGraph.FOUNTAIN:
 			announcer.hint("fountain")
 			for cell in room.template.marker_cells("F"):
-				_add_room_prop(Prop.Kind.FOUNTAIN, cell)
+				var f := _add_room_prop(Prop.Kind.FOUNTAIN, cell)
+				f.position = _dais_centre(cell, f.position)
 			_set_cleared()
 		RoomGraph.TREASURE:
 			for cell in room.template.marker_cells("T"):
@@ -614,7 +620,12 @@ func _place_doors(type: int, next_depth: int) -> void:
 		# The way down opens when the boss is dead; the last biome has no way down.
 		room.place_doors([Door.DESCEND] if state.biome + 1 < BIOMES.size() else [])
 	else:
-		room.place_doors(graph.options_for(next_depth))
+		var options: Array = graph.options_for(next_depth).duplicate()
+		# Dev aid for the door art: `--all-doors` opens a door in every slot the plan has.
+		if "--all-doors" in OS.get_cmdline_user_args():
+			while options.size() < room.template.doors.size():
+				options.append(options[0] if options.size() > 0 else RoomGraph.COMBAT)
+		room.place_doors(options)
 		for i in room.doors.size():
 			if graph.is_wet(next_depth, i):
 				# The door leads to next_depth; the shortcut is judged from there.
@@ -737,6 +748,30 @@ func _on_altar_reroll() -> void:
 	for id in offers:
 		Codex.discover("mark", id)
 	altar_ui.set_offers(offers, state.rerolls)
+
+
+## A prop set on a dais stands in the middle of it, not on the cell the plan marks (a dais an even
+## number of cells across has no middle cell). Off a dais it stays where it was put.
+func _dais_centre(cell: Vector2i, at: Vector2) -> Vector2:
+	var t := room.template
+	if t.height_at(cell.x, cell.y) != 2:
+		return at
+	var seen := {cell: true}
+	var todo: Array[Vector2i] = [cell]
+	var lo := cell
+	var hi := cell
+	while not todo.is_empty():
+		var c: Vector2i = todo.pop_back()
+		lo = Vector2i(mini(lo.x, c.x), mini(lo.y, c.y))
+		hi = Vector2i(maxi(hi.x, c.x), maxi(hi.y, c.y))
+		for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			var n: Vector2i = c + d
+			if not seen.has(n) and t.height_at(n.x, n.y) == 2 and not t.is_solid(n.x, n.y):
+				seen[n] = true
+				todo.append(n)
+	# The prop's position is its foot and the basin rises 30 px above it: drop it so the basin, not
+	# the foot, sits in the dais's middle.
+	return (room.cell_to_world(lo) + room.cell_to_world(hi)) * 0.5 + Vector2(0, 10)
 
 
 ## A usable prop with its handler: fountains heal, chests spill, altars offer, merchants trade.
@@ -1465,6 +1500,11 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 	room.build(t, room_seed, biome().theme)
 	room.tide_bonus = _room_bonus(type, wet)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
+	# Dev aid for screenshots: `--spawn=x,y` starts Tam on that cell (to look at a far door).
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--spawn="):
+			var xy := a.trim_prefix("--spawn=").split(",")
+			player.global_position = room.cell_to_world(Vector2i(int(xy[0]), int(xy[1])))
 	player.velocity = Vector2.ZERO
 	room.set_tide(state.tide.level)
 	_skip = 1 if _shortcut(wet) else 0

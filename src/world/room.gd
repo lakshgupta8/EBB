@@ -315,7 +315,7 @@ func terrain_height(x: int, y: int) -> int:
 		"#", "D": return 3
 		"=", "h": return 2
 		"_", "X": return 0
-		_: return 1
+		_: return template.height_at(x, y)  # a marker stands on its neighbours' ground
 
 
 ## Corner case for the tile at vertex (i, j): which of its four cells pass. TL=1 TR=2 BL=4 BR=8.

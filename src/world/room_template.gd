@@ -75,9 +75,30 @@ func char_at(x: int, y: int) -> String:
 	return rows[y][x]
 
 
+## The ground a cell stands on. A marker (a prop, a spawn) has no ground of its own: it takes the
+## ground most of its neighbours have, so a fountain set on a dais stands on the dais instead of
+## in a one-cell pit (map review 2026-10-05).
+const TERRAIN := ["#", "_", "X", "=", "h", ".", "o", "D"]
+
+func ground_char(x: int, y: int) -> String:
+	var ch := char_at(x, y)
+	if ch in TERRAIN:
+		return ch
+	var count := {}
+	for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var n := char_at(x + d.x, y + d.y)
+		if n in ["_", "X", "=", "."]:
+			count[n] = int(count.get(n, 0)) + 1
+	var best := "."
+	for k in count:
+		if int(count[k]) > int(count.get(best, 0)):
+			best = k
+	return best
+
+
 ## Flood height of a cell. Walls are WALL_HEIGHT (never flood).
 func height_at(x: int, y: int) -> int:
-	match char_at(x, y):
+	match ground_char(x, y):
 		"#": return WALL_HEIGHT
 		"_", "X": return 0
 		"=", "h": return 2
@@ -146,7 +167,7 @@ func _build_beyond() -> void:
 
 ## Ground tile index for a cell (door cells return DOOR; caller swaps when opened).
 func tile_at(x: int, y: int, theme: int = Tiles.Look.FLATS) -> int:
-	var ch := char_at(x, y)
+	var ch := ground_char(x, y)
 	# One floor cell in five takes the second tile, picked by a hash so the pattern never
 	# lines up into stripes (a lattice showed as diagonal streaks once the night tint was neutral).
 	var v := hash(Vector2i(x, y)) % 5 == 0

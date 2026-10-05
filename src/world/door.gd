@@ -14,6 +14,8 @@ const FRAME := preload("res://assets/sprites/door.png")
 const DESCEND := -1  # hub door, and the way down out of a boss arena
 ## door.png cells.
 enum Frame { SHUT, OPEN, WATER_CLOSED, FLOODED, WET_SHUT, WET_OPEN }
+## door.png rows: the wall the door stands in (tools/gen_doors.py).
+enum Facing { NORTH, SOUTH, WEST, EAST, STAIR }
 
 var room_type: int = 0
 var cell: Vector2i
@@ -34,7 +36,7 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	cell = p_cell
 	room_type = p_type
 	position = p_room.cell_to_world(p_cell)
-	_interior = _room.interior_dir(p_cell)
+	_interior = _inward(p_room, p_cell)
 	collision_layer = 0
 	collision_mask = 2  # player
 	# Trigger covers the doorway and one tile into the room, so brushing the mouth
@@ -47,10 +49,9 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	shape.position = _interior * 7.0
 	add_child(shape)
 
-	# Archway, drawn with its opening facing the interior.
+	# Archway, drawn for the wall it stands in (door.png has a row per wall; nothing turns).
 	_frame = Sprite2D.new()
-	_frame.offset = Vector2(0, 2)
-	_frame.rotation = Vector2.DOWN.angle_to(_interior)
+	_frame.offset = Vector2(0, 2) if _facing() == Facing.NORTH else Vector2.ZERO
 	_frame.z_index = 2
 	add_child(_frame)
 	flooded = _room.is_flooded_at(position)
@@ -76,7 +77,7 @@ func setup(p_room: Room, p_cell: Vector2i, p_type: int) -> void:
 	_label = UI.label((RoomGraph.NAMES[p_type] if p_type >= 0 else "Descend").to_upper(), 8,
 		Color(0.95, 0.95, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	_label.size = Vector2(80, 10)
-	_label.position = _icon.position + Vector2(-40, 12)
+	_label.position = _icon.position + Vector2(-40, 12) + _label_lift()
 	_label.modulate = Color(1, 1, 1, 0.0)
 	_label.z_index = 4
 	add_child(_label)
@@ -99,8 +100,46 @@ static func frame_for(p_wet: bool, p_open: bool, p_flooded: bool) -> int:
 	return Frame.OPEN if p_open else Frame.SHUT
 
 
+## The way into the room. A door in the outer wall asks the room; one set inside the plan (the
+## hub's way down stands in the sea against the south wall) faces away from the wall behind it.
+static func _on_edge(p_room: Room, c: Vector2i) -> bool:
+	var t := p_room.template
+	return c.x == 0 or c.y == 0 or c.x == t.width - 1 or c.y == t.height - 1
+
+
+static func _inward(p_room: Room, c: Vector2i) -> Vector2:
+	var t := p_room.template
+	if _on_edge(p_room, c):
+		return p_room.interior_dir(c)
+	for d in [Vector2i.DOWN, Vector2i.UP, Vector2i.RIGHT, Vector2i.LEFT]:
+		var behind: Vector2i = c - d
+		if t.char_at(behind.x, behind.y) == "#" and not t.is_solid(c.x + d.x, c.y + d.y):
+			return Vector2(d)
+	return p_room.interior_dir(c)
+
+
+## The stair's label sits above the mooring posts, clear of the steps.
+func _label_lift() -> Vector2:
+	return Vector2(0, -20) if _facing() == Facing.STAIR else Vector2.ZERO
+
+
+## The wall the door stands in, from the way into the room.
+func _facing() -> Facing:
+	# The way down set inside the plan (the hub's, in the sea) is steps going under, not a door.
+	if room_type == DESCEND and not _on_edge(_room, cell):
+		return Facing.STAIR
+	if _interior.y > 0.5:
+		return Facing.NORTH
+	if _interior.y < -0.5:
+		return Facing.SOUTH
+	return Facing.WEST if _interior.x > 0.0 else Facing.EAST
+
+
 func _refresh_frame() -> void:
-	_frame.texture = _atlas(FRAME, frame_for(wet, is_open, flooded), 32)
+	var at := AtlasTexture.new()
+	at.atlas = FRAME
+	at.region = Rect2(frame_for(wet, is_open, flooded) * 32, _facing() * 32, 32, 32)
+	_frame.texture = at
 
 
 ## The wet way: same room type, already under water, tinted so. Usually a shortcut too.
@@ -109,7 +148,7 @@ func set_wet(shortcut: bool = true) -> void:
 	_label.text = (RoomGraph.NAMES[room_type] if room_type >= 0 else "Descend").to_upper() + (" (WET SHORTCUT)" if shortcut else " (WET)")
 	_label.size = Vector2(140, 10)
 	# Side doors sit on the room's edge: slide the wider label inward so it is not cut off.
-	_label.position = _icon.position + Vector2(-70, 12) + Vector2(_interior.x * 50.0, 0)
+	_label.position = _icon.position + Vector2(-70, 12) + Vector2(_interior.x * 50.0, 0) + _label_lift()
 	_icon.modulate = Color(0.4, 0.5, 0.65)
 	_refresh_frame()
 
@@ -118,7 +157,7 @@ func set_wet(shortcut: bool = true) -> void:
 func set_label(text: String) -> void:
 	_label.text = text
 	_label.size = Vector2(140, 10)
-	_label.position = _icon.position + Vector2(-70, 12)
+	_label.position = _icon.position + Vector2(-70, 12) + _label_lift()
 
 
 func open() -> void:
