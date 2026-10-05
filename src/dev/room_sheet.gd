@@ -33,7 +33,7 @@ func _ready() -> void:
 	for dir: String in DIRS:
 		var files: Array = []
 		for f in DirAccess.get_files_at("res://data/rooms/" + dir):
-			if f.ends_with(".txt") and (dir + "/" + f).contains(only):
+			if f.ends_with(".txt") and (only == "" or (dir + "/" + f).contains(only)):
 				files.append(f)
 		files.sort()
 		for f: String in files:

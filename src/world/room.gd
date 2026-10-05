@@ -416,7 +416,22 @@ func clamp_inside(pos: Vector2) -> Vector2:
 			var n: Vector2i = c + off
 			if not template.is_solid(n.x, n.y) and template.char_at(n.x, n.y) != "D":
 				return cell_to_world(n)
+		# Deep in a mass (rims are thick since map Stage 06): the nearest floor anyone can reach.
+		if _reach_cache.is_empty():
+			_reach_cache = template.reachable_cells()
+		var best := Vector2i(-1, -1)
+		var bd := INF
+		for n: Vector2i in _reach_cache:
+			var d := Vector2(n - c).length_squared()
+			if d < bd:
+				bd = d
+				best = n
+		if best.x >= 0:
+			return cell_to_world(best)
 	return p
+
+
+var _reach_cache: Dictionary = {}
 
 
 ## Cell offsets out to three tiles, nearest first.
