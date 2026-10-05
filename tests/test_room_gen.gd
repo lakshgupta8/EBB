@@ -58,3 +58,57 @@ func test_two_hundred_rooms_keep_the_map_rules() -> void:
 				print("  room_gen %d seed %d: %s" % [look, s, bad])
 			assert_true(RoomGen.last_attempts <= RoomGen.TRIES, "made within its attempts")
 	assert_eq(failed, 0, "every one of the 200 passes")
+
+
+## Map Stage 10: each shape is the shape it says, and a generated name makes its room again.
+func test_each_shape_is_its_shape() -> void:
+	for look in LOOKS:
+		for s in range(1, 4):
+			var t := RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", "corridor")
+			assert_true(Vector2i(t.width, t.height) in [RoomGen.SIZE_LONG, RoomGen.SIZE_TALL], "a corridor is long and thin")
+			t = RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", "ring")
+			assert_true(t.is_solid(t.width / 2, t.height / 2), "a ring has its middle fallen in")
+			t = RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", "ell")
+			var dark := 0
+			for corner: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+				var c := Vector2i(int(t.width * (0.15 + 0.7 * corner.x)), int(t.height * (0.15 + 0.7 * corner.y)))
+				dark += 1 if t.is_solid(c.x, c.y) and t.is_solid(c.x + 2, c.y + 2) and t.is_solid(c.x - 2, c.y - 2) else 0
+			assert_true(dark >= 1, "an L has a corner of dark")
+			var reach := 0
+			var raised := 0
+			var low := 0
+			t = RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", "split")
+			for c: Vector2i in t.reachable_cells():
+				reach += 1
+				raised += 1 if t.height_at(c.x, c.y) == 2 else 0
+			assert_true(raised > reach * 0.1, "a split level is raised on one side (%d %d: %d of %d)" % [look, s, raised, reach])
+			t = RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", "flooded")
+			reach = 0
+			for c: Vector2i in t.reachable_cells():
+				reach += 1
+				low += 1 if t.height_at(c.x, c.y) == 0 else 0
+			assert_true(low > reach * 0.4, "a flooded room is mostly under (%d %d: %d of %d)" % [look, s, low, reach])
+
+
+func test_a_generated_name_makes_its_room_again() -> void:
+	for look in LOOKS:
+		var t := RoomGen.generate(look, 4242, "combat", Vector2i.ZERO, "", "any")
+		var again := RoomGen.from_name(t.name)
+		assert_true(again != null, "%s reads as a generated room" % t.name)
+		assert_eq(again.rows, t.rows, "the same plan from the name")
+		assert_eq(again.directives, t.directives, "and the same pieces")
+	assert_true(RoomGen.from_name("flats_02") == null, "a saved room's name is not a seed")
+
+
+## The Stage 10 gate: 200 rooms of the new shapes (ten a shape a look) keep the map rules.
+func test_two_hundred_shaped_rooms_keep_the_map_rules() -> void:
+	var failed := 0
+	for look in LOOKS:
+		for shape: String in RoomGen.SHAPES:
+			for s in range(1, 11):
+				var t := RoomGen.generate(look, s, "combat", Vector2i.ZERO, "", shape)
+				var bad := RoomGen.validate(t, look)
+				if not bad.is_empty():
+					failed += 1
+					print("  room_gen %d %s seed %d: %s" % [look, shape, s, bad])
+	assert_eq(failed, 0, "every one of the 200 passes")

@@ -1,11 +1,13 @@
 extends Node
 ## Dev aid (map Stage 09): rebuilds the hand-made fighting and reward rooms with RoomGen.
-##   godot --headless --path . src/dev/room_rebuild.tscn -- [--only=<text>] [--tries=10] [--dry]
+##   godot --headless --path . src/dev/room_rebuild.tscn -- [--only=<text>] [--new] [--tries=10] [--dry]
+## --new makes only the rooms whose file is missing (map Stage 10's new shapes); the rooms left
+## alone still count as chosen, so a new room is measured against them.
 ## For every room in TARGETS it makes `tries` candidates from seeds of its own (each one passing
 ## the validator), keeps the one least like the rooms already chosen in its biome (by feature
 ## cells, as tools/map_audit.py measures "near"), writes it over data/rooms/<dir>/<file>.txt as
 ## an ordinary template, and records file, look, kind, size and seed in docs/ROOM_REBUILD.csv,
-## so the set can be made again exactly (docs/ has a .gdignore: Godot would import a CSV there as
+## so the set can be made again exactly with the generator of the commit that made it (docs/ has a .gdignore: Godot would import a CSV there as
 ## a translation table). Signature rooms (shop, altar, fountain, echo, boss, the
 ## hub) are map Stage 12's and are left alone.
 
@@ -18,8 +20,9 @@ const BIOMES := [
 const CSV := "res://docs/ROOM_REBUILD.csv"
 
 
-## [dir, file, look, kind, size] for every room this stage rebuilds. Fights are mixed in size:
-## two one-screen rooms a biome (the smallest fights), a third medium, the rest large.
+## [dir, file, look, kind, size, shape] for every room this stage rebuilds. Fights are mixed in
+## size: two one-screen rooms a biome (the smallest fights), a third medium, the rest large.
+## Map Stage 10 adds one fighting room of each shape a biome, numbered on from the open ones.
 static func targets() -> Array:
 	var out: Array = []
 	for b in BIOMES:
@@ -30,11 +33,13 @@ static func targets() -> Array:
 				size = RoomGen.SIZE_S
 			elif i < 2 + n / 3:
 				size = RoomGen.SIZE_M
-			out.append([b[0], "%s_%02d" % [b[2], i + 1], b[1], "combat", size])
-		out.append([b[0], "challenge_01", b[1], "challenge", RoomGen.SIZE_M])
-		out.append([b[0], "dive_01", b[1], "dive", RoomGen.SIZE_M])
-		out.append([b[0], "treasure_01", b[1], "treasure", RoomGen.SIZE_M])
-		out.append([b[0], "vault_01", b[1], "vault", RoomGen.SIZE_S])
+			out.append([b[0], "%s_%02d" % [b[2], i + 1], b[1], "combat", size, ""])
+		for i in RoomGen.SHAPES.size():
+			out.append([b[0], "%s_%02d" % [b[2], n + 1 + i], b[1], "combat", Vector2i.ZERO, RoomGen.SHAPES[i]])
+		out.append([b[0], "challenge_01", b[1], "challenge", RoomGen.SIZE_M, ""])
+		out.append([b[0], "dive_01", b[1], "dive", RoomGen.SIZE_M, ""])
+		out.append([b[0], "treasure_01", b[1], "treasure", RoomGen.SIZE_M, ""])
+		out.append([b[0], "vault_01", b[1], "vault", RoomGen.SIZE_S, ""])
 	return out
 
 
@@ -42,6 +47,7 @@ func _ready() -> void:
 	var only := ""
 	var tries := 10
 	var dry := false
+	var only_new := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):
 			only = a.trim_prefix("--only=")
@@ -49,16 +55,29 @@ func _ready() -> void:
 			tries = int(a.trim_prefix("--tries="))
 		elif a == "--dry":
 			dry = true
-	var rows := PackedStringArray(["file,look,kind,size,seed,attempts,nearest"])
+		elif a == "--new":
+			only_new = true
+	var rows := _read_csv()
 	var chosen: Dictionary = {}  # dir -> Array of feature sets
+	var todo: Array = []
 	for tg in targets():
 		var dir: String = tg[0]
-		var file: String = tg[1]
-		if only != "" and not (dir + "/" + file).contains(only):
+		var path := "res://data/rooms/%s/%s.txt" % [dir, tg[1]]
+		if (only != "" and not (dir + "/" + str(tg[1])).contains(only)) or (only_new and FileAccess.file_exists(path)):
+			# Left alone: it is one of the chosen all the same.
+			if FileAccess.file_exists(path):
+				if not chosen.has(dir):
+					chosen[dir] = []
+				chosen[dir].append(_features(RoomTemplate.load_file(path)))
 			continue
+		todo.append(tg)
+	for tg in todo:
+		var dir: String = tg[0]
+		var file: String = tg[1]
 		var look: int = tg[2]
 		var kind: String = tg[3]
 		var size: Vector2i = tg[4]
+		var shape: String = tg[5]
 		var base := hash([dir, file]) % 100000
 		var best: RoomTemplate = null
 		var best_seed := 0
@@ -69,7 +88,7 @@ func _ready() -> void:
 			if k >= tries and best != null:
 				break
 			var s := base + k
-			var t := RoomGen.generate(look, s, kind, size, file)
+			var t := RoomGen.generate(look, s, kind, size, file, shape)
 			if not RoomGen.validate(t, look, kind).is_empty():
 				continue
 			var f := _features(t)
@@ -94,14 +113,38 @@ func _ready() -> void:
 			var fa := FileAccess.open("res://data/rooms/%s/%s.txt" % [dir, file], FileAccess.WRITE)
 			fa.store_string(text)
 			fa.close()
-		rows.append("%s/%s,%s,%s,%dx%d,%d,%d,%.2f" % [dir, file, RoomGen.LOOK_NAME[look], kind, size.x, size.y,
-			best_seed, best_attempts, best_near])
-		print("room_rebuild: %s/%s %s %dx%d seed %d, nearest %.2f" % [dir, file, kind, size.x, size.y, best_seed, best_near])
-	if not dry and only == "":
+		rows[dir + "/" + file] = "%s/%s,%s,%s,%dx%d,%s,%d,%d,%.2f" % [dir, file, RoomGen.LOOK_NAME[look], kind,
+			best.width, best.height, shape, best_seed, best_attempts, best_near]
+		print("room_rebuild: %s/%s %s %s %dx%d seed %d, nearest %.2f" % [dir, file, kind, shape, best.width, best.height,
+			best_seed, best_near])
+	if not dry:
+		var lines := PackedStringArray([HEADER])
+		for tg in targets():
+			var key := str(tg[0]) + "/" + str(tg[1])
+			if rows.has(key):
+				lines.append(rows[key])
 		var fa := FileAccess.open(CSV, FileAccess.WRITE)
-		fa.store_string("\n".join(rows) + "\n")
+		fa.store_string("\n".join(lines) + "\n")
 		fa.close()
 	get_tree().quit()
+
+
+const HEADER := "file,look,kind,size,shape,seed,attempts,nearest"
+
+
+## The manifest as it stands, by file; Stage 09's rows (no shape column) are read as open plans.
+static func _read_csv() -> Dictionary:
+	var out: Dictionary = {}
+	if not FileAccess.file_exists(CSV):
+		return out
+	for line in FileAccess.get_file_as_string(CSV).split("\n"):
+		var f := line.strip_edges().split(",")
+		if f.size() < 7 or f[0] == "file":
+			continue
+		if f.size() == 7:
+			f.insert(4, "")
+		out[f[0]] = ",".join(f)
+	return out
 
 
 ## The plan's feature cells inside the rim, as map_audit.py counts them (water, raised, solid
