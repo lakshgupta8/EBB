@@ -221,5 +221,9 @@ the pull too: the Reef's own kinds swim with it, and the others are carried.
 - 11d: grammar and chunks.
 - 11e: the current rule and a sample room.
 - 11f: its rooms.
-- 11g: the second road in the run.
-- 11h onward: enemies, elite, boss, echo, music, whispers.
+- 11g: the second road in the run (done: `Run.BIOMES` `step`/`next`/`road`; the Wreck's arena has two signed ways down; until 11h the Reef borrows the Harbour's signature plans, the Chainmother, and stand-in drowned).
+- 11h: the three drowned (done: the Coral Crab, the Reef Ray, the Polyp Swarm; `tools/gen_reef_enemies.py`).
+- 11i: the elite (done: the Reefwarden, a wall-diver with a maul and a surge; lead boots, so the current cannot move him).
+- 11j: the boss (done: the Tidewall; it turns the current, and its second breach opens a second channel).
+- 11k: the echo (done: Hale the Mason; everyone home now needs a night down each road).
+- 11l: music and lantern lines (done: `music_reef`, `amb_reef`, three lines; the Tidewall's arena raised under the wall). The Reef is whole.

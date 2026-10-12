@@ -53,5 +53,35 @@
 		{"lines": ["Glass. It rings, did you know? Strike it and it rings a true note. Everything in Saltmere does.", "We will keep it. We will sing to it. It will sing back, a little."], "reward": {"pearls": 10}},
 		{"lines": ["We were nine when the water came. We are nine still. Nobody in the choir has ever been anything else.", "You cannot free one of a choir. You freed all of us, or none. Here, from all nine."], "reward": {"shards": 2}},
 		{"lines": ["We have finished the hymn. It took three hundred years and a night. The last line is about you.", "It says: the keeper stood and let it end. That is the whole line. We are proud of it."], "reward": {"perk": "choir", "text": "The Choir's hymn: pearls +5% at the end of a night"}}
+	],
+	"mason": [
+		{
+			"lines": [
+				"Salt-glass. The sea makes it out of what it keeps. I used to set it in the mortar, for luck.",
+				"Here. A mason does not keep what someone else could use."
+			],
+			"reward": {
+				"pearls": 10
+			}
+		},
+		{
+			"lines": [
+				"You walk the reef like it is a floor. It is not a floor. It is a wall lying down.",
+				"Take this. I found it in a joint, three hundred years in, and I never knew whose it was."
+			],
+			"reward": {
+				"shards": 2
+			}
+		},
+		{
+			"lines": [
+				"The current is only water in a hurry. Stand like stone and it goes round you.",
+				"That is all a wall ever knew. Now you know it too."
+			],
+			"reward": {
+				"perk": "mason",
+				"text": "Hale's footing: the current carries you half as hard"
+			}
+		}
 	]
 }

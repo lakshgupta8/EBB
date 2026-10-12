@@ -62,7 +62,7 @@ var mods: Dictionary = {
 	"low_damage": 0.0, "per_mark": 0.0, "mark_count": 0, "thorns": 0, "water_shield": false,
 	"armour": 1.0, "slack": false,
 	# M7: the Ledger's new branches and the village's perks
-	"deep_tick_mult": 1.0, "fountain_hold": 0.0, "shop_mult": 1.0, "flare_radius": 1.0,
+	"deep_tick_mult": 1.0, "current_mult": 1.0, "fountain_hold": 0.0, "shop_mult": 1.0, "flare_radius": 1.0,
 }
 
 var max_dash: int = DASH_CHARGES

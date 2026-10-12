@@ -218,3 +218,47 @@ func test_gaff_heavy_needs_a_full_charge() -> void:
 	w._process(GaffHook.CHARGE_MAX + 0.05)
 	assert_eq(w.state, GaffHook.State.HEAVY, "overcharge auto-releases")
 	player.free()
+
+
+## Map Stage 11h-11i: the Reef's drowned and its elite load, are wired, and sit on the 16-frame layout with an
+## elite costume sheet beside; the polyp grows where it stands (the current never carries it),
+## the ray skims (it is not flying, so the water still carries it), and only the polyp has no blade.
+func test_the_reef_drowned() -> void:
+	for f in ["coral_crab", "reef_ray", "polyp_swarm", "reefwarden"]:
+		var scene: PackedScene = load("res://src/enemies/%s.tscn" % f)
+		assert_true(scene != null, f + " loads")
+		var e = scene.instantiate()
+		assert_true(e is Enemy, f + " is an Enemy")
+		assert_true(e.display_name != "Enemy", f + " is named")
+		assert_true(e.get_node_or_null("Health") != null and e.get_node_or_null("Hurtbox") != null, f + " is wired")
+		assert_eq(e.get_node_or_null("Hitbox") == null, f == "polyp_swarm", f + ": only the polyp fights at range alone")
+		assert_eq(e.rooted, f in ["polyp_swarm", "reefwarden"], f + " rooted (the polyp grows there; the warden wears lead)")
+		assert_true(not e.flying, f + " is carried by the current")
+		e.free()
+		var sheet: Texture2D = load("res://assets/sprites/%s.png" % f)
+		assert_eq(sheet.get_size(), Vector2(24 * 16, 24), f + " sheet on the 16-frame layout")
+		assert_true(ResourceLoader.exists("res://assets/sprites/%s_elite.png" % f), f + " has an elite costume")
+	assert_true(ResourceLoader.exists("res://assets/sprites/polyp_spore.png"), "the polyp's spore")
+	# Map Stage 11i: the Reefwarden is the Reef's named elite.
+	assert_eq(Run.BIOMES[Run.index_of("reef")].elite, load("res://src/enemies/reefwarden.tscn"), "the reef's elite is its own")
+	assert_true(ResourceLoader.exists("res://assets/sprites/surge.png"), "the warden's surge")
+	# Map Stage 11j: the Tidewall is the Reef's boss: rooted, 48 px on the boss layout, with the
+	# second-breach sheet beside, in an arena whose two channels it runs (the first from the start).
+	assert_eq(Run.BIOMES[Run.index_of("reef")].boss, load("res://src/enemies/tidewall.tscn"), "the reef's boss is its own")
+	var tw: Enemy = load("res://src/enemies/tidewall.tscn").instantiate()
+	assert_true(tw.rooted and tw.has_signal("phase_changed"), "the tidewall stands its ground and has phases")
+	tw.free()
+	for sheet in ["tidewall", "tidewall_breached"]:
+		assert_eq((load("res://assets/sprites/%s.png" % sheet) as Texture2D).get_size(), Vector2(48 * 18, 48), sheet + " on the boss layout")
+	var arena := RoomTemplate.load_file("res://data/rooms/reef/boss_01.txt")
+	assert_eq(arena.currents.size(), 2, "the arena has two channels for the tidewall to run")
+	var room := Room.new()
+	room.build(arena, 1, Tiles.Look.REEF)
+	room.set_tide(1.8)
+	var at := room.cell_to_world(Vector2i(20, 10))
+	var before := room.current.push_at(at)
+	var line: PackedVector2Array = arena.currents[0].duplicate()
+	line.reverse()
+	room.current.relay([line])
+	assert_true(before.x > 0.0 and room.current.push_at(at).x < 0.0, "turned, the channel runs the other way (%s)" % before)
+	room.free()

@@ -72,11 +72,13 @@ func test_tide_levels() -> void:
 
 
 func test_templates_parse() -> void:
-	for dir in ["res://data/rooms/biome1/", "res://data/rooms/harbour/", "res://data/rooms/biome2/", "res://data/rooms/biome3/"]:
-		_check_templates(dir)
+	for b in Run.BIOMES:
+		_check_templates(str(b.dir), (b.next as Array).size())
 
 
-func _check_templates(dir: String) -> void:
+## `roads`: how many ways down the biome's boss room opens (the last one none, a fork two; the
+## last biome's arena keeps its slot all the same).
+func _check_templates(dir: String, roads: int = 1) -> void:
 	var files := DirAccess.get_files_at(dir)
 	assert_true(files.size() >= 18, "at least 18 templates in " + dir)
 	# Every room type the graph can offer has a template here (the harbour and the hall once
@@ -94,7 +96,7 @@ func _check_templates(dir: String) -> void:
 		assert_true(t.height >= 23 and t.height <= 46, f + " height %d in 23-46" % t.height)
 		assert_true(t.player_spawn.x >= 0, f + " has a player spawn")
 		assert_true(t.doors.size() >= 1, f + " has a door slot")
-		if f.begins_with("flats") or f.begins_with("harbour") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
+		if f.begins_with("flats") or f.begins_with("harbour") or f.begins_with("reef") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
 			assert_true(t.enemy_spawns.size() >= 1, f + " has enemy spawns")
 		if f.begins_with("echo"):
 			assert_eq(t.marker_cells("E").size(), 1, f + " has one cage")
@@ -105,7 +107,7 @@ func _check_templates(dir: String) -> void:
 		if f.begins_with("dive"):
 			assert_true(t.marker_cells("A").size() == 1 and t.marker_cells("T").size() == 1, f + " has an altar and a chest")
 		if f.begins_with("boss"):
-			assert_eq(t.doors.size(), 1, f + " has exactly one way down")
+			assert_eq(t.doors.size(), maxi(1, roads), f + " has a way down for each road")
 		assert_eq(t.height_at(0, 0), RoomTemplate.WALL_HEIGHT)
 		assert_true(t.is_solid(0, 0))
 		assert_true(not t.is_solid(t.player_spawn.x, t.player_spawn.y))
@@ -114,13 +116,14 @@ func _check_templates(dir: String) -> void:
 ## Every biome carries everything the run needs, and the tide adds up the same way in each.
 func test_biome_table() -> void:
 	var ids := {}
-	assert_eq(Run.BIOMES.size(), 4, "four biomes")
+	assert_eq(Run.BIOMES.size(), 5, "five biomes")
 	for b in Run.BIOMES:
 		assert_true(not ids.has(b.id), "unique biome id " + str(b.id))
 		ids[b.id] = true
 		assert_true(DirAccess.dir_exists_absolute(b.dir), "rooms for " + str(b.id))
 		for k in ["name", "length", "theme", "boss", "boss_name", "stir", "echoes", "intro", "music", "place",
-				"whisper", "boss_whisper", "boss_sfx", "tint", "won", "wet", "elite", "elite_name", "boss_music"]:
+				"whisper", "boss_whisper", "boss_sfx", "tint", "won", "wet", "elite", "elite_name", "boss_music",
+				"step", "next", "road"]:
 			assert_true(b.has(k), "%s has %s" % [b.id, k])
 		assert_true(b.elite is PackedScene and str(b.elite_name) != "", "a named elite for " + str(b.id))
 		assert_true(Story.WHISPERS.has(b.whisper) and Story.WHISPERS.has(b.boss_whisper), "whispers for " + str(b.id))
@@ -135,10 +138,29 @@ func test_biome_table() -> void:
 			tide.room_entered()
 		assert_near(tide.level, 1.44, 0.01)
 	assert_eq(Run.BIOMES[1].id, "harbour", "the harbour sits between the flats and the streets")
+	# Map Stage 11g: the night forks after the Flats; both roads come out in the Streets, one
+	# step down, and every road ends at the Hall. A fork's roads are signed.
+	assert_eq(Run.BIOMES[0].next, ["harbour", "reef"], "two roads out of the flats")
+	for id in ["harbour", "reef"]:
+		var b: Dictionary = Run.BIOMES[Run.index_of(id)]
+		assert_eq(b.next, ["streets"], id + " comes out in the streets")
+		assert_eq(int(b.step), 1, id + " is one step down")
+		assert_true(str(b.road) != "", id + " has a signboard")
+	for i in Run.BIOMES.size():
+		var at := i
+		var steps := 0
+		while not Run.is_last(at) and steps < 10:
+			var nx := Run.index_of(str(Run.BIOMES[at].next[0]))
+			assert_true(nx >= 0, "a road from %s leads somewhere" % Run.BIOMES[at].id)
+			assert_eq(int(Run.BIOMES[nx].step), int(Run.BIOMES[at].step) + 1, "a road goes one step down")
+			at = nx
+			steps += 1
+		assert_eq(Run.BIOMES[at].id, "hall", "every road ends at the hall")
+	assert_true(Run.is_last(Run.index_of("hall")) and not Run.is_last(Run.index_of("reef")), "only the hall is last")
 	# Every whisper the run asks for by name has to exist, including the built-up ones.
 	for t in range(1, Run.TIERS.size() + 1):
 		assert_true(Story.WHISPERS.has("tide_%d" % t), "a whisper for spring tide %d" % t)
-	for k in ["cage", "death", "taken", "challenge", "dive", "netted", "choir", "harbour_ships", "harbour_hands",
+	for k in ["cage", "death", "taken", "challenge", "dive", "netted", "choir", "reefwarden", "tidewall", "mason", "reef_wall", "reef_living", "coral_cut", "harbour_ships", "harbour_hands",
 			"page", "glass", "choir_spared", "shortcut", "launch"]:
 		assert_true(Story.WHISPERS.has(k), "the run asks for the whisper " + k)
 	# Every cage echo the biomes name is someone the rock knows.
@@ -151,7 +173,7 @@ func test_hub_template() -> void:
 	var t := RoomTemplate.load_file("res://data/rooms/hub.txt")
 	assert_eq(t.marker_cells("X").size(), 1, "one descend marker")
 	assert_true(t.marker_cells("h").size() >= 1, "lighthouse marker")
-	for m in ["O", "B", "W", "C", "N", "K", "S", "I", "L", "V", "Y"]:
+	for m in ["O", "B", "W", "C", "N", "K", "S", "I", "L", "V", "Y", "G"]:
 		assert_eq(t.marker_cells(m).size(), 1, "one spot for " + m)
 
 

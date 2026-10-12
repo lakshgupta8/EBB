@@ -219,6 +219,7 @@ func test_codex_discovery_and_endings_gate() -> void:
 	assert_true(Story.ending_available("break"), "break opens with five home")
 	SaveManager.set_flag("echo_maren")
 	SaveManager.set_flag("echo_choir")
+	SaveManager.set_flag("echo_mason")
 	assert_true(Story.ending_visible("walk") and not Story.ending_available("walk"), "walk shows, still locked")
 	SaveManager.data.wins = 3
 	assert_true(Story.ending_available("walk"), "walk opens at three wins")

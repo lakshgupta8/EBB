@@ -1,6 +1,6 @@
 # EBB — Visual Style Bible (STYLE.md)
 
-Version 1.39, after map Stage 11f, 2026-10-05 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
+Version 1.45, after map Stage 11l, 2026-10-12 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
 
 Target in one sentence: **small, expressive, atmospheric pixel art with exceptional silhouette and lighting discipline** — a cold, wet, quiet northern shore at night, with one warm light in the player's hand.
 
@@ -669,6 +669,12 @@ The rooms are a place before they are an arena. This section governs every room 
 ## Change log
 
 - 1.39 (2026-10-05, map Stage 11f): the Reef's 19 saved rooms (22), as many as the Harbour, in `data/rooms/reef/`.
+- 1.40 (2026-10-05, map Stage 11g): where the night forks, the boss arena has a way down for each road, each signed with its road's name in the door's label face (THE HARBOUR ROAD, THE REEF ROAD); the Wreck's arena has its two in the south wall, the harbour road on the left.
+- 1.41 (2026-10-05, map Stage 11h): the Reef's drowned (17, 18): not people, so no wet crown; bleached Drowned skin bodies, Salt red only on claws and the living-coral foot, Violet light for the polyps' crowns, the ray in the Oilskin ramp; the ray is the one body drawn from above, with its shadow apart under it; the polyp's elite bloom is the only warm (Warm yellow) on a Reef body, and a costume only.
+- 1.42 (2026-10-05, map Stage 11i): the Reefwarden (17, 18): a person, so the wet crown on his helmet and a person's death; Bronze only on the diving helmet (metal, not light), the porthole Sea pale; a thrown or rolling thing seen from above is drawn round (the surge), so it reads the same unturned.
+- 1.43 (2026-10-05, map Stage 11j): the Tidewall (17, 19): dressed stone is laid in blocks (a light arris at each block's corner, never a full-width light line, which reads as a radiator); its only light is the cold of the breach; a boss whose phase changes its body draws the second state as its own sheet, swapped in, and keeps the phase tint.
+- 1.44 (2026-10-05, map Stage 11k): Hale the Mason (18): drowned, so Drowned skin on the face and hands only, the Sea pale rim on his Wool cap, one strand of kelp at the collar; a mason's Weathered brown apron and a trowel (Iron light) as his trade; portrait cell 12.
+- 1.45 (2026-10-12, map Stage 11l): the Reef's sound: its loop in the music table's dorian family (the water moving, not settling) and an ambience of running water, coral clicks and surf on the wall; a boss arena keeps a dry place to fight at the boss, as the Chainmother's ring and the Tidewall's shelf do, so the water is the hazard you cross rather than the floor you fight on.
 - 1.38 (2026-10-05, map Stage 11e): the Reef's current (22): `~` lines in a room, the flow three cells either side of a channel's line, carrying only in water (shallow 20, deep 44 to 60 px/s), living coral cutting whoever it carries; foam flecks drift with it so it is seen before it is felt.
 - 1.37 (2026-10-05, map Stage 11d): the Reef's grammar (22): the sea wall across (half), down (three in ten) or gone (the reef flat, two in ten); breaches with the stubs standing, the current running from each in a channel, coral heads between, the rim bitten hard; ten unlit chunks.
 - 1.36 (2026-10-05, map Stage 11c): the Reef's ten set pieces and its decor (22): coral in Drowned skin with Pale slate and Oilskin light shades (never the floor's own Pale slate alone), colour only where a thing lives (the clam's mantle, one fan, the glowing coral, the starfish), its light all cold.

@@ -28,6 +28,7 @@ const KINDLE_TINT := Color(0.987, 0.946, 0.840)
 @export var death_color: Color = Color(0.6, 0.7, 0.5)
 @export var flying: bool = false  # ignores water
 @export var amphibious: bool = false  # fast in water, slow on land (swimmers)
+@export var rooted: bool = false  # grows where it stands: the current never carries it (map Stage 11h)
 @export var salt_drop: int = 2
 @export var pearl_drop: int = 0
 

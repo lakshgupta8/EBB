@@ -17,12 +17,12 @@ BASE = {"version": 2, "pearls": 180, "runs": 14, "wins": 3, "best_depth": 42, "t
 
 def village():
     d = dict(BASE)
-    for e in ["bram", "pell", "wren", "cartographer", "choir", "aldous", "maren"]:
+    for e in ["bram", "pell", "mason", "wren", "cartographer", "choir", "aldous", "maren"]:
         d["flags"]["echo_" + e] = True
-    for b in ["wreck", "chainmother", "bell", "ebb"]:
+    for b in ["wreck", "chainmother", "tidewall", "bell", "ebb"]:
         d["flags"]["boss_%s_broken" % b] = True
     d["flags"]["ebb_broken"] = True
-    d["echoes"] = 7
+    d["echoes"] = 8
     d["glass"] = 3
     d["shells"] = 2
     d["journals"] = [1, 2, 3, 4, 5]

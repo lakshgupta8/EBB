@@ -7,7 +7,7 @@ const SRC_DIRS := ["res://src/", "res://tests/"]
 ## This file is full of the names of things as regex literals; it would only find itself.
 const SKIP_FILE := "content_check.gd"
 ## The people on the rock, as the hub places them (hub.gd is a scene script, not a class).
-const PEOPLE := ["orla", "fen", "bram", "wren", "cartographer", "maren", "nessa", "idris", "aldous", "pell", "choir"]
+const PEOPLE := ["orla", "fen", "bram", "wren", "cartographer", "maren", "nessa", "idris", "aldous", "pell", "choir", "mason"]
 const AUDIO_DIR := "res://assets/audio/"
 const SPRITE_DIR := "res://assets/sprites/"
 

@@ -21,6 +21,7 @@ var room_type: int = 0
 var cell: Vector2i
 var is_open: bool = false
 var wet: bool = false  # the flooded way at the fork
+var road: String = ""  # the way down: the biome it leads to, where the night forks (Run.BIOMES next)
 var flooded: bool = false  # the tide has reached the doorway
 
 var _icon: Sprite2D

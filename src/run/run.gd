@@ -22,6 +22,11 @@ const BARNACLE := preload("res://src/enemies/barnacle.tscn")
 const DECKHAND := preload("res://src/enemies/deckhand.tscn")
 const CHAINMOTHER := preload("res://src/enemies/chainmother.tscn")
 const TIDEWISP := preload("res://src/enemies/tidewisp.tscn")
+const CORAL_CRAB := preload("res://src/enemies/coral_crab.tscn")
+const REEF_RAY := preload("res://src/enemies/reef_ray.tscn")
+const POLYP := preload("res://src/enemies/polyp_swarm.tscn")
+const REEFWARDEN := preload("res://src/enemies/reefwarden.tscn")
+const TIDEWALL := preload("res://src/enemies/tidewall.tscn")
 const NETTED := preload("res://src/enemies/netted.tscn")
 const CHOIR := preload("res://src/enemies/choir.tscn")
 const TALLOW := preload("res://src/enemies/tallow.tscn")
@@ -29,9 +34,13 @@ const TALLOW := preload("res://src/enemies/tallow.tscn")
 ## The night, top to bottom. Everything that differs between biomes lives here, so nothing
 ## else counts indices: id, rooms directory, length (rooms before the boss), look, boss,
 ## echoes to find, music, codex place, the lantern's whispers, the boss's sound, the night's tint.
+## The night forks (map Stage 11g): `step` is how far down a biome sits (what the fights scale
+## with), `next` the roads out of it past its boss (more than one: a door each, signed `road`).
+## New biomes go on the end, so a saved night's index keeps meaning the same place.
 const BIOMES := [
 	{"id": "flats", "name": "THE FLATS", "dir": "res://data/rooms/biome1/", "length": 10, "theme": Tiles.Look.FLATS,
 		"boss": WRECK, "boss_name": "THE WRECK", "stir": "THE WRECK STIRS", "won": "THE WRECK IS BROKEN",
+		"step": 0, "next": ["harbour", "reef"], "road": "",
 		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
 		"boss_sfx": "roar", "tint": Palette.NIGHT_TINT_RUN, "wet": GULL,
 		"elite": NETTED, "elite_name": "The Netted", "boss_music": "music_boss",
@@ -39,6 +48,7 @@ const BIOMES := [
 		"boss_sub": "Slams, charges, calls the flats. Break it and the way down opens."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
 		"boss": CHAINMOTHER, "boss_name": "THE CHAINMOTHER", "stir": "THE CHAINMOTHER STIRS", "won": "THE CHAINMOTHER LETS GO",
+		"step": 1, "next": ["streets"], "road": "The harbour road",
 		"echoes": ["pell"], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
 		"boss_sfx": "creak", "tint": Palette.NIGHT_TINT_RUN, "wet": BARNACLE,
 		"elite": DECKHAND, "elite_name": "The Bosun", "boss_music": "music_boss",
@@ -46,6 +56,7 @@ const BIOMES := [
 		"boss_sub": "Sweeps, drops anchors, hauls you in. Break it and the way down opens."},
 	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
 		"boss": BELL, "boss_name": "THE BELL OF SALTMERE", "stir": "THE BELL CRACKS", "won": "THE BELL IS SILENCED",
+		"step": 2, "next": ["hall"], "road": "",
 		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
 		"boss_sfx": "bell", "tint": Palette.NIGHT_TINT_RUN, "wet": SWIMMER,
 		"elite": CHOIR, "elite_name": "The Choir", "boss_music": "music_deep",
@@ -53,11 +64,23 @@ const BIOMES := [
 		"boss_sub": "It called the sea in. Silence it and the way down opens."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
 		"boss": EBB, "boss_name": "THE EBB", "stir": "THE EBB RISES", "won": "THE EBB LETS GO",
+		"step": 3, "next": [], "road": "",
 		"echoes": ["aldous"], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
 		"boss_sfx": "ebb", "tint": Palette.NIGHT_TINT_RUN, "wet": ANCHOR,
 		"elite": SHADE, "elite_name": "Echo of Maren", "boss_music": "music_deep",
 		"intro": "Nine rooms down, then the Ebb. Every keeper before you is standing in it.",
 		"boss_sub": "Maren is in there with it. Break it, and the night is yours."},
+	# Map Stage 11g: the reef road, the other way from the Flats to the Streets. Its drowned came
+	# in 11h, its elite in 11i, its boss in 11j, its echo (Hale the Mason) in 11k, its music and
+	# lantern lines in 11l.
+	{"id": "reef", "name": "THE REEF", "dir": "res://data/rooms/reef/", "length": 9, "theme": Tiles.Look.REEF,
+		"boss": TIDEWALL, "boss_name": "THE TIDEWALL", "stir": "THE SECOND BREACH OPENS", "won": "THE TIDEWALL FALLS",
+		"step": 1, "next": ["streets"], "road": "The reef road",
+		"echoes": ["mason"], "music": "music_reef", "place": "reef", "whisper": "reef", "boss_whisper": "tidewall",
+		"boss_sfx": "heavy", "tint": Palette.NIGHT_TINT_RUN, "wet": REEF_RAY,
+		"elite": REEFWARDEN, "elite_name": "The Reefwarden", "boss_music": "music_boss",
+		"intro": "Nine rooms along the sea wall, then its breach. The water runs here; let it, or fight it.",
+		"boss_sub": "The wall itself. It turns the water; watch which way it runs. Break it and the way into the city opens."},
 ]
 ## The people you can bring back, and what they say when the cage opens.
 const ECHOES := {
@@ -66,6 +89,7 @@ const ECHOES := {
 	"cartographer": {"name": "The Cartographer", "line": "I mapped every street before the water came. Streets do not move. The water does."},
 	"maren": {"name": "Maren", "line": "Tam. It let go. Take me up to the light."},
 	"pell": {"name": "Pell the Diver", "line": "A keeper. Under the harbour. You have the lungs for it, then. Bring me up; there is glass down here worth the breath."},
+	"mason": {"name": "Hale the Mason", "line": "Mind the joint, keeper, it is still green. Three hundred years I have been pointing this wall. Take me up; I would like to build something the sea is on the outside of."},
 	"aldous": {"name": "Keeper Aldous", "line": "Another keeper. I thought I was the last to come down. Take me up, and I will tell you what I wrote before I did."},
 	"choir": {"name": "The Choir", "line": "It ended. You let it end. Sing for the rock, then. We will find the way up on our own."},
 }
@@ -150,6 +174,19 @@ var _room_tick: int = 0
 
 func biome() -> Dictionary:
 	return BIOMES[state.biome]
+
+
+## Where a biome sits in BIOMES, by id (-1 when there is none).
+static func index_of(id: String) -> int:
+	for i in BIOMES.size():
+		if BIOMES[i].id == id:
+			return i
+	return -1
+
+
+## The night ends at this biome's boss: no road leads on from it.
+static func is_last(index: int) -> bool:
+	return (BIOMES[clampi(index, 0, BIOMES.size() - 1)].next as Array).is_empty()
 
 
 func _ready() -> void:
@@ -363,9 +400,10 @@ func _apply_water(delta: float) -> void:
 func _apply_current(delta: float) -> void:
 	if room == null or room.current == null or player.dead:
 		return
-	room.carry(player, delta)
+	room.carry(player, delta * float(player.mods.current_mult))  # Hale's footing halves it
 	if room.current.cuts_at(player.global_position):
 		_cut_tick += delta
+		_whisper("coral_cut", 0.2)   # once ever: what the living coral is
 		if _cut_tick >= CUT_TICK:
 			_cut_tick = 0.0
 			var info := DamageInfo.make(CUT_DAMAGE, null, Vector2.ZERO, 0.0)
@@ -375,7 +413,7 @@ func _apply_current(delta: float) -> void:
 	else:
 		_cut_tick = 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if not (e is Enemy) or e.flying or e.is_boss or not is_instance_valid(e):
+		if not (e is Enemy) or e.flying or e.rooted or e.is_boss or not is_instance_valid(e):
 			continue
 		room.carry(e, delta)
 		if room.current.cuts_at(e.global_position):
@@ -424,6 +462,9 @@ func _start_biome(index: int, at_boss: bool = false) -> void:
 	if b.id == "harbour":
 		_whisper("harbour_ships", 9.0)
 		_whisper("harbour_hands", 14.0)
+	elif b.id == "reef":
+		_whisper("reef_wall", 9.0)
+		_whisper("reef_living", 15.0)
 
 
 ## The parts of a biome that do not depend on where in it you are: graph, templates, light, music.
@@ -438,18 +479,21 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 	if night:
 		night.color = b.tint
 	Atmosphere.set_haze(self, b.theme)
-	Audio.gulls_enabled = b.id in ["flats", "harbour"]
+	Audio.gulls_enabled = b.id in ["flats", "harbour", "reef"]  # the reef is outside the wall, under open sky
 	Audio.layer("amb_" + str(b.id), -15.0)  # what this place sounds like under the sea
 	Audio.music(b.music, -11.0)
 	Codex.discover("place", b.place)
 
 
-## Past a boss: the tide slackens, the next biome begins. On the trial it never slackens:
-## the next boss stands in the same water, and it keeps rising.
-func _next_biome() -> void:
+## Past a boss: the tide slackens, the next biome begins, down the road taken (the first one
+## when the door had none). On the trial it never slackens: the next boss stands in the same
+## water, and it keeps rising.
+func _next_biome(road: String = "") -> void:
 	if state.mode != "trial":
 		state.tide.level = SLACK_WATER
-	_start_biome(state.biome + 1, state.mode == "trial")
+	var roads: Array = biome().next
+	var to := index_of(road) if road in roads else index_of(str(roads[0]))
+	_start_biome(to, state.mode == "trial")
 
 
 ## What the way down changes about the night (Modes.ALL says what each one is).
@@ -575,9 +619,9 @@ func _enter_room(type: int, wet: bool = false) -> void:
 
 	match type:
 		RoomGraph.COMBAT:
-			_spawn_enemies(2 + state.depth / 2 + state.biome, state.tier >= 7 and state.depth >= 4)
+			_spawn_enemies(2 + state.depth / 2 + int(biome().step), state.tier >= 7 and state.depth >= 4)
 		RoomGraph.ELITE:
-			_spawn_enemies(1 + state.depth / 3 + state.biome, true)
+			_spawn_enemies(1 + state.depth / 3 + int(biome().step), true)
 			announcer.hint("elite")
 		RoomGraph.FOUNTAIN:
 			announcer.hint("fountain")
@@ -653,8 +697,18 @@ func _room_bonus(type: int, wet: bool) -> float:
 ## Doors for the rooms offered next; the boss room's single way down; the wet mark at the fork.
 func _place_doors(type: int, next_depth: int) -> void:
 	if type == RoomGraph.BOSS:
-		# The way down opens when the boss is dead; the last biome has no way down.
-		room.place_doors([Door.DESCEND] if state.biome + 1 < BIOMES.size() else [])
+		# The way down opens when the boss is dead; the last biome has no way down, and where
+		# the night forks there is a door for each road, signed (map Stage 11g).
+		var roads: Array = biome().next
+		var types: Array = []
+		for r in roads:
+			types.append(Door.DESCEND)
+		room.place_doors(types)
+		for i in room.doors.size():
+			var d: Door = room.doors[i]
+			d.road = str(roads[i])
+			if roads.size() > 1:
+				d.set_label(str(BIOMES[index_of(d.road)].road).to_upper())
 	else:
 		var options: Array = graph.options_for(next_depth).duplicate()
 		# Dev aid for the door art: `--all-doors` opens a door in every slot the plan has.
@@ -682,7 +736,7 @@ func _start_challenge() -> void:
 
 func _spawn_wave() -> void:
 	_challenge_wave += 1
-	_spawn_enemies(maxi(2, 1 + state.depth / 3 + state.biome), _challenge_wave == CHALLENGE_WAVES)
+	_spawn_enemies(maxi(2, 1 + state.depth / 3 + int(biome().step)), _challenge_wave == CHALLENGE_WAVES)
 	Audio.play("wave", 0.0, -4.0)
 	FX.flash_screen(Color(0.5, 0.7, 1.0, 0.18), 0.3)
 
@@ -875,6 +929,19 @@ func _enemy_scene() -> PackedScene:
 			if r < 0.85:
 				return BARNACLE
 			return GULL
+		"reef":
+			# Map Stage 11h: the reef's own. Coral crabs hide among the heads from the first
+			# room; the rays and the polyps come once you are along the wall; a swimmer or two
+			# rides in on the current.
+			if state.depth < 2:
+				return CORAL_CRAB if r < 0.6 else REEF_RAY
+			if r < 0.32:
+				return CORAL_CRAB
+			if r < 0.58:
+				return REEF_RAY
+			if r < 0.84:
+				return POLYP
+			return SWIMMER
 		"hall":
 			# The hall: the old keepers, the dock hands, the mouths in the floor, and the
 			# ones who stood so long the candles ran down over them.
@@ -919,12 +986,14 @@ func _spawn_enemies(count: int, with_elite: bool) -> void:
 					_whisper("netted", 2.4)
 				elif biome().id == "streets":
 					_whisper("choir", 2.4)
+				elif biome().id == "reef":
+					_whisper("reefwarden", 2.4)
 				e.pearl_drop += 1
 
 
 func _spawn_echo_room() -> void:
 	cage_echo = _echo_queue.pop_front() if _echo_queue.size() > 0 else ""
-	_spawn_enemies(2 + state.depth / 2 + state.biome, false)
+	_spawn_enemies(2 + state.depth / 2 + int(biome().step), false)
 	for cell in room.template.marker_cells("E"):
 		cage = room.add_prop(Prop.Kind.CAGE, cell)
 		cage.used.connect(_on_cage_opened)
@@ -941,7 +1010,7 @@ func _spawn_boss() -> void:
 	boss = _spawn(biome().boss, room.cell_to_world(spawns[0]))
 	_second_wind_used = false
 	state.stats["tide_at_boss_%d" % state.biome] = state.tide.level
-	var last := state.biome + 1 >= BIOMES.size()
+	var last := is_last(state.biome)
 	if state.tier >= 3:
 		boss.call_deferred("_apply_stat_mult", 1.6 if (state.tier >= 8 and last) else 1.3, 1.0)
 		boss.health.changed.connect(_boss_second_wind)
@@ -1283,7 +1352,7 @@ func _on_boss_died() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e is Enemy and e != boss and is_instance_valid(e):
 			e.health.take(DamageInfo.make(9999, null, Vector2.ZERO, 0.0), true)
-	if state.biome + 1 >= BIOMES.size():
+	if is_last(state.biome):
 		_free_maren()
 		_win()
 		return
@@ -1327,7 +1396,7 @@ func _on_door_entered(door: Door) -> void:
 	var tw := create_tween()
 	tw.tween_property(fade, "color:a", 1.0, 0.2)
 	if door.room_type == Door.DESCEND:
-		tw.tween_callback(_next_biome)
+		tw.tween_callback(_next_biome.bind(door.road))
 	else:
 		tw.tween_callback(_enter_room.bind(door.room_type, door.wet))
 

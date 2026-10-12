@@ -8,7 +8,7 @@ const HUB_TEMPLATE := "res://data/rooms/hub.txt"
 ## Bram forges the later weapons for pearls. The knife is his gift.
 const WEAPON_COST := {"gaff": 0, "net": 0, "harpoon": 25, "lantern": 40, "bell": 55, "line": 45}
 const NPC_NAMES := {"orla": "Elder Orla", "fen": "Fen", "bram": "Bram", "wren": "Sister Wren", "cartographer": "The Cartographer",
-	"maren": "Maren", "nessa": "Nessa", "idris": "Idris", "aldous": "Keeper Aldous", "pell": "Pell", "choir": "The Choir"}
+	"maren": "Maren", "nessa": "Nessa", "idris": "Idris", "aldous": "Keeper Aldous", "pell": "Pell", "choir": "The Choir", "mason": "Hale"}
 ## One lantern post lights for every eight Log milestones.
 const LANTERNS_PER := 8
 
@@ -125,6 +125,7 @@ func _place_people() -> void:
 	_person("aldous", "L", Prop.Kind.ALDOUS, SaveManager.flag("echo_aldous"), open_aldous)
 	_person("pell", "V", Prop.Kind.PELL, SaveManager.flag("echo_pell"), open_pell)
 	_person("choir", "Y", Prop.Kind.CHOIR, SaveManager.flag("echo_choir"), open_choir)
+	_person("mason", "G", Prop.Kind.MASON, SaveManager.flag("echo_mason"), open_mason)
 
 
 func _person(id: String, marker: String, kind: Prop.Kind, here: bool, on_use: Callable) -> void:
@@ -538,6 +539,23 @@ func open_pell() -> void:
 		return _gift_from_menu("pell"))
 
 
+## Hale the Mason (map Stage 11k): the wall, and a gift. Three gifts and Hale's footing:
+## the current carries you half as hard.
+func open_mason() -> void:
+	var options: Array = [{"name": "The wall", "desc": "what the sea wall was for", "fail": ""}, _gift_option("mason")]
+	choice_ui.open("HALE THE MASON", Story.mason(), options, -1, Color(0.8, 0.78, 0.72), func(i):
+		if i == 0:
+			choice_ui.close()
+			talk_ui.talk.call_deferred("mason", "Hale", [
+				"Saltmere paid us to keep the sea out, and we did. Forty years of my life in that wall.",
+				"Then the town asked to be kept, and the sea came in over the top, gentle as you like, and the wall held. It held the wrong side, after that.",
+				"The water is moving again out on the reef. That is the Ebb letting go. A wall can feel it in the joints.",
+			], SaveManager.flag("mason_wall"))
+			SaveManager.set_flag("mason_wall")
+			return "..."
+		return _gift_from_menu("mason"))
+
+
 ## The Choir: they sing for the rock now, and a gift.
 func open_choir() -> void:
 	var options: Array = [{"name": "Sing", "desc": "the hymn, for the rock"}, _gift_option("choir")]
@@ -605,6 +623,8 @@ func _handle_screenshot_arg() -> void:
 		open_pell()
 	elif "--choir" in args:
 		open_choir()
+	elif "--mason" in args:
+		open_mason()
 	elif "--cosmetics" in args:
 		open_cosmetics()
 	elif "--log" in args:
