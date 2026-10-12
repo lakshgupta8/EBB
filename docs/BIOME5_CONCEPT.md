@@ -227,3 +227,4 @@ the pull too: the Reef's own kinds swim with it, and the others are carried.
 - 11j: the boss (done: the Tidewall; it turns the current, and its second breach opens a second channel).
 - 11k: the echo (done: Hale the Mason; everyone home now needs a night down each road).
 - 11l: music and lantern lines (done: `music_reef`, `amb_reef`, three lines; the Tidewall's arena raised under the wall). The Reef is whole.
+- Map Stage 12f: the Reef's own signature rooms (the merchant on a coral head in a wreck's ribs, the altar on a bastion off the sea wall, the fountain in a ring of circling water, Hale's cage at a breach's foot) and the Tidewall's arena dressed with its lines kept.
