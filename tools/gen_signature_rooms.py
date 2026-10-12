@@ -772,7 +772,194 @@ def hall_boss():
     return p
 
 
+def _reef_floor(p, bites):
+    """A Reef room's ground: sand inside the sea wall, the rim bitten back (the reef's edge is
+    never straight; only the wall is)."""
+    p.rect(3, 3, p.w - 4, p.h - 4, ".")
+    for (x, y, rx, ry, sd) in bites:
+        p.blob(x, y, rx, ry, "#", sd, 0.3)
+
+
+def reef_shop():
+    """The Reef merchant, 40x23: the drowned merchant trades on a coral head inside the ribs of
+    a wreck the reef has grown over, glowing coral beside him; a slow channel runs past the
+    head's foot west to east, its water moving; fans and a clam by it. You come in on the sand
+    from the south and see him up on the head. Exits west and east."""
+    p = Plan(40, 23)
+    _reef_floor(p, [(3, 4, 3, 2, 801), (36, 18, 3, 2.5, 802), (24, 19, 4, 1.5, 803), (36, 4, 2, 2, 804)])
+    # The coral head, the ribs grown over it, the merchant inside them.
+    p.blob(19, 7, 6, 3, "=", 811, 0.3, only=".")
+    p.piece("ribcoral", 15, 4)
+    p.g[7][18] = "M"
+    p.piece("glowcoral", 22, 7)
+    p.piece("wallsteps", 17, 10)
+    # The channel past its foot, the water running east.
+    p.path([(3, 13), (12, 12), (26, 13), (36, 12)], 0.8, "_", 812, 0.3, only=".")
+    p.currents.append([(3, 13), (12, 12), (26, 13), (36, 12)])
+    p.piece("fans", 8, 10)
+    p.piece("clam", 29, 9)
+    p.piece("jelly", 31, 12)
+    p.piece("brainhead", 7, 16)
+    p.blob(31, 16, 2.5, 1.5, "=", 813, 0.3, only=".")
+    for (x, y) in [(13, 16), (14, 17), (27, 6), (5, 9), (34, 15), (21, 17)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 9)
+    p.door(39, 15)
+    p.mark([(19, 18)], "P")
+    return p
+
+
+def reef_altar():
+    """The Reef altar, 40x23: Saltmere's sea wall across the north; a bastion built out from it,
+    raised, the altar on it lit cold, the wall's stair up to it; west of it the wall is breached
+    and the sea comes through and runs south down a channel. An anchor driven into the sand by
+    the wall. You come in from the east and see it up on the bastion. Exits west and east."""
+    p = Plan(40, 23)
+    _reef_floor(p, [(4, 18, 3, 2.5, 821), (35, 19, 3, 2, 822), (20, 20, 4, 1.2, 823)])
+    # The wall: straight, three courses thick; a breach in it to the west.
+    p.rect(3, 3, 36, 5, "#")
+    p.rect(9, 3, 12, 5, ".")
+    # The bastion: raised, built out from the wall, its corners square (it is built), notched.
+    p.rect(20, 6, 30, 10, "=")
+    p.rect(20, 10, 21, 10, ".")
+    p.g[8][25] = "A"
+    p.piece("wallsteps", 22, 11)
+    p.piece("glowcoral", 29, 7)
+    # The sea through the breach, south down its channel.
+    p.path([(10, 4), (10, 9), (7, 14), (9, 19)], 1.4, "_", 824, 0.4, only=".")
+    p.currents.append([(10, 3), (10, 9), (7, 14), (9, 19)])
+    p.piece("breach", 7, 6)
+    p.piece("anchor", 16, 7)
+    p.piece("staghorn", 14, 14)
+    p.piece("fans", 31, 15)
+    p.piece("jelly", 8, 12)
+    p.blob(27, 16, 2.5, 1.5, "_", 825, 0.3, only=".")
+    for (x, y) in [(18, 6), (19, 7), (15, 9), (33, 7), (34, 8), (24, 17), (5, 11)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 12)
+    p.door(39, 12)
+    p.mark([(35, 12)], "P")
+    return p
+
+
+def reef_fountain():
+    """The Reef fountain, 40x23: a coral table in a ring of water, the fountain on the table;
+    the ring's water circles it (a current that goes round), living coral grown into the ring on its
+    south-east, staghorn and a brain-coral head out on the sand, a jellyfish bloom over the ring.
+    You come in from the west and see it across the sand. Exits west and south."""
+    p = Plan(40, 23)
+    _reef_floor(p, [(3, 4, 2.5, 2, 831), (36, 19, 3, 2, 832), (36, 5, 2, 2, 833), (5, 19, 3, 1.5, 834)])
+    # The ring, the table in it: one raised region, nothing raised touching it.
+    _ellipse(p, 24, 9, 7, 4.6, "_")
+    _ellipse(p, 24, 9, 3.6, 2.2, "=")
+    p.g[9][24] = "F"
+    p.currents.append([(24, 4), (30, 6), (31, 9), (30, 12), (24, 13), (18, 12), (17, 9), (18, 6), (24, 4)])
+    # Living coral has grown into the ring on its south-east side.
+    for (x, y) in [(28, 13), (29, 12), (30, 11)]:
+        p.put(x, y, "o", "_")
+    p.piece("fans", 31, 15)
+    p.piece("glowcoral", 18, 11)
+    p.piece("jelly", 29, 7)
+    p.piece("staghorn", 13, 9)
+    p.piece("brainhead", 8, 6)
+    p.piece("clam", 33, 16)
+    p.blob(9, 15, 2.5, 1.5, "=", 835, 0.3, only=".")
+    for (x, y) in [(12, 5), (30, 4), (35, 11), (18, 18), (25, 18), (6, 12)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 11)
+    p.door(24, 22)
+    p.mark([(5, 11)], "P")
+    return p
+
+
+def reef_echo():
+    """The Reef echo, 40x23: the sea wall across the north, breached; the sea pours through the
+    breach and runs south down a channel; the cage stands on the wall's rubble at the breach's
+    foot, the water going past it. The drowned on the coral either side. You come in from the
+    south-west. Exits east and south."""
+    p = Plan(40, 23)
+    _reef_floor(p, [(3, 19, 2.5, 1.5, 841), (36, 3, 2, 1.5, 842), (36, 19, 2, 1.5, 843)])
+    p.rect(3, 3, 36, 5, "#")
+    p.rect(18, 3, 22, 5, ".")
+    p.piece("breach", 17, 6)
+    # The channel from the breach, south and east, the current down it.
+    p.path([(20, 4), (20, 9), (24, 14), (30, 19)], 1.6, "_", 851, 0.4, only=".")
+    p.currents.append([(20, 3), (20, 9), (24, 14), (30, 19)])
+    # The rubble heap at the breach's foot, raised, the cage on it.
+    p.blob(14, 10, 3, 2, "=", 852, 0.3, only=".")
+    p.g[10][14] = "E"
+    p.piece("glowcoral", 16, 9)
+    p.piece("brainhead", 28, 7)
+    p.piece("staghorn", 7, 13)
+    p.piece("fans", 25, 17)
+    p.piece("anchor", 10, 7)
+    p.piece("jelly", 22, 11)
+    p.blob(32, 12, 3, 2, "=", 853, 0.3, only=".")
+    for (x, y) in [(16, 7), (24, 7), (25, 8), (12, 16), (13, 17), (34, 8), (5, 9)]:
+        p.put(x, y, "o", ".")
+    p.door(39, 11)
+    p.door(9, 22)
+    p.mark([(5, 17)], "P")
+    p.mark([(11, 11), (18, 12), (27, 10), (31, 15), (15, 15), (33, 9)], "e")
+    return p
+
+
+def reef_boss():
+    """The Tidewall's breach, 40x23 (map Stage 11j's arena, dressed): the wall's top raised along
+    the north (the Tidewall slides along it; the dry ground to fight at it, 11l), the two
+    channels across the arena with their currents (the second running back; the Tidewall turns
+    them), coral heads, fans and glowing coral between them, the wall's rubble at its foot, the
+    jellies over the water. The shelf, the channels and their lines are kept as 11j-11l made
+    them. One way out, south."""
+    p = Plan(40, 23)
+    p.rect(2, 4, 37, 21, ".")
+    for (x, y, rx, ry, sd) in [(3, 20, 2, 1.5, 861), (36, 20, 2, 1.5, 862)]:
+        p.blob(x, y, rx, ry, "#", sd, 0.3)
+    # The wall's top: raised, straight (it is the wall), stepped where it was rebuilt.
+    p.rect(2, 4, 37, 7, "=")
+    p.rect(9, 2, 30, 3, "=")
+    p.rect(11, 2, 12, 2, "#")
+    p.rect(27, 2, 30, 2, "#")
+    # The channels, as 11j laid them, and their lines.
+    p.rect(3, 9, 36, 11, "_")
+    p.rect(3, 15, 36, 16, "_")
+    # Their banks ragged where the sea has worked at them: a bay off each, a coral spur into one.
+    p.blob(28, 12, 4, 1.4, "_", 863, 0.35, only=".")
+    p.blob(10, 17, 4, 1.3, "_", 864, 0.35, only=".")
+    p.blob(17, 8, 3, 1, "_", 865, 0.4, only=".")
+    p.rect(6, 11, 8, 11, ".")
+    p.rect(31, 15, 33, 15, ".")
+    # The shelf's front broken: stones fallen off it.
+    p.rect(13, 7, 15, 7, ".")
+    p.rect(30, 7, 31, 7, ".")
+    # A coral head standing between the channels in the west.
+    p.blob(9, 13, 3, 1.1, "=", 866, 0.3, only=".")
+    p.currents.append([(3, 10), (36, 10)])
+    p.currents.append([(36, 15), (3, 15)])
+    # Between and below them: coral heads and their growth, the wall's rubble, the light.
+    p.piece("brainhead", 6, 12)
+    p.piece("staghorn", 30, 12)
+    p.piece("fans", 18, 13)
+    p.piece("clam", 11, 18)
+    p.piece("ribcoral", 25, 18)
+    p.piece("glowcoral", 14, 13)
+    p.piece("glowcoral", 34, 18)
+    p.piece("jelly", 22, 10)
+    p.piece("anchor", 3, 8)
+    for (x, y) in [(10, 8), (11, 8), (26, 8), (33, 8), (24, 13), (5, 17), (17, 19), (32, 17)]:
+        p.put(x, y, "o", ".")
+    p.door(20, 22)
+    p.g[5][20] = "e"
+    p.mark([(20, 20)], "P")
+    return p
+
+
 ALL = {
+    "reef/shop_01": reef_shop,
+    "reef/altar_01": reef_altar,
+    "reef/fountain_01": reef_fountain,
+    "reef/echo_01": reef_echo,
+    "reef/boss_01": reef_boss,
     "biome3/shop_01": hall_shop,
     "biome3/altar_01": hall_altar,
     "biome3/fountain_01": hall_fountain,
