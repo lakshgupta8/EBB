@@ -585,7 +585,199 @@ def streets_boss():
     return p
 
 
+def _ellipse(p, cx, cy, rx, ry, ch, only=None):
+    for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+        for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+            if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0:
+                p.put(x, y, ch, only)
+
+
+def hall_shop():
+    """The Hall merchant, 40x23: the drowned merchant keeps shop in the crypt, a tomb slab for
+    his counter, candles either side of it; the vault's columns in rows (one down in rubble),
+    tomb slabs between them, a crypt grate sunk in the floor. You come in from the south of the
+    vault and see him across the slabs. Exits west and east."""
+    p = Plan(40, 23)
+    p.rect(3, 4, 36, 18, ".")
+    for b in [(3, 4, 6, 5), (33, 4, 36, 6), (3, 16, 5, 18), (31, 17, 36, 18), (18, 4, 20, 4)]:
+        p.rect(*b, "#")
+    # The vault's columns, in two rows; the east one of the south row is down.
+    for (x, y) in [(8, 7), (14, 7), (25, 7), (31, 7), (8, 13), (14, 13), (25, 13)]:
+        p.piece("column", x, y)
+    for (x, y) in [(31, 13), (32, 14), (30, 15), (33, 12)]:
+        p.put(x, y, "o", ".")
+    # The slabs: his counter, and the tombs between the columns (one broken).
+    p.rect(18, 9, 21, 10, "=")
+    p.g[8][19] = "M"
+    p.piece("candles", 17, 8)
+    p.piece("candles", 22, 8)
+    for (x0, y0) in [(9, 10), (27, 10), (9, 16)]:
+        p.rect(x0, y0, x0 + 2, y0 + 1, "=")
+    p.rect(28, 16, 29, 16, "=")
+    # The crypt grate, and brine standing where the floor has sunk.
+    p.rect(17, 13, 20, 14, "_")
+    p.blob(6, 11, 2, 1.5, "_", 711, 0.3, only=".")
+    p.piece("kelpglow", 18, 15)
+    for (x, y) in [(12, 5), (23, 5), (35, 10), (24, 17)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 11)
+    p.door(39, 10)
+    p.mark([(19, 17)], "P")
+    return p
+
+
+def hall_altar():
+    """The Hall altar, 40x23: a side chapel. The altar on the dais in its apse, the apse wall
+    behind it, two keeper statues at the dais steps, candles; columns down the nave's edges, one
+    down; the west aisle's gutter has burst. You come in through the chapel's gate and walk up
+    the nave to it. Exits west by the aisle and east."""
+    p = Plan(40, 23)
+    p.rect(12, 6, 27, 20, ".")
+    p.rect(6, 8, 11, 19, ".")
+    p.rect(28, 10, 34, 19, ".")
+    p.rect(2, 12, 6, 14, ".")
+    p.rect(34, 14, 37, 16, ".")
+    _ellipse(p, 19.5, 7, 8, 5, ".")
+    _ellipse(p, 19.5, 6.5, 5, 3, "=")
+    p.rect(17, 9, 22, 10, "=")
+    p.g[6][19] = "A"
+    p.piece("apse", 17, 3)
+    p.piece("statue", 13, 8)
+    p.piece("statue", 25, 8)
+    p.piece("candles", 16, 4)
+    p.piece("candles", 23, 4)
+    for (x, y) in [(12, 12), (12, 16), (26, 12)]:
+        p.piece("column", x, y)
+    for (x, y) in [(26, 16), (27, 17), (25, 18)]:
+        p.put(x, y, "o", ".")
+    # The west aisle's gutter has burst into a pool; the east aisle is dry and narrow.
+    p.rect(7, 9, 7, 18, "_")
+    p.blob(9, 15, 2.5, 2, "_", 721, 0.3, only=".")
+    p.piece("kelpglow", 8, 16)
+    p.piece("gate", 17, 18)
+    for (x, y) in [(30, 11), (33, 18), (10, 9)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 13)
+    p.door(39, 15)
+    p.mark([(19, 20)], "P")
+    return p
+
+
+def hall_fountain():
+    """The Hall fountain, 40x23: the baptistery, a round hall with the fountain on its round dais
+    at the centre, a ring of columns round it (one down, its drums across the floor), the east
+    wall breached into the dark, brine standing in the low ring by the walls. You come in by the
+    west passage and see it across the floor. Exits west and north."""
+    p = Plan(40, 23)
+    _ellipse(p, 20, 11, 15, 8.5, ".")
+    p.rect(2, 10, 6, 12, ".")
+    p.rect(19, 2, 21, 4, ".")
+    # The dais: round, one raised block, the fountain at its centre.
+    _ellipse(p, 20, 11, 3.6, 2.4, "=")
+    p.g[11][20] = "F"
+    # The ring of columns; the south-east one is down.
+    for (x, y) in [(29, 10), (24, 5), (14, 5), (9, 10), (14, 15)]:
+        p.piece("column", x, y)
+    for (x, y) in [(25, 16), (26, 17), (27, 16), (28, 18)]:
+        p.put(x, y, "o", ".")
+    # The low ring by the wall, brine in it; the breach in the east wall.
+    p.blob(31, 15, 3, 2, "_", 731, 0.3, only=".")
+    p.blob(9, 16, 2.5, 1.5, "_", 732, 0.3, only=".")
+    p.blob(33, 7, 4, 3.5, ".", 733, 0.3)
+    p.blob(36, 6, 1.5, 2, "#", 734, 0.3)
+    for (x, y) in [(33, 5), (35, 9), (32, 8)]:
+        p.put(x, y, "o", ".")
+    p.piece("kelpglow", 31, 15)
+    p.piece("candles", 18, 4)
+    p.piece("statue", 26, 4)
+    for (x, y) in [(12, 9), (33, 11), (7, 13)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 11)
+    p.door(20, 0)
+    p.mark([(6, 11)], "P")
+    return p
+
+
+def hall_echo():
+    """The Hall echo, 40x23: the drowned choir. The cage stands before the organ at its head,
+    the choir stalls in raised rows either side, candles on the organ; a transept of brine
+    crosses the hall below the choir, the first ground to go under; columns, a statue, rubble.
+    The drowned among the stalls. You come in from the south-west. Exits north-east and east."""
+    p = Plan(40, 23)
+    p.rect(3, 3, 36, 19, ".")
+    for b in [(3, 3, 6, 4), (32, 3, 36, 4), (3, 18, 6, 19), (33, 17, 36, 19), (14, 19, 18, 19)]:
+        p.rect(*b, "#")
+    p.piece("organ", 17, 3)
+    p.g[7][20] = "E"
+    p.piece("candles", 16, 4)
+    p.piece("candles", 23, 4)
+    # The stalls: raised rows facing across the choir, broken.
+    for (x0, y0, x1, y1) in [(9, 6, 15, 7), (25, 6, 31, 7), (9, 10, 14, 11), (26, 10, 31, 11)]:
+        p.rect(x0, y0, x1, y1, "=")
+    p.put(12, 10, ".")
+    # The transept, east to west across the hall, brine in it.
+    p.path([(3, 14), (20, 15), (36, 13)], 1.1, "_", 741, 0.35)
+    p.piece("kelpglow", 27, 14)
+    for (x, y) in [(6, 7), (33, 7), (6, 16)]:
+        p.piece("column", x, y)
+    for (x, y) in [(31, 16), (30, 17), (32, 17)]:
+        p.put(x, y, "o", ".")
+    p.piece("statue", 22, 17)
+    for (x, y) in [(18, 12), (24, 9), (10, 17), (36, 9)]:
+        p.put(x, y, "o", ".")
+    p.door(30, 0)
+    p.door(39, 10)
+    p.mark([(4, 17)], "P")
+    p.mark([(18, 8), (23, 9), (12, 9), (28, 9), (14, 16), (27, 16)], "e")
+    return p
+
+
+def hall_boss():
+    """The Ebb's crossing, 40x23: the crossing of the Deep Hall, where the Ebb waits on the
+    raised floor between the four piers; the high altar behind it under the north wall with the
+    keepers' statues standing either side (every keeper before you is standing in it), the
+    transept's arms flooded east and west, the gate at the south where you come in. The crossing
+    is the dry ground at the Ebb; it floods further as it rises. One way out, south."""
+    p = Plan(40, 23)
+    p.rect(3, 3, 36, 19, ".")
+    for b in [(3, 3, 6, 4), (33, 3, 36, 4), (3, 18, 8, 19), (31, 18, 36, 19)]:
+        p.rect(*b, "#")
+    # The transept's arms, flooded, broken at their edges.
+    p.blob(6, 11, 3.5, 5.5, "_", 751, 0.25, only=".")
+    # The east arm: its wall fallen into the dark, rubble across it, brine in the hollow.
+    p.blob(33, 13, 2.5, 3, "_", 752, 0.3, only=".")
+    p.blob(37, 7, 3, 2.5, "#", 753, 0.3)
+    for (x, y) in [(32, 6), (34, 8), (31, 9), (33, 5)]:
+        p.put(x, y, "o", ".")
+    # The crossing: raised, round; the piers at its corners.
+    _ellipse(p, 19.5, 10.5, 7.5, 4.2, "=")
+    for (x, y) in [(10, 5), (28, 5), (10, 14)]:
+        p.piece("column", x, y)
+    # The south-east pier is down, its drums across the floor toward the gate.
+    for (x, y) in [(28, 15), (27, 16), (25, 16), (24, 17)]:
+        p.put(x, y, "o", ".")
+    p.piece("altar", 18, 3)
+    for (x, y) in [(8, 3), (13, 3), (24, 3), (30, 3)]:
+        p.piece("statue", x, y)
+    p.piece("gate", 17, 17)
+    p.rect(16, 19, 23, 20, ".")
+    p.piece("kelpglow", 5, 12)
+    p.piece("kelpglow", 33, 14)
+    p.piece("candles", 23, 6)
+    for (x, y) in [(13, 16), (35, 16), (4, 6), (16, 15)]:
+        p.put(x, y, "o", ".")
+    p.door(19, 22)
+    p.g[10][20] = "e"
+    p.mark([(19, 20)], "P")
+    return p
+
+
 ALL = {
+    "biome3/shop_01": hall_shop,
+    "biome3/altar_01": hall_altar,
+    "biome3/fountain_01": hall_fountain,
+    "biome3/echo_01": hall_echo,
+    "biome3/boss_01": hall_boss,
     "biome2/shop_01": streets_shop,
     "biome2/altar_01": streets_altar,
     "biome2/fountain_01": streets_fountain,
