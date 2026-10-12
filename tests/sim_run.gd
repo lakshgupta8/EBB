@@ -102,6 +102,7 @@ func _ready() -> void:
 	)
 	EventBus.damage_dealt.connect(func(target, info):
 		if target is Enemy:
+			_last_hurt_tick = tick
 			for t in ["melee", "heavy", "lunge", "crit", "hook", "wake", "bleed", "wall", "flare", "third_hit", "knife", "finisher", "net", "projectile", "harpoon", "tether", "light", "beacon"]:
 				if info.tags.has(t):
 					_tag_hits[t] = _tag_hits.get(t, 0) + 1
@@ -253,8 +254,12 @@ var _stall_depth: int = -1
 var _stall_ticks: int = 0
 var _wedged: bool = false
 ## Ninety seconds of game time in one room without getting deeper: the night is going
-## nowhere, and waiting out the tick budget only hides it.
+## nowhere, and waiting out the tick budget only hides it. A fight still wearing something
+## down is not wedged (the Ebb's 460 takes the bot about 95 s, map Stage 12e): only when
+## nothing has been hurt for WEDGE_IDLE as well.
 const WEDGE_TICKS := 5400
+const WEDGE_IDLE := 1200
+var _last_hurt_tick: int = 0
 
 
 ## Dumps run state whenever depth has not advanced for 20 s, so a stall is diagnosable.
@@ -264,7 +269,7 @@ func _stall_watch() -> void:
 		_stall_ticks = 0
 		return
 	_stall_ticks += 1
-	if _stall_ticks == WEDGE_TICKS and not run.state.ended:
+	if _stall_ticks >= WEDGE_TICKS and tick - _last_hurt_tick >= WEDGE_IDLE and not _wedged and not run.state.ended:
 		_wedged = true
 		var names := []
 		for e in get_tree().get_nodes_in_group("enemies"):
@@ -277,7 +282,7 @@ func _stall_watch() -> void:
 		var enemies := get_tree().get_nodes_in_group("enemies")
 		var names := []
 		for e in enemies:
-			names.append("%s@%s:%s" % [e.display_name, e.global_position.round(), e.state])
+			names.append("%s@%s:%s hp%d" % [e.display_name, e.global_position.round(), e.state, e.health.hp])
 		var doors := []
 		for d in run.room.doors:
 			doors.append("%s:%s" % [d.cell, d.is_open])
@@ -619,6 +624,7 @@ func _finish() -> void:
 		done.append(str(c.id))
 	print("sim_run: village: pages=%s glass=%d spared=%d contracts=%s journals=%s" % [
 		str(s.stats.get("pages", 0)), int(SaveManager.data.get("glass", 0)), int(s.stats.get("spared", 0)), done, SaveManager.data.get("journals", [])])
-	var ok := s.depth_total >= 2 and s.kills > 0 and (s.victory or not _must_win) and _resume_ok and not _wedged
+	# A won night is progress even when it began at the last boss (`--boss` in the Hall, map Stage 12e).
+	var ok := (s.depth_total >= 2 or s.victory) and s.kills > 0 and (s.victory or not _must_win) and _resume_ok and not _wedged
 	print("sim_run: %s" % ("OK" if ok else ("WEDGED in a room" if _wedged else "FAILED (did not progress, or did not win with --must-win)")))
 	get_tree().quit(0 if ok else 1)
