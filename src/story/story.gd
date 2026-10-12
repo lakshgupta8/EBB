@@ -41,7 +41,8 @@ const ENDINGS := {
 }
 const ENDING_ORDER := ["keep", "break", "walk"]
 ## Everyone the sea can give back, in the order the night finds them.
-const ECHO_IDS := ["bram", "pell", "wren", "cartographer", "choir", "aldous", "maren"]
+## Map Stage 11k adds Hale, the reef road's echo: everyone home now means a night down each road.
+const ECHO_IDS := ["bram", "pell", "mason", "wren", "cartographer", "choir", "aldous", "maren"]
 const BREAK_NEEDS := 5
 
 ## Keeper Aldous's journal: nine pages the sea kept, hidden in vaults and dives. Layer
@@ -79,6 +80,12 @@ const WHISPERS := {
 	"first_night": "Keep the tide, Orla said. The lantern is warm in your hand. Lanterns are not warm.",
 	"wreck": "A keeper's boat, upturned, with something living under it. The lantern pulls toward it like a compass needle.",
 	"harbour": "The ships are all still here. Nobody left. Something on the quay made sure of that.",
+	"tidewall": "The sea wall. It was asked to keep the sea out of Saltmere, and it did, and then the sea was inside with everything else. It has been holding the wrong side ever since.",
+	"reefwarden": "A wall-diver. Saltmere paid them to keep the sea out. He is still down here keeping it, and you are on the wrong side.",
+	"reef_wall": "The sea wall is on your left the whole way. Saltmere is on the other side of it, and so is the sea. The wall is holding both.",
+	"reef_living": "Colour, where the water runs. The coral is growing again. Three hundred years, and something down here is new.",
+	"coral_cut": "The living coral cuts. It is the only thing out here that is in a hurry, and it does not mind what it grows into.",
+	"reef": "The water is moving out here. Nothing in Saltmere has moved in three hundred years. Something is letting go.",
 	"challenge": "No door. The sea wants to see what you do when there is no door.",
 	"tide_1": "The water is coming in faster tonight. You asked it to.",
 	"tide_2": "Everything down here is thicker-skinned tonight. The sea has been feeding them.",
@@ -104,6 +111,7 @@ const WHISPERS := {
 	"page": "A page in a keeper's hand, dry, in a place where nothing is dry. The sea kept it the way it keeps everything.",
 	"glass": "Salt-glass. The sea made this out of nothing, because it wanted to keep something that was not a person.",
 	"pell": "Someone is diving, down here, where there is nothing left to dive for. The lantern knows a diver's lungs when it hears them.",
+	"mason": "A cage set into the sea wall, and a mason inside it, still pointing the joints. The lantern knows good work when it sees it.",
 	"aldous": "A keeper's cage, in the hall, with a keeper still in it. The lantern goes quiet. It knew him.",
 	"choir_falter": "The note is failing. It could end here, if you let it. Nobody has ever let it.",
 	"choir_spared": "It ended. Three hundred years on one breath, and you stood there and let it finish. The street is quiet for the first time.",
@@ -315,6 +323,10 @@ static func nessa() -> String:
 
 static func idris() -> String:
 	return Dialog.line("idris")
+
+
+static func mason() -> String:
+	return Dialog.line("mason")
 
 
 static func aldous() -> String:

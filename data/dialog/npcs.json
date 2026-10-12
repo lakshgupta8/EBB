@@ -47,5 +47,47 @@
 		{"when": ["affinity:choir>=3"], "text": "You let us finish. Everyone else struck. We have a verse for you now; it is short, and it is yours."},
 		{"when": ["stat:hymns>=3"], "text": "The rock has better acoustics than the chapel did. Stone and water. We should have practised here all along."},
 		{"when": [], "text": "You let us finish the note. Three hundred years on one breath and you stood there and let it end. We will sing for the rock, if the rock will have us."}
+	],
+	"mason": [
+		{
+			"when": [
+				"epilogue:walk"
+			],
+			"text": "I went out to the wall this morning. It is just a wall now. I sat on it and did nothing at all, and it held."
+		},
+		{
+			"when": [
+				"epilogue:break"
+			],
+			"text": "The sea came back through the breach last night and it was only the sea. I am going to build it a harbour mouth, properly this time."
+		},
+		{
+			"when": [
+				"epilogue:keep"
+			],
+			"text": "You are holding it now, the way the wall did. I know the feeling. Mind your joints."
+		},
+		{
+			"when": [
+				"affinity:mason>=3"
+			],
+			"text": "Plant your feet like a course of stone: wide, and level, and the water goes round you."
+		},
+		{
+			"when": [
+				"flag:boss_tidewall_broken"
+			],
+			"text": "You broke the breach. Good. It was never meant to stand up; nothing I built was meant to walk."
+		},
+		{
+			"when": [
+				"flag:mason_wall"
+			],
+			"text": "Ask me about mortar some time. Nobody up here ever asks about mortar."
+		},
+		{
+			"when": [],
+			"text": "Hale. I laid stone on Saltmere's sea wall. Show me something on this rock that wants building and I will build it."
+		}
 	]
 }

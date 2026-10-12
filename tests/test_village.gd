@@ -2,7 +2,7 @@ extends TestCase
 ## M7, the village: dialog data, affinity, Fen's chain, contracts, the Log, the Ledger's
 ## branches, epilogues, save migration, fish and the codex tabs.
 
-const NPCS := ["orla", "fen", "bram", "wren", "cartographer", "maren", "nessa", "idris", "aldous", "pell", "choir"]
+const NPCS := ["orla", "fen", "bram", "wren", "cartographer", "maren", "nessa", "idris", "aldous", "pell", "choir", "mason"]
 
 
 func _scratch(name: String) -> void:
@@ -19,7 +19,7 @@ func test_dialog_files_lint() -> void:
 	var npcs := Dialog.load_file("npcs")
 	var chains := Dialog.load_file("affinity")
 	assert_true(not npcs.is_empty() and not chains.is_empty(), "both dialog files parse")
-	for id in ["nessa", "idris", "aldous", "pell", "choir"]:
+	for id in ["nessa", "idris", "aldous", "pell", "choir", "mason"]:
 		assert_true(npcs.has(id) and npcs[id].size() >= 5, id + " has idle lines")
 		var last: Dictionary = npcs[id][npcs[id].size() - 1]
 		assert_true(last.get("when", []).is_empty(), id + " ends with a line that always holds")
@@ -261,9 +261,9 @@ func test_ledger_branches_and_prerequisites() -> void:
 	_done()
 
 
-func test_endings_gate_on_seven_echoes_and_leave_an_epilogue() -> void:
+func test_endings_gate_on_eight_echoes_and_leave_an_epilogue() -> void:
 	_scratch("epilogue")
-	assert_eq(Story.ECHO_IDS.size(), 7)
+	assert_eq(Story.ECHO_IDS.size(), 8, "eight: the reef road's mason too (map Stage 11k)")
 	for id in ["bram", "wren", "cartographer"]:
 		SaveManager.set_flag("echo_" + id)
 	assert_true(not Story.ending_available("break"), "three is not enough now")
@@ -275,6 +275,9 @@ func test_endings_gate_on_seven_echoes_and_leave_an_epilogue() -> void:
 	SaveManager.set_flag("echo_aldous")
 	SaveManager.set_flag("echo_maren")
 	assert_eq(Story.echoes_home(), 7)
+	assert_true(not Story.ending_available("walk"), "seven is not everyone: the mason is on the other road")
+	SaveManager.set_flag("echo_mason")
+	assert_eq(Story.echoes_home(), 8)
 	assert_true(Story.ending_visible("walk") and not Story.ending_available("walk"))
 	SaveManager.data.wins = 3
 	assert_true(Story.ending_available("walk"))
@@ -350,7 +353,7 @@ func test_fish_and_codex_tabs() -> void:
 	assert_eq(Codex.entries("journal").size(), 9)
 	assert_eq(Codex.entries("contract").size(), Contracts.ALL.size())
 	assert_eq(Codex.entries("weapon").size(), Weapon.ALL.size())
-	assert_eq(Codex.PEOPLE.size(), 11, "everyone on the rock")
+	assert_eq(Codex.PEOPLE.size(), 12, "everyone on the rock (Hale the Mason, map Stage 11k)")
 	for e in Codex.ENEMIES:
 		assert_true(Codex.ENEMY_MORE.has(e.id), "second paragraph for " + e.id)
 	_scratch("codex_more")
@@ -371,9 +374,9 @@ func test_hub_template_has_room_for_the_village() -> void:
 	for m in ["O", "B", "W", "C", "N", "K", "S", "I", "L", "V", "Y", "d"]:
 		assert_eq(t.marker_cells(m).size(), 1, "one spot for " + m)
 	assert_true(t.marker_cells("l").size() >= 4, "lantern posts")
-	for m in ["S", "I", "L", "V", "Y"]:
+	for m in ["S", "I", "L", "V", "Y", "G"]:
 		var c: Vector2i = t.marker_cells(m)[0]
 		assert_true(not t.is_solid(c.x, c.y), m + " stands on open ground")
-	assert_eq(Prop.PORTRAIT.size(), 12, "eleven people and the drowned merchant (art Stage 19)")
+	assert_eq(Prop.PORTRAIT.size(), 13, "twelve people and the drowned merchant (art Stage 19; Hale, map Stage 11k)")
 	for id in NPCS:
 		assert_true(Prop.PORTRAIT.has(id), "a portrait for " + id)

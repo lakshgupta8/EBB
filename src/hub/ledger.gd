@@ -161,6 +161,8 @@ static func apply(player: Player, run) -> void:
 		m.deep_tick_mult *= 2.0
 	if Story.perk("pell"):
 		m.deep_tick_mult *= 2.0
+	if Story.perk("mason"):
+		m.current_mult *= 0.5
 	if tier("still_hands") > 0:
 		m.fountain_hold += 6.0
 	if tier("haggler") > 0:

@@ -37,6 +37,18 @@ func setup(p_room: Room) -> void:
 	_rng.seed = hash(t.name) + 11
 
 
+## Lay the water out again along other lines (map Stage 11j: the Tidewall turns the current
+## through its arena, and opens a second channel when its second breach breaks).
+func relay(lines: Array) -> void:
+	flow.clear()
+	for line: PackedVector2Array in lines:
+		for i in line.size() - 1:
+			_lay(room.template, line[i], line[i + 1])
+	_cells = flow.keys()
+	for f: Array in _flecks:
+		f[1] = FLECK_LIFE + 1.0   # the old foam goes; new foam follows the new water
+
+
 ## Every open cell near the segment a..b takes its direction, the nearer the stronger.
 func _lay(t: RoomTemplate, a: Vector2, b: Vector2) -> void:
 	var dir := (b - a).normalized()

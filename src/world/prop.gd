@@ -9,23 +9,23 @@ const PROPS := preload("res://assets/sprites/props.png")
 ## The lighthouse beam: a light texture, not a giant pool (STYLE.md 11; art Stage 19).
 const BEAM := preload("res://assets/sprites/beam.png")
 enum Kind { FOUNTAIN, CHEST, LIGHTHOUSE, MERCHANT, ALTAR, ORLA, CAGE, BRAM, WREN, CARTOGRAPHER, ECHO_GHOST, MAREN, FEN, VAULT,
-	NESSA, IDRIS, ALDOUS, PELL, CHOIR, LANTERN_POST, DOCK }
+	NESSA, IDRIS, ALDOUS, PELL, CHOIR, LANTERN_POST, DOCK, MASON }
 const FRAMES := {Kind.FOUNTAIN: 0, Kind.CHEST: 1, Kind.LIGHTHOUSE: 3, Kind.MERCHANT: 4, Kind.ALTAR: 5, Kind.ORLA: 6,
 	Kind.CAGE: 7, Kind.BRAM: 9, Kind.WREN: 10, Kind.CARTOGRAPHER: 11, Kind.ECHO_GHOST: 9, Kind.MAREN: 12, Kind.FEN: 13,
 	Kind.VAULT: 14, Kind.NESSA: 15, Kind.IDRIS: 16, Kind.ALDOUS: 17, Kind.PELL: 18, Kind.CHOIR: 19, Kind.LANTERN_POST: 20,
-	Kind.DOCK: 20}
+	Kind.DOCK: 20, Kind.MASON: 9}
 ## Reusable props do not mark themselves used; the vault stays shut until the run opens it.
 const REUSABLE := [Kind.MERCHANT, Kind.ORLA, Kind.BRAM, Kind.WREN, Kind.CARTOGRAPHER, Kind.MAREN, Kind.FEN, Kind.VAULT,
-	Kind.NESSA, Kind.IDRIS, Kind.ALDOUS, Kind.PELL, Kind.CHOIR]
+	Kind.NESSA, Kind.IDRIS, Kind.ALDOUS, Kind.PELL, Kind.CHOIR, Kind.MASON]
 const SCENERY := [Kind.LIGHTHOUSE, Kind.ECHO_GHOST, Kind.LANTERN_POST, Kind.DOCK]
 const PEOPLE := [Kind.ORLA, Kind.BRAM, Kind.WREN, Kind.CARTOGRAPHER, Kind.MAREN, Kind.FEN, Kind.NESSA, Kind.IDRIS,
-	Kind.ALDOUS, Kind.PELL, Kind.CHOIR]
-const ECHO_FRAME := {"bram": 9, "wren": 10, "cartographer": 11, "maren": 12, "pell": 18, "aldous": 17, "choir": 19}
+	Kind.ALDOUS, Kind.PELL, Kind.CHOIR, Kind.MASON]
+const ECHO_FRAME := {"bram": 9, "wren": 10, "cartographer": 11, "maren": 12, "pell": 18, "aldous": 17, "choir": 19, "mason": 9}
 ## The portrait each person shows when they talk: a 16x16 cell of portraits.png
 ## (tools/gen_people.py, art Stage 19).
 const PORTRAITS := preload("res://assets/sprites/portraits.png")
 const PORTRAIT := {"orla": 0, "fen": 1, "nessa": 2, "idris": 3, "bram": 4, "maren": 5, "wren": 6, "cartographer": 7,
-	"pell": 8, "aldous": 9, "choir": 10, "merchant": 11}
+	"pell": 8, "aldous": 9, "choir": 10, "merchant": 11, "mason": 12}
 ## Every person stands on a two-frame 24 px sheet of their own (STYLE.md 7, 18; art Stages
 ## 06 and 19): the living breathe, the drowned drip.
 const NPC_SHEETS := {Kind.MAREN: preload("res://assets/sprites/npc_maren.png"),
@@ -39,9 +39,10 @@ const NPC_SHEETS := {Kind.MAREN: preload("res://assets/sprites/npc_maren.png"),
 	Kind.PELL: preload("res://assets/sprites/npc_pell.png"),
 	Kind.ALDOUS: preload("res://assets/sprites/npc_aldous.png"),
 	Kind.CHOIR: preload("res://assets/sprites/npc_choir.png"),
-	Kind.MERCHANT: preload("res://assets/sprites/npc_merchant.png")}
+	Kind.MERCHANT: preload("res://assets/sprites/npc_merchant.png"),
+	Kind.MASON: preload("res://assets/sprites/npc_mason.png")}
 const ECHO_SHEET := {"maren": Kind.MAREN, "bram": Kind.BRAM, "wren": Kind.WREN, "cartographer": Kind.CARTOGRAPHER,
-	"pell": Kind.PELL, "aldous": Kind.ALDOUS, "choir": Kind.CHOIR}
+	"pell": Kind.PELL, "aldous": Kind.ALDOUS, "choir": Kind.CHOIR, "mason": Kind.MASON}
 ## Major props drawn at the size they need (STYLE.md 1), anchored at the bottom centre:
 ## texture, cell size, sprite offset. The cage has two frames (shut, open).
 const BIG := {

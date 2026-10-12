@@ -34,6 +34,10 @@ TRACKS = {
     "music_title": (87.31, "dorian", 52, 8, [0, 4, 5, 2], 0.3, False),
     "music_keep": (98.0, "dorian", 56, 8, [0, 4, 0, 5], 0.4, False),
     "music_break": (77.78, "phrygian", 62, 8, [0, 5, 1, 4], 0.35, False),
+    # Map Stage 11l: the reef road, the water moving again: dorian like the harbour but higher,
+    # quicker and busier, the chords climbing off the root instead of settling (rendered alone by
+    # tools/gen_reef_audio.py, so nothing above is remade).
+    "music_reef": (92.50, "dorian", 68, 8, [0, 6, 4, 3], 0.5, False),
 }
 
 

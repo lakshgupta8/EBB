@@ -35,6 +35,7 @@ var _rest_at: int = -1     # --rest-at=N: rest at the first cleared room past th
 var _shot_clear: int = -1  # --shot-clear=N: screenshot a moment after the room at this depth is cleared
 var _tier: int = 0         # --tier=N: play at that spring tide
 var _prefer_wet: bool = false  # --take-wet: take the wet door at every fork
+var _road: String = "harbour"  # --road=reef: the way down to take where the night forks (map Stage 11g)
 var _actives_used: int = 0
 var _fish_eaten: int = 0
 var _resume_ok: bool = true
@@ -56,6 +57,7 @@ func _ready() -> void:
 			for d in a.trim_prefix("--shot-depth=").split(","):
 				_shot_depths.append(int(d))
 		elif a == "--shot-boss": _shot_boss = true
+		elif a.begins_with("--road="): _road = a.trim_prefix("--road=")
 		elif a.begins_with("--rest-at="): _rest_at = int(a.trim_prefix("--rest-at="))
 		elif a.begins_with("--shot-clear="): _shot_clear = int(a.trim_prefix("--shot-clear="))
 		elif a.begins_with("--tier="): _tier = int(a.trim_prefix("--tier="))
@@ -106,6 +108,11 @@ func _ready() -> void:
 	)
 	add_child(run)
 	player = run.player
+	# `--sturdy`: the bot cannot be killed, so a run reaches what is being tried (the roads past
+	# the Wreck, map Stage 11g) whatever the bot's skill. Not a balance run.
+	if "--sturdy" in OS.get_cmdline_user_args():
+		player.health.max_hp = 99999
+		player.health.hp = 99999
 	print("sim_run: seed %d, %d ticks" % [seed_val, ticks_to_run])
 
 
@@ -508,6 +515,8 @@ func _dry_spot() -> Vector2:
 ## What a door is worth from here: lower is better. Health decides most of it.
 func _door_score(d: Door) -> int:
 	var hurt: bool = player.health.hp * 2 < player.health.max_hp
+	if d.room_type == Door.DESCEND:
+		return 0 if d.road == _road else 1
 	match d.room_type:
 		RoomGraph.FOUNTAIN:
 			return 0 if hurt else 3

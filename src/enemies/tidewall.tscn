@@ -1,0 +1,83 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://src/enemies/tidewall.gd" id="1_script"]
+[ext_resource type="Script" path="res://src/combat/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://src/combat/hurtbox.gd" id="3_hurtbox"]
+[ext_resource type="Script" path="res://src/combat/hitbox.gd" id="4_hitbox"]
+[ext_resource type="Texture2D" path="res://assets/sprites/shadow.png" id="5_shadow"]
+
+[sub_resource type="CapsuleShape2D" id="body_shape"]
+radius = 14.0
+height = 48.0
+
+[sub_resource type="RectangleShape2D" id="hurt_shape"]
+size = Vector2(46, 36)
+
+[sub_resource type="CircleShape2D" id="slam_shape"]
+radius = 46.0
+
+[sub_resource type="CircleShape2D" id="drop_shape"]
+radius = 11.0
+
+[node name="Tidewall" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_script")
+display_name = "The Tidewall"
+speed = 30.0
+knockback_resist = 1.0
+death_color = Color(0.62, 0.66, 0.72, 1)
+rooted = true
+salt_drop = 12
+pearl_drop = 6
+
+[node name="Shadow" type="Sprite2D" parent="."]
+position = Vector2(0, 5)
+texture = ExtResource("5_shadow")
+light_mask = 0
+region_enabled = true
+region_rect = Rect2(192, 0, 48, 8)
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -21)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+rotation = 1.5708
+shape = SubResource("body_shape")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_hp = 240
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 0
+script = ExtResource("3_hurtbox")
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -18)
+shape = SubResource("hurt_shape")
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 64
+script = ExtResource("4_hitbox")
+damage = 17
+knockback = 190.0
+hitstop = 0.1
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("slam_shape")
+
+[node name="DropBox" type="Area2D" parent="."]
+top_level = true
+collision_layer = 0
+collision_mask = 64
+script = ExtResource("4_hitbox")
+damage = 14
+knockback = 160.0
+hitstop = 0.1
+
+[node name="Shape" type="CollisionShape2D" parent="DropBox"]
+shape = SubResource("drop_shape")

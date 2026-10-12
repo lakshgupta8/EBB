@@ -32,7 +32,7 @@ func show_result(r: Dictionary) -> void:
 	var title_color: Color
 	if r.victory:
 		title_text = str(Run.BIOMES[clampi(int(r.get("biome", 0)), 0, Run.BIOMES.size() - 1)].won)
-		if int(r.get("tier", 0)) >= 8 and int(r.get("biome", 0)) >= Run.BIOMES.size() - 1:
+		if int(r.get("tier", 0)) >= 8 and Run.is_last(int(r.get("biome", 0))):
 			title_text = "THE SEA REMEMBERS"
 		title_color = UI.ACCENT
 	elif r.taken:
@@ -54,7 +54,7 @@ func show_result(r: Dictionary) -> void:
 	wl.custom_minimum_size = Vector2(300, 0)
 	box.add_child(wl)
 	var line := ""
-	if r.victory and int(r.get("biome", 0)) >= Run.BIOMES.size() - 1:
+	if r.victory and Run.is_last(int(r.get("biome", 0))):
 		line = "Maren is standing on the rock. Go up and talk to her."
 	elif not r.victory:
 		line = Story.whisper("taken" if r.taken else "death")
