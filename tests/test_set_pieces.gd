@@ -66,6 +66,22 @@ func test_a_piece_lays_its_ground() -> void:
 """, "pool")
 	assert_eq(pool.char_at(3, 2), "_", "the tide pool lays its water")
 	assert_eq(pool.char_at(5, 3), ".", "its open side stays floor")
+	# Map Stage 12d: a marker on a deck keeps its cell (the Streets' cage on its bridge).
+	var caged := RoomTemplate.parse("""
+############
+#..........#
+#..........#
+#..___E__..#
+#..______..#
+#..........#
+#..........#
+#....P.....#
+#####D######
+@ bridge 3 2
+""", "caged")
+	assert_eq(caged.marker_cells("E").size(), 1, "the cage on the bridge is still there")
+	assert_eq(caged.height_at(6, 3), 2, "and stands on the deck")
+	assert_eq(caged.char_at(5, 3), "=", "the deck round it is laid")
 
 
 func test_test_rooms_place_their_pieces() -> void:

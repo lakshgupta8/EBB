@@ -62,10 +62,12 @@ func _directive(line: String) -> void:
 	for c in SetPieces.footprint(parts[0], at):
 		piece_cells[c] = parts[0]
 	# A pier or a bridge lays its deck, a tide pool its water, into the plan (never over a wall
-	# or a door). The `@` lines follow the rows, so the rows are all read by now.
+	# or a door). The `@` lines follow the rows, so the rows are all read by now. Only ground is
+	# laid over: a marker (a cage on a bridge, a spawn on a pier) keeps its cell and stands on
+	# the deck, its neighbours' ground (map Stage 12d: the cage on the Streets' bridge was lost).
 	var lay := SetPieces.ground(parts[0], at)
 	for c: Vector2i in lay:
-		if c.y >= 0 and c.y < rows.size() and c.x >= 0 and c.x < rows[c.y].length() and not rows[c.y][c.x] in ["#", "D"]:
+		if c.y >= 0 and c.y < rows.size() and c.x >= 0 and c.x < rows[c.y].length() and rows[c.y][c.x] in [".", "_", "=", "X", "h", "o"]:
 			var row := rows[c.y]
 			rows[c.y] = row.substr(0, c.x) + str(lay[c]) + row.substr(c.x + 1)
 
