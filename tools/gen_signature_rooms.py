@@ -386,7 +386,212 @@ def harbour_boss():
     return p
 
 
+def streets_shop():
+    """The Streets merchant, 40x23: his stall in a small market square hemmed by houses, a cold
+    lamp over it; a well off the square's centre, a statue fallen by the east street, a corner
+    the sea has sunk. You come in up the south alley and see him across the square. Exits by
+    the west street and the east street."""
+    p = Plan(40, 23)
+    p.rect(5, 5, 33, 17, ".")
+    p.rect(2, 10, 5, 13, ".")
+    p.rect(33, 7, 37, 10, ".")
+    p.rect(16, 17, 20, 20, ".")
+    # The blocks: broken fronts pushed into the square.
+    for b in [(5, 5, 8, 7), (5, 15, 9, 17), (29, 14, 33, 17), (28, 5, 29, 6), (13, 17, 15, 17)]:
+        p.rect(*b, "#")
+    p.piece("house", 9, 5)
+    p.piece("house", 21, 5)
+    p.piece("stall", 16, 6)
+    p.g[8][18] = "M"
+    p.piece("coldlamp", 20, 8)
+    p.piece("well", 11, 11)
+    p.piece("fallen", 26, 11)
+    p.piece("lamps", 33, 10)
+    p.blob(24, 15, 3, 1.6, "_", 611, 0.3, only=".")
+    for (x, y) in [(15, 12), (30, 8), (8, 9), (21, 13), (13, 15), (4, 11)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 12)
+    p.door(39, 8)
+    p.mark([(18, 19)], "P")
+    return p
+
+
+def streets_altar():
+    """The Streets altar, 40x23: a wayside chapel open on a little square, its floor raised, a
+    flight of steps up to it, the altar inside lit cold between two shrines. A canal cuts the
+    west of the room and a bridge carries the street over it, so you cross the water and climb
+    to it. Exits west over the canal's street and east."""
+    p = Plan(40, 23)
+    p.rect(2, 5, 36, 19, ".")
+    p.rect(14, 2, 18, 5, ".")
+    for b in [(2, 5, 5, 7), (2, 17, 6, 19), (32, 16, 36, 19), (34, 5, 36, 8), (14, 2, 15, 3)]:
+        p.rect(*b, "#")
+    # The canal, north to south, the bridge over it on the street.
+    p.path([(10, 4), (9, 11), (10, 20)], 1.6, "_", 621, 0.4)
+    p.piece("bridge", 6, 10)
+    # The chapel: walls round three sides, its raised floor, the steps up from the square.
+    p.rect(22, 3, 33, 10, "#")
+    p.rect(24, 4, 31, 10, "=")
+    p.rect(27, 10, 28, 10, "=")
+    p.g[6][27] = "A"
+    p.piece("steps", 25, 11)
+    p.piece("shrine", 24, 4)
+    p.piece("shrine", 31, 4)
+    # The square before it: a house block, a well, rubble, a lamp lit by the sea at the bridge.
+    p.piece("house", 16, 14)
+    p.piece("well", 33, 12)
+    p.piece("coldlamp", 13, 9)
+    for (x, y) in [(19, 8), (20, 8), (15, 6), (35, 15), (13, 18), (22, 18), (4, 15)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 12)
+    p.door(39, 11)
+    p.mark([(4, 9)], "P")
+    return p
+
+
+def streets_fountain():
+    """The Streets fountain, 40x23: the city's fountain on its dais in a sunken court, the
+    paving round it gone under the sea's level (it floods first; the dais last); house fronts
+    round the court, cold lamps at its corners, a statue's plinth. You come in from the south-
+    west street and look across the court to it. Exits west and north."""
+    p = Plan(40, 23)
+    p.rect(4, 4, 35, 18, ".")
+    p.rect(2, 13, 4, 16, ".")
+    p.rect(22, 2, 25, 4, ".")
+    for b in [(4, 4, 8, 6), (30, 4, 35, 5), (4, 17, 10, 18), (31, 15, 35, 18), (35, 9, 35, 11)]:
+        p.rect(*b, "#")
+    # The court: low, its corners cut; the dais in it, one raised block.
+    p.rect(11, 7, 29, 15, "_")
+    for (x, y) in [(11, 7), (29, 7), (11, 15), (29, 15), (12, 7), (11, 8)]:
+        p.g[y][x] = "."
+    p.rect(17, 9, 23, 13, "=")
+    for (x, y) in [(17, 9), (23, 9), (17, 13), (23, 13)]:
+        p.g[y][x] = "_"
+    p.g[11][20] = "F"
+    p.piece("house", 10, 4)
+    p.piece("house", 23, 16)
+    p.piece("coldlamp", 10, 8)
+    p.piece("coldlamp", 30, 14)
+    p.piece("lamps", 26, 5)
+    p.piece("fallen", 31, 10)
+    for (x, y) in [(6, 9), (7, 9), (33, 7), (14, 17), (19, 17), (21, 6), (5, 12)]:
+        p.put(x, y, "o", ".")
+    p.door(0, 15)
+    p.door(23, 0)
+    p.mark([(6, 15)], "P")
+    return p
+
+
+def streets_echo():
+    """The Streets echo (1), 40x23: the cage in the churchyard before the tower's stump, the
+    fallen church's stones lying in rows where its nave stood, a shrine at the yard's gate in a
+    broken wall; the drowned among the stones. You come in at the gate and see the cage by the
+    tower. Exits north and east."""
+    p = Plan(40, 23)
+    p.rect(3, 3, 36, 19, ".")
+    p.rect(2, 9, 3, 12, ".")
+    for b in [(3, 3, 7, 5), (31, 3, 36, 4), (3, 17, 8, 19), (30, 18, 36, 19), (17, 19, 21, 19)]:
+        p.rect(*b, "#")
+    # The churchyard wall, broken; the tower's stump, the cage before it.
+    p.rect(10, 6, 10, 15, "#")
+    p.rect(10, 9, 10, 11, ".")
+    p.piece("tower", 22, 4)
+    p.g[8][24] = "E"
+    p.piece("shrine", 11, 8)
+    # The nave's stones in rows, some gone; a fallen statue; a sunken corner.
+    for y in (11, 14, 16):
+        for x in range(13, 34, 3):
+            if (x * 7 + y) % 5 != 0:
+                p.put(x, y, "o", ".")
+    p.piece("fallen", 29, 7)
+    p.piece("coldlamp", 19, 6)
+    p.blob(33, 13, 2.5, 2, "_", 641, 0.3, only=".")
+    p.blob(6, 15, 2, 1.5, "_", 642, 0.3, only=".")
+    p.piece("house", 13, 3)
+    for (x, y) in [(5, 7), (7, 13), (34, 6)]:
+        p.put(x, y, "o", ".")
+    p.door(27, 0)
+    p.door(39, 10)
+    p.mark([(4, 10)], "P")
+    p.mark([(21, 9), (27, 10), (15, 13), (25, 15), (31, 16), (17, 17)], "e")
+    return p
+
+
+def streets_echo_2():
+    """The Streets echo (2), 40x23: the cage on a bridge in the middle of a canal, the street
+    gone under on both banks; the drowned on the banks and coming up out of the water. You come
+    in on the west bank and see it out on the bridge. Exits north on the east bank, south on
+    the west."""
+    p = Plan(40, 23)
+    p.rect(3, 3, 36, 19, ".")
+    for b in [(3, 3, 6, 4), (31, 3, 36, 5), (3, 18, 7, 19), (32, 17, 36, 19)]:
+        p.rect(*b, "#")
+    # The canal, wide and deep through the middle; low street at its banks.
+    p.path([(19, 2), (18, 10), (18, 11), (20, 20)], 2.3, "_", 651, 0.3)
+    p.blob(9, 14, 4, 2.5, "_", 652, 0.3, only=".")
+    p.blob(29, 7, 4, 2, "_", 653, 0.3, only=".")
+    p.piece("bridge", 15, 9)
+    p.g[10][18] = "E"
+    # The banks: house fronts, a lamp lit by the sea at each end of the bridge, rubble.
+    p.piece("house", 7, 5)
+    p.piece("house", 26, 14)
+    p.piece("coldlamp", 13, 9)
+    p.piece("coldlamp", 22, 12)
+    p.piece("well", 31, 10)
+    p.piece("stall", 5, 9)
+    for (x, y) in [(10, 17), (11, 17), (28, 4), (34, 13), (4, 13), (25, 9)]:
+        p.put(x, y, "o", ".")
+    p.door(29, 0)
+    p.door(10, 22)
+    p.mark([(4, 11)], "P")
+    p.mark([(12, 7), (16, 15), (24, 7), (29, 12), (33, 16), (9, 15)], "e")
+    return p
+
+
+def streets_boss():
+    """The Bell's square, 40x23: Saltmere's square under the bell tower. The tower on the north,
+    the church terrace raised before it where the Bell rises (the first spawn, so the boss's),
+    the square's statues on their spots round it (the later spawns: dormant until the bell
+    cracks), the well and a fallen statue, low corners the sea comes in by, the house fronts
+    round it. One way out, by the alley beside the tower."""
+    p = Plan(40, 23)
+    p.rect(3, 3, 36, 19, ".")
+    for b in [(3, 3, 7, 5), (32, 3, 36, 5), (3, 17, 5, 19), (34, 17, 36, 19), (16, 19, 23, 19)]:
+        p.rect(*b, "#")
+    p.piece("tower", 18, 3)
+    # The church terrace: raised, the dry ground at the Bell; its corners cut, steps down.
+    p.rect(12, 6, 27, 9, "=")
+    for (x, y) in [(12, 6), (27, 6), (12, 9), (27, 9)]:
+        p.g[y][x] = "."
+    p.piece("steps", 14, 10)
+    p.piece("steps", 21, 10)
+    # Low corners the sea comes in by.
+    p.blob(6, 9, 2.5, 2.5, "_", 661, 0.3, only=".")
+    p.blob(33, 13, 2.5, 2.5, "_", 662, 0.3, only=".")
+    p.blob(10, 18, 3, 1.2, "_", 663, 0.3, only=".")
+    p.piece("well", 25, 14)
+    p.piece("fallen", 9, 13)
+    p.piece("house", 8, 3)
+    p.piece("house", 25, 3)
+    p.piece("coldlamp", 11, 7)
+    p.piece("coldlamp", 30, 8)
+    p.piece("lamps", 27, 18)
+    for (x, y) in [(17, 15), (29, 11), (4, 13), (35, 9)]:
+        p.put(x, y, "o", ".")
+    p.door(31, 0)
+    p.g[8][20] = "e"
+    p.mark([(8, 11), (31, 11), (13, 16), (28, 16)], "e")
+    p.mark([(20, 18)], "P")
+    return p
+
+
 ALL = {
+    "biome2/shop_01": streets_shop,
+    "biome2/altar_01": streets_altar,
+    "biome2/fountain_01": streets_fountain,
+    "biome2/echo_01": streets_echo,
+    "biome2/echo_02": streets_echo_2,
+    "biome2/boss_01": streets_boss,
     "harbour/shop_01": harbour_shop,
     "harbour/altar_01": harbour_altar,
     "harbour/fountain_01": harbour_fountain,
