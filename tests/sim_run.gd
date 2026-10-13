@@ -361,6 +361,10 @@ func _fight(target: Enemy) -> void:
 		# Ranged: hang back, fire when lined up, reload by holding. No line of sight: close in.
 		var ray := PhysicsRayQueryParameters2D.create(player.global_position, target.global_position, 1)
 		var blocked: bool = not player.get_world_2d().direct_space_state.intersect_ray(ray).is_empty()
+		# The ray sees walls only; a harpoon also stops on rocks and pieces. Five seconds of
+		# throwing without hurting anything is blocked too: a harpoon bot stood 108 px off two
+		# Still Citizens behind a rock for 90 s and never woke them (map Stage 13a, seed 1436).
+		blocked = blocked or tick - _last_hurt_tick > 300
 		if dist > 110.0 or blocked:
 			_walk_to(target.global_position, 40.0 if blocked else 100.0)
 		elif dist < 40.0:
