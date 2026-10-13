@@ -40,6 +40,13 @@ foreach ($tier in $Tiers) {
                 "--weapon=$w" "--fresh" "--tier=$tier" "--fast=$Fast" "--profile=bal_$w" 2>&1 | Out-String
             $sw.Stop()
             $wedged = $log -match "sim_run: WEDGED"
+            # A night that wedged or threw keeps its whole log (map Stage 13a): the bot's clock
+            # follows real time, so the same seed does not always wedge again on a rerun.
+            if ($wedged -or $log -match "SCRIPT ERROR") {
+                $keep = Join-Path $ProjectRoot ".shots\balance"
+                New-Item -ItemType Directory -Force $keep | Out-Null
+                $log | Set-Content -Path (Join-Path $keep "$w-tier$tier-seed$runSeed.log") -Encoding utf8
+            }
             if ($log -match "SCRIPT ERROR") {
                 $errors++
                 Write-Host "SCRIPT ERROR in $w tier $tier seed $runSeed" -ForegroundColor Red

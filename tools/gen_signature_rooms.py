@@ -172,9 +172,11 @@ def flats_echo():
 
 
 def flats_boss():
-    """The Wreck's beach, 40x23: where the Wreck came ashore. Wide dry sand to fight on, the
-    broken hull it shed half sunk in the flats along the north (the sea it came out of), shallow
-    pools across the sand that its stirring fills. The two roads leave by the south: the harbour
+    """The Wreck's beach, 40x23: where the Wreck came ashore. A bank of rock across the beach
+    to fight on, the last ground to go under (STYLE.md 1.45; the first plan had pools across
+    the middle instead, and seven nights in eighteen drowned at the Wreck once it dragged the
+    tide in: map Stage 13a), the broken hull it shed half sunk in the flats along the north (the
+    sea it came out of), a pool at each edge of the sand. The two roads leave by the south: the harbour
     road west, by a mast and a boat; the reef road east, by a tide pool and kelp light. The
     harbour door comes first in the file, as Run.BIOMES's `next` lists it."""
     p = Plan(40, 23)
@@ -186,9 +188,10 @@ def flats_boss():
     p.blob(28, 5, 6, 2, "_", 512, 0.3, only=".")
     p.piece("wreck", 12, 5)
     p.piece("kelplight", 27, 5)
-    # Pools across the sand: the tide's way in when the Wreck stirs.
-    for (cx, cy, rx, ry, s) in [(9, 10, 2.5, 1.5, 521), (29, 9, 3, 1.5, 522), (18, 13.5, 2.6, 1.3, 523),
-                                (33, 13, 2, 1.4, 524), (14, 13, 2, 1.2, 525), (25, 13, 1.6, 1.1, 526)]:
+    # The bank of rock across the beach, raised: the dry ground at the Wreck.
+    p.blob(20, 12, 9, 3.4, "=", 527, 0.25, only=".")
+    # A pool at each edge of the sand: the tide's way in when the Wreck stirs.
+    for (cx, cy, rx, ry, s) in [(7, 11, 2.5, 1.5, 521), (34, 13, 2, 1.4, 524)]:
         p.blob(cx, cy, rx, ry, "_", s, 0.35, only=".")
     # The harbour road: a mast and a boat by it. The reef road: a tide pool and kelp by it.
     p.piece("mast", 3, 18)
