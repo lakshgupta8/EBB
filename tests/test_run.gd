@@ -96,6 +96,11 @@ func _check_templates(dir: String, roads: int = 1) -> void:
 		assert_true(t.height >= 23 and t.height <= 46, f + " height %d in 23-46" % t.height)
 		assert_true(t.player_spawn.x >= 0, f + " has a player spawn")
 		assert_true(t.doors.size() >= 1, f + " has a door slot")
+		# Map Stage 12: the run offers up to two rooms next and fills doors in order, so a room
+		# with one door dropped the second (the shop, altar and fountain in three biomes did,
+		# the wet way at the fork among them). Every room but the boss's has two ways on.
+		if not f.begins_with("boss"):
+			assert_true(t.doors.size() >= 2, f + " has two ways on (%d)" % t.doors.size())
 		if f.begins_with("flats") or f.begins_with("harbour") or f.begins_with("reef") or f.begins_with("streets") or f.begins_with("hall") or f.begins_with("boss") or f.begins_with("echo"):
 			assert_true(t.enemy_spawns.size() >= 1, f + " has enemy spawns")
 		if f.begins_with("echo"):
