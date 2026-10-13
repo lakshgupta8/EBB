@@ -197,6 +197,16 @@ func test_every_room_passes_the_editor() -> void:
 	ed.free()
 
 
+## A night rested in a room since redrawn (1.3.0 to 1.4.0) brings its altar back on the new
+## room's altar, not at the old cell, which may now be wall.
+func test_a_rested_prop_finds_its_marker() -> void:
+	var t := RoomTemplate.load_file("res://data/rooms/harbour/altar_01.txt")
+	var altar: Vector2i = t.marker_cells("A")[0]
+	assert_eq(Run.rested_cell(t, Prop.Kind.ALTAR, altar), altar, "kept where it was")
+	assert_eq(Run.rested_cell(t, Prop.Kind.ALTAR, Vector2i(1, 1)), altar, "an old cell goes to the altar")
+	assert_true(not t.is_solid(Run.rested_cell(t, Prop.Kind.ALTAR, Vector2i(0, 0)).x, altar.y))
+
+
 func test_hub_template() -> void:
 	var t := RoomTemplate.load_file("res://data/rooms/hub.txt")
 	assert_eq(t.marker_cells("X").size(), 1, "one descend marker")

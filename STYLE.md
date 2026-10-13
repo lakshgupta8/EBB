@@ -1,6 +1,6 @@
 # EBB — Visual Style Bible (STYLE.md)
 
-Version 1.55, after map Stage 13c, 2026-10-14 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
+Version 1.56, after map Stage 13d (1.4.0), 2026-10-14 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
 
 Target in one sentence: **small, expressive, atmospheric pixel art with exceptional silhouette and lighting discipline** — a cold, wet, quiet northern shore at night, with one warm light in the player's hand.
 
@@ -685,6 +685,7 @@ The rooms are a place before they are an arena. This section governs every room 
 - 1.53 (2026-10-13, map Stage 13a): 1.45 measured: the Wreck's beach without raised ground and with pools in the middle drowned seven bot nights in eighteen once the boss dragged the tide in; with a bank of rock across it, four. Low ground in a boss arena goes at its edges, never between the keeper and the boss.
 - 1.54 (2026-10-13, map Stage 13b): the large rooms measured: 1.5 ms a frame, 3.3 at the 99th percentile at worst; the water rebuilds in 9 ms when the tide moves (was 154 in an 80x46 room), so a rising tide no longer stutters a fight. The way into a generated large room holds the black about a third of a second.
 - 1.55 (2026-10-14, map Stage 13c): the room editor holds a room to the same rules as the tests (two ways on, a door per road at a boss, the hub's people and posts), shows the water at any tide, and names the tool that made the file: a signature room is changed in `tools/gen_signature_rooms.py`, not by hand.
+- 1.56 (2026-10-14, map Stage 13d): the map redesign ships as 1.4.0.
 - 1.38 (2026-10-05, map Stage 11e): the Reef's current (22): `~` lines in a room, the flow three cells either side of a channel's line, carrying only in water (shallow 20, deep 44 to 60 px/s), living coral cutting whoever it carries; foam flecks drift with it so it is seen before it is felt.
 - 1.37 (2026-10-05, map Stage 11d): the Reef's grammar (22): the sea wall across (half), down (three in ten) or gone (the reef flat, two in ten); breaches with the stubs standing, the current running from each in a channel, coral heads between, the rim bitten hard; ten unlit chunks.
 - 1.36 (2026-10-05, map Stage 11c): the Reef's ten set pieces and its decor (22): coral in Drowned skin with Pale slate and Oilskin light shades (never the floor's own Pale slate alone), colour only where a thing lives (the clam's mantle, one fan, the glowing coral, the starfish), its light all cold.

@@ -1596,6 +1596,27 @@ func _resume(d: Dictionary) -> void:
 	EventBus.keys_changed.emit(state.keys)
 
 
+## The markers a rested prop of each kind may stand on (a dive's chest, or its altar under the neap).
+const PROP_MARKERS := {Prop.Kind.ALTAR: ["A"], Prop.Kind.CHEST: ["T", "A"], Prop.Kind.FOUNTAIN: ["F"],
+	Prop.Kind.MERCHANT: ["M"], Prop.Kind.VAULT: ["T"]}
+
+
+## Where a prop left in a rested room comes back: where it was, while that is still one of its
+## markers. A night rested before its room was redrawn (1.4.0, the map redesign) would otherwise
+## put an altar inside the new room's wall; it goes to the nearest marker of its kind instead.
+static func rested_cell(t: RoomTemplate, kind: int, cell: Vector2i) -> Vector2i:
+	var cells: Array = []
+	for ch in PROP_MARKERS.get(kind, []):
+		cells.append_array(t.marker_cells(ch))
+	if cells.is_empty() or cell in cells:
+		return cell
+	var best: Vector2i = cells[0]
+	for c: Vector2i in cells:
+		if (c - cell).length_squared() < (best - cell).length_squared():
+			best = c
+	return best
+
+
 ## Rebuild the room the night was left in: cleared, doors open, nothing left to fight,
 ## and whatever was still unused (an altar, a fountain, the merchant) waiting where it was.
 func _enter_rested_room(type: int, template_name: String, room_seed: int, props: Array, wet: bool = false) -> void:
@@ -1630,9 +1651,10 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 	for pd in props:
 		var cell: Array = pd.get("cell", [0, 0])
 		var kind := int(pd.get("kind", 0))
+		var at := rested_cell(room.template, kind, Vector2i(int(cell[0]), int(cell[1])))
 		if _neap() and kind == int(Prop.Kind.ALTAR):
 			kind = int(Prop.Kind.CHEST)
-		_add_room_prop(kind as Prop.Kind, Vector2i(int(cell[0]), int(cell[1])))
+		_add_room_prop(kind as Prop.Kind, at)
 	room_cleared = true
 	room.open_doors()
 	_show_room_label(biome().name, "%d / %d   %s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],

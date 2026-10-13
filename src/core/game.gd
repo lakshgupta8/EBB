@@ -1,7 +1,7 @@
 extends Node
 ## Top-level game flow: Hub -> Run -> Results -> Hub. Owns the run seed.
 
-const VERSION := "1.3.0"
+const VERSION := "1.4.0"
 const HUB_SCENE := "res://src/hub/hub.tscn"
 const RUN_SCENE := "res://src/run/run.tscn"
 const TITLE_SCENE := "res://src/title/title.tscn"
