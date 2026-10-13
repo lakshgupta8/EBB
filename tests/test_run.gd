@@ -174,6 +174,29 @@ func test_biome_table() -> void:
 			assert_true(id in Story.ECHO_IDS and Run.ECHOES.has(id) and Prop.ECHO_FRAME.has(id), "echo " + str(id))
 
 
+## The room editor judges a room the way the game does (map Stage 13c): every room that ships,
+## the hub included, would be saved by it, and it refuses a fighting room with one door.
+func test_every_room_passes_the_editor() -> void:
+	var ed = load("res://src/dev/room_editor.gd").new()
+	var paths: Array = ["data/rooms/hub.txt"]
+	for dir in ["biome1", "harbour", "biome2", "biome3", "reef"]:
+		for f in DirAccess.get_files_at("res://data/rooms/" + dir):
+			if f.ends_with(".txt"):
+				paths.append("data/rooms/%s/%s" % [dir, f])
+	for p in paths:
+		ed.path = p
+		ed._load()
+		assert_eq(ed._check(), "", p + " passes the editor")
+	ed.path = "data/rooms/biome1/flats_01.txt"
+	ed._load()
+	var keep: int = ed._template().doors.size()
+	for i in keep - 1:
+		var d: Vector2i = ed._template().doors[0]
+		ed.rows[d.y] = ed.rows[d.y].substr(0, d.x) + "#" + ed.rows[d.y].substr(d.x + 1)
+	assert_eq(ed._check(), "one D: a room needs two ways on", "one door is refused")
+	ed.free()
+
+
 func test_hub_template() -> void:
 	var t := RoomTemplate.load_file("res://data/rooms/hub.txt")
 	assert_eq(t.marker_cells("X").size(), 1, "one descend marker")

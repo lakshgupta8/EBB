@@ -7,10 +7,13 @@ extends Node2D
 ##
 ## Mouse paints the chosen brush (right button paints floor). 1-9 and 0 pick a brush,
 ## Tab and Shift+Tab step the whole palette, [ and ] step through the biome's files.
-## S saves (it refuses a room you cannot walk around), L reloads, G shows the grid,
+## S saves (it refuses a room you cannot walk around), L reloads, G shows the grid, T steps the tide,
 ## Esc quits. A room larger than the screen (map Stage 02) opens framed whole; the arrow
 ## keys or the middle button pan, the wheel or Z zooms between 1x and the whole room. Writing goes to the real file through the project folder, so this is for
 ## a build run from source, which is what a dev flag means here.
+## The hub (data/rooms/hub.txt) opens with its own look and legend and is checked as the rock
+## (map Stage 13c). The title says which tool made the file: most rooms are written by a
+## generator, and a hand edit lasts only until that generator runs again.
 
 const DEFAULT_ROOM := "data/rooms/biome1/flats_01.txt"
 const CELL := Tiles.SIZE
@@ -31,6 +34,29 @@ const BRUSHES := [
 	{"ch": "M", "name": "merchant"},
 	{"ch": "E", "name": "cage"},
 ]
+## The hub's legend (map Stage 12g): the way down, the tower, the lantern posts, the dock, and a
+## place for each person on the rock (the letters src/hub/hub.gd reads).
+const HUB_PEOPLE := {"O": "Orla", "K": "Fen", "B": "Bram", "W": "Wren", "C": "the Cartographer", "N": "Maren",
+	"S": "Nessa", "I": "Idris", "L": "Aldous", "V": "Pell", "Y": "the Choir", "G": "Hale"}
+const HUB_BRUSHES := [
+	{"ch": ".", "name": "floor"},
+	{"ch": "#", "name": "wall"},
+	{"ch": "o", "name": "rock"},
+	{"ch": "_", "name": "low ground (floods first)"},
+	{"ch": "=", "name": "raised (floods last)"},
+	{"ch": "P", "name": "the keeper"},
+	{"ch": "X", "name": "the way down"},
+	{"ch": "h", "name": "the lighthouse (2x2)"},
+	{"ch": "l", "name": "a lantern post"},
+	{"ch": "d", "name": "the dock"},
+	{"ch": "O", "name": "Orla"}, {"ch": "K", "name": "Fen"}, {"ch": "B", "name": "Bram"}, {"ch": "W", "name": "Wren"},
+	{"ch": "C", "name": "the Cartographer"}, {"ch": "N", "name": "Maren"}, {"ch": "S", "name": "Nessa"},
+	{"ch": "I", "name": "Idris"}, {"ch": "L", "name": "Aldous"}, {"ch": "V", "name": "Pell"}, {"ch": "Y", "name": "the Choir"},
+	{"ch": "G", "name": "Hale"},
+]
+## The rooms tools/gen_signature_rooms.py writes (map Stage 12); the rest of a biome's rooms are
+## RoomGen's, recorded in docs/ROOM_REBUILD.csv by src/dev/room_rebuild.gd (map Stage 09).
+const SIGNATURE := ["shop_01", "altar_01", "fountain_01", "echo_01", "echo_02", "boss_01", "hub"]
 const THEME_BY_DIR := {"biome1": Tiles.Look.FLATS, "harbour": Tiles.Look.HARBOUR,
 	"biome2": Tiles.Look.STREETS, "biome3": Tiles.Look.DEEP, "reef": Tiles.Look.REEF}
 
@@ -46,10 +72,16 @@ var _file_at: int = 0
 var _status: Label
 var _palette: Label
 var _title: Label
+var _source: Label
 var _grid: GridOverlay
 var _painting: int = 0  # mouse button held, or 0
 var _panning: bool = false
 var _framed: Vector2i = Vector2i.ZERO  # the room size the view was last framed for
+var _made_by: String = ""  # which tool wrote this file, if one did
+## T steps the water shown: dry, the low ground wet, the low ground deep and the floor wet, the
+## floor deep, the raised ground under (the levels the tide crosses in a night and at a boss).
+const TIDES := [0.0, 0.6, 1.3, 2.0, 2.9]
+var _tide_at: int = 0
 @onready var _cam: Camera2D = $Camera
 
 
@@ -64,11 +96,22 @@ func _ready() -> void:
 	_handle_screenshot_arg()
 
 
-## Dev aid: `-- --screenshot` saves .shots/room_editor.png and quits.
+## Dev aid: `-- --screenshot` saves .shots/room_editor.png and quits; `--keys=T,T,Z` presses
+## those keys first, through the same handler a hand on the keyboard uses.
 func _handle_screenshot_arg() -> void:
 	if not "--screenshot" in OS.get_cmdline_user_args():
 		return
 	for i in 20:
+		await get_tree().process_frame
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--keys="):
+			for k in a.trim_prefix("--keys=").split(","):
+				var ev := InputEventKey.new()
+				ev.keycode = OS.find_keycode_from_string(k)
+				ev.pressed = true
+				_key(ev)
+				await get_tree().process_frame
+	for i in 5:
 		await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -80,6 +123,31 @@ func _handle_screenshot_arg() -> void:
 # --- files ---------------------------------------------------------------------------
 func _dir() -> String:
 	return path.get_base_dir()
+
+
+func _is_hub() -> bool:
+	return path.get_file() == "hub.txt"
+
+
+func _brushes() -> Array:
+	return HUB_BRUSHES if _is_hub() else BRUSHES
+
+
+func _look() -> int:
+	return Tiles.Look.HUB if _is_hub() else int(THEME_BY_DIR.get(_dir().get_file(), Tiles.Look.FLATS))
+
+
+## Which tool wrote the file: a hand edit here lasts until that tool runs again.
+func _provenance() -> String:
+	var name := path.get_file().get_basename()
+	if name in SIGNATURE:
+		return "made by tools/gen_signature_rooms.py (%s): edit its plan there to keep a change" % \
+			("hub" if name == "hub" else _dir().get_file() + "/" + name)
+	var key := _dir().get_file() + "/" + name + ","
+	for line in FileAccess.get_file_as_string(ProjectSettings.globalize_path("res://docs/ROOM_REBUILD.csv")).split("\n"):
+		if line.begins_with(key):
+			return "made by RoomGen, seed %s (docs/ROOM_REBUILD.csv): room_rebuild would make it again" % line.split(",")[5]
+	return ""
 
 
 func _scan_dir() -> void:
@@ -103,6 +171,8 @@ func _load() -> void:
 			continue
 		rows.append(line.strip_edges(false, true))
 	dirty = false
+	brush = mini(brush, _brushes().size() - 1)
+	_made_by = _provenance()
 
 
 ## Write the file back through the project folder. Refuses a room the keeper cannot walk
@@ -128,8 +198,13 @@ func _check() -> String:
 	var t := _template()
 	if t.player_spawn.x < 0:
 		return "no P: the keeper has nowhere to stand"
+	if _is_hub():
+		return _check_hub(t)
 	if t.doors.is_empty():
 		return "no D: there is no way out"
+	# Every room the run offers leads two ways on; a boss's arena has a door per road (map Stage 12g).
+	if t.doors.size() < 2 and not path.get_file().begins_with("boss"):
+		return "one D: a room needs two ways on"
 	var seen := t.reachable_cells()
 	for d in t.doors:
 		var touching := false
@@ -152,8 +227,58 @@ func _check() -> String:
 				walled += 1
 	if walled > 0:
 		return "%d cells you cannot walk to" % walled
-	if t.enemy_spawns.is_empty() and not path.get_file().begins_with("hub"):
-		return "no e: nothing can be spawned here"
+	return _check_kind(t)
+
+
+## What each kind of room must hold, as tests/test_run.gd has it (map Stage 13c: the editor had
+## asked every room for a spawn, and so would not save an altar, a fountain or a shop).
+func _check_kind(t: RoomTemplate) -> String:
+	if t.width < 40 or t.width > 80 or t.height < 23 or t.height > 46:
+		return "%dx%d: a room is 40x23 to 80x46" % [t.width, t.height]
+	var f := path.get_file()
+	for kind in ["flats", "harbour", "reef", "streets", "hall", "boss", "echo"]:
+		if f.begins_with(kind) and t.enemy_spawns.is_empty():
+			return "no e: nothing can be spawned here"
+	if f.begins_with("echo") and t.marker_cells("E").size() != 1:
+		return "%d E: an echo room holds one cage" % t.marker_cells("E").size()
+	if f.begins_with("challenge") and (t.enemy_spawns.size() < 4 or t.marker_cells("T").is_empty()):
+		return "a challenge wants four e and a T"
+	if f.begins_with("vault") and t.marker_cells("T").size() != 1:
+		return "%d T: a vault holds one" % t.marker_cells("T").size()
+	if f.begins_with("dive") and (t.marker_cells("A").size() != 1 or t.marker_cells("T").size() != 1):
+		return "a dive holds one A and one T"
+	if f.begins_with("boss"):
+		var roads := 1
+		for b in Run.BIOMES:
+			if str(b.dir).get_base_dir().get_file() == _dir().get_file():
+				roads = maxi(1, (b.next as Array).size())
+		if t.doors.size() != roads:
+			return "%d D: this arena wants a way down for each road (%d)" % [t.doors.size(), roads]
+	return ""
+
+
+## The rock, as tests/test_run.gd and the hub's own plan check it: one way down, the tower, one
+## place for each person, the dock, four lantern posts or more, and all of it reachable on foot.
+func _check_hub(t: RoomTemplate) -> String:
+	if t.marker_cells("X").size() != 1:
+		return "%d X: the rock needs one way down" % t.marker_cells("X").size()
+	if t.marker_cells("h").is_empty():
+		return "no h: there is no lighthouse"
+	for ch in HUB_PEOPLE:
+		if t.marker_cells(ch).size() != 1:
+			return "%d %s: %s needs one place" % [t.marker_cells(ch).size(), ch, HUB_PEOPLE[ch]]
+	if t.marker_cells("d").is_empty():
+		return "no d: there is no dock"
+	if t.marker_cells("l").size() < 4:
+		return "%d l: the path wants four lantern posts or more" % t.marker_cells("l").size()
+	var seen := t.reachable_cells()
+	for ch in HUB_PEOPLE.keys() + ["X", "d", "l"]:
+		for c: Vector2i in t.marker_cells(ch):
+			var near := false
+			for off in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				near = near or seen.has(c + off)
+			if not near or t.is_solid(c.x, c.y):
+				return "%s at %d,%d cannot be walked to" % [ch, c.x, c.y]
 	return ""
 
 
@@ -202,7 +327,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _paint(at: Vector2, button: int) -> void:
-	_set_cell(_cell_at(at), "." if button == MOUSE_BUTTON_RIGHT else str(BRUSHES[brush].ch))
+	_set_cell(_cell_at(at), "." if button == MOUSE_BUTTON_RIGHT else str(_brushes()[brush].ch))
 
 
 func _key(event: InputEventKey) -> void:
@@ -218,8 +343,25 @@ func _key(event: InputEventKey) -> void:
 		KEY_G:
 			show_grid = not show_grid
 			_grid.visible = show_grid
+		KEY_Z:
+			# The whole room, or 1x where the cursor is.
+			var fit := _fit_zoom()
+			if is_equal_approx(_cam.zoom.x, fit) and fit < 1.0:
+				_cam.position = get_global_mouse_position()
+				_zoom_to(1.0)
+			else:
+				_cam.position = _room.size_px() * 0.5
+				_zoom_to(fit)
+		KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN:
+			var step := {KEY_LEFT: Vector2.LEFT, KEY_RIGHT: Vector2.RIGHT, KEY_UP: Vector2.UP, KEY_DOWN: Vector2.DOWN}
+			_cam.position += step[event.keycode] * CELL * 8.0 / _cam.zoom.x
+		KEY_T:
+			# The water at the next tide: the ground floods by its height (map Stage 03).
+			_tide_at = wrapi(_tide_at + (-1 if event.shift_pressed else 1), 0, TIDES.size())
+			_room.set_tide(TIDES[_tide_at])
+			_refresh()
 		KEY_TAB:
-			brush = wrapi(brush + (-1 if event.shift_pressed else 1), 0, BRUSHES.size())
+			brush = wrapi(brush + (-1 if event.shift_pressed else 1), 0, _brushes().size())
 			_refresh()
 		KEY_BRACKETLEFT:
 			_step_file(-1)
@@ -227,10 +369,10 @@ func _key(event: InputEventKey) -> void:
 			_step_file(1)
 		_:
 			var i := UI.menu_index(event)
-			if i >= 0 and i < BRUSHES.size():
+			if i >= 0 and i < _brushes().size():
 				brush = i
 				_refresh()
-			elif event.keycode == KEY_0 and BRUSHES.size() > 9:
+			elif event.keycode == KEY_0 and _brushes().size() > 9:
 				brush = 9
 				_refresh()
 
@@ -255,9 +397,8 @@ func _rebuild() -> void:
 	_room = Room.new()
 	add_child(_room)
 	move_child(_room, 0)
-	var look: int = THEME_BY_DIR.get(_dir().get_file(), Tiles.Look.FLATS)
-	_room.build(_template(), 7, look)
-	_room.set_tide(0.0)
+	_room.build(_template(), 7, _look())
+	_room.set_tide(TIDES[_tide_at])
 	var size := Vector2i(_room.template.width, _room.template.height)
 	if size != _framed:
 		# A new room, or a resized one: show it whole, centred.
@@ -272,7 +413,7 @@ func _rebuild() -> void:
 ## The largest of 1x, 1/2x, 1/4x that shows the whole room above the bar.
 func _fit_zoom() -> float:
 	var room := _room.size_px()
-	var view := Vector2(640, 326)
+	var view := Vector2(640, 316)
 	var z := 1.0
 	while z > 0.25 and (room.x * z > view.x + 0.5 or room.y * z > view.y + 16.5):
 		z *= 0.5
@@ -294,9 +435,13 @@ func _build_ui() -> void:
 	var bar := ColorRect.new()
 	bar.color = Color(0.04, 0.03, 0.08, 0.75)
 	bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bar.offset_top = -34
+	bar.offset_top = -44
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(bar)
+	_source = UI.label("", 8, Color(0.95, 0.75, 0.5))
+	_source.position = Vector2(4, 318)
+	_source.size = Vector2(632, 10)
+	layer.add_child(_source)
 	_title = UI.label("", 8, Color(0.95, 0.9, 0.75))
 	_title.position = Vector2(4, 328)
 	_title.size = Vector2(632, 10)
@@ -305,7 +450,7 @@ func _build_ui() -> void:
 	_palette.position = Vector2(4, 338)
 	_palette.size = Vector2(632, 10)
 	layer.add_child(_palette)
-	_status = UI.label("paint: mouse  clear: right  [S] save  [L] reload  [Tab] brush  [ ] file  [G] grid  [Z] zoom  arrows pan  [Esc] quit", 8, Color(0.6, 0.7, 0.8))
+	_status = UI.label("paint: mouse  clear: right  [S] save  [L] reload  [Tab] brush  [ ] file  [G] grid  [T] tide  [Z] zoom  arrows pan  [Esc] quit", 8, Color(0.6, 0.7, 0.8))
 	_status.position = Vector2(4, 348)
 	_status.size = Vector2(632, 10)
 	layer.add_child(_status)
@@ -313,15 +458,17 @@ func _build_ui() -> void:
 
 func _refresh() -> void:
 	var problem := _check()
-	_title.text = "%s%s   %d x %d   %s" % [path.get_file(), "  *" if dirty else "", rows[0].length() if rows.size() > 0 else 0,
-		rows.size(), "ok" if problem == "" else problem]
+	_title.text = "%s%s   %d x %d   tide %.1f   %s" % [path.get_file(), "  *" if dirty else "", rows[0].length() if rows.size() > 0 else 0,
+		rows.size(), TIDES[_tide_at], "ok" if problem == "" else problem]
 	_title.add_theme_color_override("font_color", Color(0.95, 0.9, 0.75) if problem == "" else Color(1.0, 0.6, 0.55))
+	_source.text = _made_by
 	var parts: Array = []
-	for i in BRUSHES.size():
-		var b: Dictionary = BRUSHES[i]
-		var key := str(i + 1) if i < 9 else ("0" if i == 9 else "-")
-		parts.append("%s%s %s%s" % ["[" if i == brush else " ", key, b.ch, "]" if i == brush else " "])
-	_palette.text = " ".join(parts) + "   brush: " + str(BRUSHES[brush].name)
+	var list := _brushes()
+	for i in list.size():
+		var b: Dictionary = list[i]
+		var key := str(i + 1) if i < 9 else ("0" if i == 9 else "")
+		parts.append("%s%s%s%s" % ["[" if i == brush else " ", key, b.ch, "]" if i == brush else " "])
+	_palette.text = "".join(parts) + "  brush: " + str(list[brush].name)
 
 
 func _say(text: String, good: bool) -> void:
@@ -354,6 +501,11 @@ class GridOverlay extends Node2D:
 					"D": col = Color(0.5, 0.8, 1.0, 0.8)
 					"E": col = Color(0.7, 0.9, 1.0, 0.8)
 					"T", "F", "A", "M": col = Color(0.6, 1.0, 0.7, 0.8)
+					"X", "d": col = Color(0.5, 0.8, 1.0, 0.8)
+					"l": col = Color(1.0, 0.8, 0.45, 0.8)
+					_:
+						if editor.call("_is_hub") and HUB_PEOPLE.has(ch):
+							col = Color(0.95, 0.75, 0.95, 0.85)
 				if col.a > 0.0:
 					var r := Rect2(x * CELL + 3, y * CELL + 3, CELL - 6, CELL - 6)
 					draw_rect(r, Color(col, 0.25))
