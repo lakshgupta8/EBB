@@ -954,7 +954,107 @@ def reef_boss():
     return p
 
 
+## The hub's markers (src/hub/hub.gd): the descent, the tower, a spot for each person, the dock,
+## the lantern posts. Each must be reachable from the keeper's spawn (checked in `hub_reach`).
+HUB_PEOPLE = "OKBWCNSILVYG"
+
+
+def hub():
+    """Marrow Rock, 40x23 (the hub): the rock in the sea, the lighthouse on its summit in a flagged
+    court (Orla at its door, Maren at its foot), a path from the descent at the waterline up to
+    it through the whalebone, lined with the lantern posts that light as the Log fills. Each of
+    the people has a place that says who they are, made of what came home from where they were
+    found: Bram at his forge fire, Wren at her shrine by the standing stones with the Choir,
+    Aldous by a keeper's statue under the summit, the Cartographer on a lookout over the sea,
+    Hale at the sea wall he is building, Nessa by her boat and nets, Fen at the tide pool, Idris
+    by his cargo at the dock's root, Pell out on the dock."""
+    p = Plan(40, 23)
+    # The rock: its body, the summit's shoulder, a west and an east shore.
+    p.blob(20, 11, 17, 8, ".", 901, 0.16)
+    p.blob(24, 5, 8, 3.4, ".", 902, 0.2)
+    p.blob(9, 15, 8, 5.5, ".", 903, 0.2)
+    p.blob(31, 15, 8, 5.5, ".", 904, 0.2)
+    p.blob(33, 7, 4, 3, ".", 905, 0.25)
+    # The sea: in along the whole south, up to the shore; a cove in the south-west.
+    p.rect(3, 16, 36, 20, ".")
+    p.blob(20, 23, 24, 5, "_", 911, 0.18, only=".")
+    p.blob(5, 19, 3.5, 2, "_", 912, 0.3, only=".")
+    # The summit court: flagged, raised, its corners cut, the tower on it.
+    p.rect(18, 3, 29, 7, "=")
+    for (x, y) in [(18, 3), (29, 3), (18, 7), (29, 7), (19, 3), (28, 3)]:
+        p.g[y][x] = "."
+    for (x, y) in [(23, 3), (24, 3), (23, 4), (24, 4)]:
+        p.g[y][x] = "h"
+    p.g[6][21] = "O"
+    p.g[6][27] = "N"
+    # The way up: the whalebone over the path, the lantern posts along it.
+    p.piece("whalebone", 20, 10)
+    for (x, y) in [(17, 16), (21, 15), (18, 13), (25, 12), (16, 8), (28, 9)]:
+        p.g[y][x] = "l"
+    # West: Bram's forge fire; Wren's shrine and the standing stones, the Choir with her.
+    p.piece("cairn", 6, 7)
+    p.g[9][9] = "B"
+    p.piece("stones", 3, 13)
+    p.piece("shrine", 5, 11)
+    p.g[12][7] = "W"
+    p.g[14][10] = "Y"
+    # Under the summit: Aldous by an old keeper's statue.
+    p.piece("statue", 11, 5)
+    p.g[7][14] = "L"
+    # East: the Cartographer's lookout (flagged, raised), Hale's half-built sea wall.
+    p.rect(31, 5, 35, 8, "=")
+    p.g[5][31] = "."
+    p.g[7][33] = "C"
+    p.rect(34, 12, 36, 16, "=")
+    p.rect(34, 12, 34, 13, ".")
+    p.piece("anchor", 30, 12)
+    p.g[14][32] = "G"
+    # The shore: Nessa's boat and nets, Fen's tide pool, Idris's cargo, the dock with Pell on it.
+    p.piece("boat", 6, 17)
+    p.piece("netrack", 4, 15)
+    p.g[16][10] = "S"
+    p.piece("tidepool", 12, 13)
+    p.g[15][16] = "K"
+    p.piece("crates", 21, 13)
+    p.g[15][25] = "I"
+    p.blob(31, 21, 8, 3, "_", 913, 0.25, only=".")
+    p.g[18][23] = "d"
+    p.g[17][24] = "V"
+    p.piece("kelplight", 30, 19)
+    p.piece("kelplight", 9, 20)
+    for (x, y) in [(16, 4), (17, 5), (4, 10), (12, 11), (27, 12), (36, 10), (13, 19), (31, 9)]:
+        p.put(x, y, "o", ".")
+    p.g[20][19] = "X"
+    p.g[16][19] = "P"
+    return p
+
+
+def hub_reach(p):
+    """Every hub marker reachable from the keeper's spawn (Plan.check knows doors and spawns)."""
+    solid = {c for q in p.pieces for c in p.footprint(*q)}
+    start = [(x, y) for y in range(p.h) for x in range(p.w) if p.g[y][x] == "P"]
+    seen, stack = set(start), list(start)
+    while stack:
+        x, y = stack.pop()
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            c = p.get(nx, ny)
+            if (nx, ny) in seen or c in "#oh" or (nx, ny) in solid:
+                continue
+            seen.add((nx, ny))
+            stack.append((nx, ny))
+    errs = []
+    for y in range(p.h):
+        for x in range(p.w):
+            c = p.g[y][x]
+            if c in HUB_PEOPLE + "Xdl" and (x, y) not in seen:
+                errs.append(f"'{c}' at {x},{y} unreachable")
+            if c in HUB_PEOPLE + "Xdl" and (x, y) in solid:
+                errs.append(f"'{c}' at {x},{y} under a piece")
+    return errs
+
+
 ALL = {
+    "hub": hub,
     "reef/shop_01": reef_shop,
     "reef/altar_01": reef_altar,
     "reef/fountain_01": reef_fountain,
@@ -989,7 +1089,7 @@ def main():
     bad = 0
     for name in names:
         p = ALL[name]()
-        errs = p.check(name)
+        errs = p.check(name) + (hub_reach(p) if name == "hub" else [])
         holes = p.holes()
         sym = p.symmetry()
         path = os.path.join(ROOMS, name + ".txt")

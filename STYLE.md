@@ -1,6 +1,6 @@
 # EBB — Visual Style Bible (STYLE.md)
 
-Version 1.51, after map Stage 12f, 2026-10-13 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
+Version 1.52, after map Stage 12g, 2026-10-13 (first written 1.0, Stage 02, 2026-09-12). This is the hard specification for every future asset. When an asset and this document disagree, the asset is wrong. Changes to this document are made deliberately, dated, and listed at the end.
 
 Target in one sentence: **small, expressive, atmospheric pixel art with exceptional silhouette and lighting discipline** — a cold, wet, quiet northern shore at night, with one warm light in the player's hand.
 
@@ -681,6 +681,7 @@ The rooms are a place before they are an arena. This section governs every room 
 - 1.49 (2026-10-12, map Stage 12d): a prop may stand on a piece's deck (a cage on a bridge, a spawn on a pier): the deck is laid only over ground, the marker keeps its cell; a boss whose later spawns mean something (the Bell's statues) has its own spawn first in the file.
 - 1.50 (2026-10-12, map Stage 12e): the Hall's signature rooms are laid on an axis (a nave, an apse, a crossing, a round baptistery) and broken as a ruin is: one column or pier down in rubble, one arm fallen into the dark, one gutter burst; the break is what keeps them under 0.80.
 - 1.51 (2026-10-13, map Stage 12f): the Reef's signature rooms keep its rule that the water runs: each has a current where its place has water moving (a channel past the merchant, the sea through a breach, a ring that circles the fountain); a calm room's current is slow water you may wade, not a hazard on the way in; a boss arena's lines are part of the fight and are kept when it is dressed.
+- 1.52 (2026-10-13, map Stage 12g): the hub is a place on the rock, not a yard: the lighthouse on its summit clear of the HUD's lines, a path up from the descent at the waterline lined with the lantern posts, and each person at a place made of what came home from where they were found; every room the run can offer has two doors or more (tested), a boss's arena one per road on.
 - 1.38 (2026-10-05, map Stage 11e): the Reef's current (22): `~` lines in a room, the flow three cells either side of a channel's line, carrying only in water (shallow 20, deep 44 to 60 px/s), living coral cutting whoever it carries; foam flecks drift with it so it is seen before it is felt.
 - 1.37 (2026-10-05, map Stage 11d): the Reef's grammar (22): the sea wall across (half), down (three in ten) or gone (the reef flat, two in ten); breaches with the stubs standing, the current running from each in a channel, coral heads between, the rim bitten hard; ten unlit chunks.
 - 1.36 (2026-10-05, map Stage 11c): the Reef's ten set pieces and its decor (22): coral in Drowned skin with Pale slate and Oilskin light shades (never the floor's own Pale slate alone), colour only where a thing lives (the clam's mantle, one fan, the glowing coral, the starfish), its light all cold.
