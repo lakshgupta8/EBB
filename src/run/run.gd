@@ -595,12 +595,15 @@ func _enter_room(type: int, wet: bool = false) -> void:
 		c.queue_free()
 	if room:
 		room.queue_free()
+	var us := [Time.get_ticks_usec()]  # `--perf`: where the way into a room spends its time (map Stage 13b)
 	room = Room.new()
 	room_holder.add_child(room)
 	_room_tick = 0
 	var template := _pick_template(type)
+	us.append(Time.get_ticks_usec())
 	_room_seed = _rng.randi()
 	room.build(template, _room_seed, biome().theme)
+	us.append(Time.get_ticks_usec())
 	room.tide_bonus = _room_bonus(type, wet)
 	player.global_position = room.cell_to_world(room.template.player_spawn)
 	# Dev aid for screenshots: `--spawn=x,y` starts Tam on that cell (to look at a far door).
@@ -612,10 +615,12 @@ func _enter_room(type: int, wet: bool = false) -> void:
 	player.rally = 0.0
 	state.tide.room_entered()
 	room.set_tide(state.tide.level)
+	us.append(Time.get_ticks_usec())
 
 	_skip = 1 if _shortcut(wet) else 0
 	var next_depth := state.depth + 1 + _skip
 	_place_doors(type, next_depth)
+	us.append(Time.get_ticks_usec())
 
 	match type:
 		RoomGraph.COMBAT:
@@ -675,7 +680,13 @@ func _enter_room(type: int, wet: bool = false) -> void:
 	_show_room_label(biome().name, "room %d of %d   %s%s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
 		"  (wet)" if wet else "", "   spring tide %d" % state.tier if state.tier > 0 else "",
 		"   " + Modes.name_of(state.mode) if state.mode != "night" else ""])
+	us.append(Time.get_ticks_usec())
 	EventBus.room_entered.emit(room)
+	us.append(Time.get_ticks_usec())
+	if "--perf" in OS.get_cmdline_user_args():
+		print("perf-entry: %s pick=%.1f build=%.1f tide=%.1f doors=%.1f contents=%.1f entered=%.1f ms" % [template.name,
+			(us[1] - us[0]) / 1000.0, (us[2] - us[1]) / 1000.0, (us[3] - us[2]) / 1000.0, (us[4] - us[3]) / 1000.0,
+			(us[5] - us[4]) / 1000.0, (us[6] - us[5]) / 1000.0])
 	var fade_tw := create_tween()
 	fade_tw.tween_property(fade, "color:a", 0.0, 0.25)
 	fade_tw.tween_callback(func(): _transitioning = false)

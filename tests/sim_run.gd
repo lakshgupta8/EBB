@@ -4,6 +4,7 @@ extends Node
 ##   godot --headless --path . tests/sim_run.tscn -- --ticks=6000 [--seed=N] [--shot=T]
 
 const RUN := preload("res://src/run/run.tscn")
+const PerfProbe := preload("res://tests/perf_probe.gd")
 
 var ticks_to_run: int = 6000
 var tick: int = 0
@@ -39,6 +40,7 @@ var _road: String = "harbour"  # --road=reef: the way down to take where the nig
 var _actives_used: int = 0
 var _fish_eaten: int = 0
 var _resume_ok: bool = true
+var _perf: PerfProbe
 
 
 func _ready() -> void:
@@ -107,6 +109,14 @@ func _ready() -> void:
 				if info.tags.has(t):
 					_tag_hits[t] = _tag_hits.get(t, 0) + 1
 	)
+	# `--perf [--crowd=N]`: frame times room by room (map Stage 13b; tests/perf_probe.gd).
+	if "--perf" in OS.get_cmdline_user_args():
+		_perf = PerfProbe.new()
+		_perf.run = run
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--crowd="):
+				_perf.crowd = int(a.trim_prefix("--crowd="))
+		add_child(_perf)
 	add_child(run)
 	player = run.player
 	# `--sturdy`: the bot cannot be killed, so a run reaches what is being tried (the roads past
@@ -621,6 +631,8 @@ func _finish() -> void:
 		float(tick) / 60.0, s.biome, s.depth, s.depth_total, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
 		player.health.hp, s.ended, s.victory, s.taken, player.weapon.id, _rescued])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
+	if _perf != null:
+		_perf.report()
 	print("sim_run: mode=%s history=%d daily_scores=%d" % [s.mode, SaveManager.data.get("history", []).size(), SaveManager.data.get("daily_scores", []).size()])
 	print("sim_run: hits by tag: %s  (heavy holds started: %d, actives used: %d, fish eaten: %d)" % [_tag_hits, _heavies_fired, _actives_used, _fish_eaten])
 	var done: Array = []
