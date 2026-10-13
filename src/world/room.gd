@@ -59,6 +59,13 @@ var _spray: CPUParticles2D              # Salt white specks along the shore (art
 var _drip_points: PackedVector2Array = []  # wall tops that drip (the Streets, the Hall)
 var _drip_t: float = 0.0
 var _astar: AStarGrid2D
+## Per cell, on a grid one wider than the room on every side (map Stage 13b): the terrain height
+## the layers draw, solid or not, and the ground height the water floods. A template does not
+## change once built; asking it per corner made an 80x46 room's water cost 150 ms a rebuild.
+var _pw: int = 0
+var _ter := PackedInt32Array()
+var _sol := PackedByteArray()
+var _hgt := PackedInt32Array()
 
 
 func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS) -> void:
@@ -68,6 +75,7 @@ func build(t: RoomTemplate, decor_seed: int = 0, p_theme: int = Tiles.Look.FLATS
 	_bubble_rng.seed = decor_seed if decor_seed != 0 else hash(t.name)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _bubble_rng.seed
+	_cache_cells()
 	_build_beyond(rng)
 	# The cell grid keeps the collision; it is not drawn (the terrain draws the ground).
 	_ground = TileMapLayer.new()
@@ -325,6 +333,26 @@ func terrain_height(x: int, y: int) -> int:
 		_: return template.height_at(x, y)  # a marker stands on its neighbours' ground
 
 
+func _cache_cells() -> void:
+	_pw = template.width + 2
+	var n := _pw * (template.height + 2)
+	_ter.resize(n)
+	_sol.resize(n)
+	_hgt.resize(n)
+	for y in range(-1, template.height + 1):
+		for x in range(-1, template.width + 1):
+			var k := (y + 1) * _pw + x + 1
+			_ter[k] = terrain_height(x, y)
+			_sol[k] = 1 if template.is_solid(x, y) else 0
+			_hgt[k] = template.height_at(x, y)
+
+
+## dual_case over a per-cell grid laid out as _ter is: cell (x, y) at (y + 1) * _pw + x + 1.
+func _corner(a: PackedByteArray, i: int, j: int) -> int:
+	var k := j * _pw + i
+	return a[k] | a[k + 1] << 1 | a[k + _pw] << 2 | a[k + _pw + 1] << 3
+
+
 ## Corner case for the tile at vertex (i, j): which of its four cells pass. TL=1 TR=2 BL=4 BR=8.
 static func dual_case(i: int, j: int, holds: Callable) -> int:
 	return int(holds.call(i - 1, j - 1)) | int(holds.call(i, j - 1)) << 1 		| int(holds.call(i - 1, j)) << 2 | int(holds.call(i, j)) << 3
@@ -340,15 +368,18 @@ static func vertex_pick(v: Vector2i, n: int, salt: int = 0) -> int:
 ## its shadow (STYLE.md 22, Edges; tools/gen_terrain.py).
 func _paint_terrain() -> void:
 	var look := clampi(theme, 0, Tiles.LAST_LOOK)
+	var holds := PackedByteArray()
+	holds.resize(_ter.size())
 	for la in Tiles.TERRAIN_LAYERS:
 		var layer := _terrain[la]
 		layer.clear()
 		var row := look * Tiles.TERRAIN_LAYERS + la
-		var holds := func(x: int, y: int) -> bool: return terrain_height(x, y) >= la
+		for k in _ter.size():
+			holds[k] = 1 if _ter[k] >= la else 0
 		for j in template.height + 1:
 			for i in template.width + 1:
 				var v := Vector2i(i, j)
-				var c := dual_case(i, j, holds)
+				var c := _corner(holds, i, j)
 				if c == 0:
 					continue
 				var col := c * Tiles.TERRAIN_VARIANTS + vertex_pick(v, Tiles.TERRAIN_VARIANTS)
@@ -357,15 +388,21 @@ func _paint_terrain() -> void:
 					var pick := vertex_pick(v, 5, 3)
 					col = Tiles.TERRAIN_FILL + (1 if pick == 0 else 2 if pick == 1 and la == 1 else 0)
 				layer.set_cell(v, 0, Vector2i(col, row))
+	var patch := PackedInt32Array()
+	patch.resize(_ter.size())
+	for y in range(-1, template.height + 1):
+		for x in range(-1, template.width + 1):
+			patch[(y + 1) * _pw + x + 1] = int(patches.get(Vector2i(x, y), -1))
 	for p in _patch_layers.size():
 		var layer := _patch_layers[p]
 		layer.clear()
 		var row := look * 3 + p
-		var holds := func(x: int, y: int) -> bool: return int(patches.get(Vector2i(x, y), -1)) == p
+		for k in patch.size():
+			holds[k] = 1 if patch[k] == p else 0
 		for j in template.height + 1:
 			for i in template.width + 1:
 				var v := Vector2i(i, j)
-				var c := dual_case(i, j, holds)
+				var c := _corner(holds, i, j)
 				if c == 0:
 					continue
 				var col := c * Tiles.TERRAIN_VARIANTS + vertex_pick(v, Tiles.TERRAIN_VARIANTS, 5)
@@ -538,20 +575,13 @@ func set_tide(level: float) -> void:
 	_refresh_water()
 
 
-func _cell_flooded(c: Vector2i) -> bool:
-	return not template.is_solid(c.x, c.y) and _tide_level > template.height_at(c.x, c.y)
-
-
-func _cell_deep(c: Vector2i) -> bool:
-	return not template.is_solid(c.x, c.y) and _tide_level > template.height_at(c.x, c.y) + 1.0
-
-
 ## The water language, from the height map (STYLE.md 12; map Stage 03). Per cell: which cells
 ## are flooded and deep, the body each one gets (shallow alternating, deep dithered two tiles in
 ## from shallow, Abyss at the centre of a large pool) and which sides face dry floor (the spray
 ## follows them). Drawn on the dual grid: the shallow layer's tiles carry the foam on their wet
 ## side and the wet band on their dry side, and the deep layer lies over it. Water runs under
 ## any wall or rock it touches, so it meets them with no foam and the wall draws over it.
+## Worked on the per-cell grids of _cache_cells (map Stage 13b).
 func _refresh_water() -> void:
 	_water.clear()
 	_deep.clear()
@@ -563,81 +593,101 @@ func _refresh_water() -> void:
 	_deep_vertices.clear()
 	var w := template.width
 	var h := template.height
+	var pw := _pw
+	var n := _hgt.size()
+	# Flooded and deep (nothing outside the room is: it counts as solid).
+	var fl := PackedByteArray()
+	var dp := PackedByteArray()
+	fl.resize(n)
+	dp.resize(n)
+	for k in n:
+		if _sol[k] == 0 and _tide_level > _hgt[k]:
+			fl[k] = 1
+			if _tide_level > _hgt[k] + 1.0:
+				dp[k] = 1
 	# Distance from anything that is not deep water (shallow, dry, wall) picks the dither rings.
-	var dist: Dictionary = {}
-	var queue: Array[Vector2i] = []
-	for y in h:
-		for x in w:
-			var c := Vector2i(x, y)
-			if not _cell_deep(c):
-				dist[c] = 0
-				queue.append(c)
+	# -1: not reached, -2: outside the room.
+	var dist := PackedInt32Array()
+	dist.resize(n)
+	dist.fill(-1)
+	var queue := PackedInt32Array()
+	for y in range(-1, h + 1):
+		for x in range(-1, w + 1):
+			var k := (y + 1) * pw + x + 1
+			if x < 0 or y < 0 or x >= w or y >= h:
+				dist[k] = -2
+			elif dp[k] == 0:
+				dist[k] = 0
+				queue.append(k)
+	var steps := PackedInt32Array()
+	for d in DIRS:
+		steps.append(d.y * pw + d.x)
 	var qi := 0
 	while qi < queue.size():
-		var c: Vector2i = queue[qi]
+		var k := queue[qi]
 		qi += 1
-		for off in DIRS:
-			var n: Vector2i = c + off
-			if n.x < 0 or n.y < 0 or n.x >= w or n.y >= h or dist.has(n):
-				continue
-			dist[n] = int(dist[c]) + 1
-			queue.append(n)
+		for st in steps:
+			if dist[k + st] == -1:
+				dist[k + st] = dist[k] + 1
+				queue.append(k + st)
 	for y in h:
 		for x in w:
-			var c := Vector2i(x, y)
-			if template.is_solid(x, y) or not _cell_flooded(c):
+			var k := (y + 1) * pw + x + 1
+			if fl[k] == 0:
 				continue
+			var c := Vector2i(x, y)
 			_flooded.append(c)
-			if _cell_deep(c):
+			if dp[k] == 1:
 				_deep_cells.append(c)
-				var d := int(dist.get(c, 99))
-				_body[c] = Body.RING_A if d == 1 else Body.RING_B if d == 2 else Body.DEEP if d <= 4 					else Body.ABYSS_RING if d == 5 else Body.ABYSS
+				var d := dist[k] if dist[k] >= 0 else 99
+				_body[c] = Body.RING_A if d == 1 else Body.RING_B if d == 2 else Body.DEEP if d <= 4 \
+					else Body.ABYSS_RING if d == 5 else Body.ABYSS
 			else:
 				_body[c] = Body.SHALLOW_A if (x + y) % 2 == 0 else Body.SHALLOW_B
 			var bits := 0
 			for i in 4:
-				var n: Vector2i = c + DIRS[i]
-				if not template.is_solid(n.x, n.y) and not _cell_flooded(n):
+				if _sol[k + steps[i]] == 0 and fl[k + steps[i]] == 0:
 					bits |= 1 << i
 			if bits:
 				_foam_case[c] = bits
 	if _flooded.is_empty():
 		_refresh_spray()
 		return
-	var wet := func(x: int, y: int) -> bool: return _wet_or_lapped(Vector2i(x, y), false)
-	var under := func(x: int, y: int) -> bool: return _wet_or_lapped(Vector2i(x, y), true)
+	# Flooded (or deep), or a wall or rock with such water beside it: the water runs under it.
+	# The void beyond the walls takes none.
+	var wet := PackedByteArray()
+	var under := PackedByteArray()
+	wet.resize(n)
+	under.resize(n)
+	for y in h:
+		for x in w:
+			var k := (y + 1) * pw + x + 1
+			if _sol[k] == 0:
+				wet[k] = fl[k]
+				under[k] = dp[k]
+			elif _ter[k] != -1:
+				for dy in range(-1, 2):
+					for dx in range(-1, 2):
+						var nk := k + dy * pw + dx
+						wet[k] |= fl[nk]
+						under[k] |= dp[nk]
 	for j in h + 1:
 		for i in w + 1:
 			var v := Vector2i(i, j)
-			var c := dual_case(i, j, wet)
+			var c := _corner(wet, i, j)
 			if c != 0:
 				_water_cells.append([v, c, vertex_pick(v, Tiles.TERRAIN_VARIANTS), (i + j) % 2])
-			var dc := dual_case(i, j, under)
+			var dc := _corner(under, i, j)
 			if dc == 0:
 				continue
 			# A full deep tile takes its body from the nearest of its four cells to the shallows.
 			var ring := 99
-			for off in [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(-1, 0), Vector2i(0, 0)]:
-				ring = mini(ring, int(dist.get(v + off, 0)))
+			var k := j * pw + i
+			for kk in [k, k + 1, k + pw, k + pw + 1]:
+				ring = mini(ring, maxi(dist[kk], 0))
 			_deep_vertices.append([v, dc, vertex_pick(v, Tiles.TERRAIN_VARIANTS), ring])
 	_paint_water()
 	_refresh_spray()
-
-
-## Flooded (or deep), or a wall or rock with such water beside it: the water runs under it.
-func _wet_or_lapped(c: Vector2i, deep: bool) -> bool:
-	if c.x < 0 or c.y < 0 or c.x >= template.width or c.y >= template.height:
-		return false
-	if not template.is_solid(c.x, c.y):
-		return _cell_deep(c) if deep else _cell_flooded(c)
-	if template.is_beyond(c.x, c.y):
-		return false
-	for dy in range(-1, 2):
-		for dx in range(-1, 2):
-			var n := c + Vector2i(dx, dy)
-			if n.x >= 0 and n.y >= 0 and n.x < template.width and n.y < template.height and not template.is_solid(n.x, n.y) 					and (_cell_deep(n) if deep else _cell_flooded(n)):
-				return true
-	return false
 
 
 ## Spray (STYLE.md 13, art Stage 15): 1 px Salt white specks rising off the water just inside

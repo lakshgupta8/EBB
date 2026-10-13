@@ -16,3 +16,4 @@ __pycache__/
 .shots/
 dist/
 tools/balance.csv
+tools/perf.csv
