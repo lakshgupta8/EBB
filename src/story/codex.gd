@@ -238,8 +238,10 @@ static func entries(kind: String) -> Array:
 				out.append({"name": p.name, "desc": p.desc, "lore": p.lore, "found": found(kind, p.id),
 					"sprite": "res://assets/sprites/npc_%s.png" % p.id})
 		"place":
+			# Each place has a picture of itself, cut at 1:1 from the game (assets/sprites/place_<id>.png).
 			for p in PLACES:
-				out.append({"name": p.name, "desc": p.desc, "lore": p.lore, "found": found(kind, p.id)})
+				out.append({"name": p.name, "desc": p.desc, "lore": p.lore, "found": found(kind, p.id),
+					"picture": "res://assets/sprites/place_%s.png" % p.id})
 	return out
 
 

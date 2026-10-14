@@ -1853,6 +1853,12 @@ func _handle_screenshot_arg() -> void:
 		await get_tree().create_timer(5.0).timeout
 		FX.text(player.global_position, "RIPTIDE", Palette.SALT_WHITE)
 		await get_tree().create_timer(0.2).timeout
+	# `--bare`: the room without the HUD, the cards or the bars, for a picture of the place.
+	if "--bare" in OS.get_cmdline_user_args():
+		$HUD.visible = false
+		announcer.visible = false
+		for i in 2:
+			await get_tree().process_frame
 	var dir := ProjectSettings.globalize_path("res://.shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var img := get_viewport().get_texture().get_image()
