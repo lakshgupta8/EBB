@@ -79,9 +79,14 @@ so on. The hub shows the aspect in hand.
 Pick and forge weapons at Bram's forge on Marrow Rock. The HUD shows the harpoon's ammo next to the special bar.
 
 ## The night (M4)
-Hub (lighthouse) -> The Flats (10 rooms + The Wreck) -> The Sunken Harbour (9 rooms + The
-Chainmother) -> The Drowned Streets (11 rooms + The Bell of Saltmere) -> The Deep Hall (9 rooms +
-The Ebb), with slack water after every boss.
+Hub (lighthouse) -> The Flats (10 rooms + The Wreck) -> either The Sunken Harbour (9 rooms + The
+Chainmother) or The Reef (9 rooms + The Tidewall) -> The Drowned Streets (11 rooms + The Bell of
+Saltmere) -> The Deep Hall (9 rooms + The Ebb), with slack water after every boss. The Wreck's
+arena has a door for each road, signed; take one each night.
+Rooms run from one screen (40x23 tiles) to two by two (80x46), and the camera follows you. Half
+the fights are drawn fresh each night by the generator from the night's seed; every merchant,
+altar, fountain, cage and boss arena is a place built for its biome. The water floods the ground
+by its height: low ground first, then the floor, raised ground last, which is where to stand.
 Beating the Ebb wins the night and brings Maren home to the lighthouse, where she holds the endings.
 A night can be rested at any cleared room (pause, Rest here) and continued from the shore later.
 
@@ -162,13 +167,15 @@ To watch an ending without earning it: `.\tools\run.ps1 src/hub/hub.tscn -- --sc
 |---|---|---|
 | Bram the Drowned | The Flats, an echo room | forge: choose your weapon; aspects |
 | Pell the Diver | The Sunken Harbour, an echo room | salt-glass; a word about the deep |
+| Hale the Mason | The Reef, a cage set in the sea wall | what the wall was for; his footing (the current carries you half as hard) |
 | Sister Wren | The Drowned Streets | bless a tidemark family: every altar offers one from it |
 | The Cartographer | The Drowned Streets (after Wren) | chart a room: fountain, chest or merchant guaranteed two rooms into every biome |
 | The Choir | The Drowned Streets: bring the named elite to a quarter health and press E when its note falters | hymns; the hub music changes |
 | Keeper Aldous | The Deep Hall, an echo room | reads his journal pages; knows the way out |
 | Maren | under the Ebb | the endings: keep, break, or walk out |
 
-Break the tide needs five echoes home (Bram, Wren and the Cartographer among them); Walk out needs all seven.
+Break the tide needs five echoes home (Bram, Wren and the Cartographer among them); Walk out needs all
+eight, and Pell is on the harbour road while Hale is on the reef road: it takes both, on different nights.
 
 ## The village (M7)
 - **Nessa the Fisher** comes down to the rock after two nights. Her board holds three **contracts** a
@@ -187,7 +194,7 @@ Break the tide needs five echoes home (Bram, Wren and the Cartographer among the
   to anyone on the rock and they talk (a short chain, typed out at the speed in Settings) and pay:
   pearls at the first level, shards at the second, a permanent perk at the third (Orla: +5 health,
   Bram: the lantern starts half charged, Aldous: +8% damage, Pell: deep water bites half as often,
-  Idris: launching is free, Nessa: a fourth fish, and so on). Thirty-three chains in
+  Idris: launching is free, Nessa: a fourth fish, Hale: the current carries you half as hard, and so on). Thirty-three chains in
   `data/dialog/affinity.json`; idle lines for the new people in `data/dialog/npcs.json`, both linted
   by the tests.
 - **Fen's shells**: six small asks in order (past the second room, break the Wreck, the wet way,
@@ -227,6 +234,19 @@ Screenshots of any of it: `.\tools\run.ps1 src/hub/hub.tscn -- --screenshot --si
 | Deckhand | shield up, walks in; blade raised, flash | the shield turns front hits: hit him from behind, or wait for OPEN after the swing |
 | The Bosun (elite) | a bigger Deckhand | same rules, more of it |
 | The Chainmother (boss) | chain sweep (dash through it), orange rings (anchors fall there), chain to you (dash), barnacles off the hull | at half health she stirs: faster, two anchors, and the tide jumps |
+
+### Reef enemies
+The Reef lies outside Saltmere's sea wall. Where water runs in its channels the **current** carries
+you (and everything else) along; against it you are slow. **Living coral** cuts whatever the current
+drags across it.
+
+| Enemy | Tell | Answer |
+|---|---|---|
+| Coral Crab | sits among the coral as coral, hardly feels a blow | walk close and it bursts out to pinch: hit it once it is up |
+| Reef Ray | circles, then lines up, flash | it glides through you, far with the current behind it, barely against it: step aside, not back |
+| Polyp Swarm | puffs spores | close on it and it sinks, and comes up on another living patch |
+| The Reefwarden (elite) | a maul raised; a surge gathering | the maul is slow; the surge shoves you, and the current cannot move him |
+| The Tidewall (boss) | slides along the top of its arena and never comes down; close, its buttresses fall; at range, red rings where its stones will land, or its breach opening for a fan of surges | keep off the rings and out of the buttresses' reach, and read which way the channel runs: it turns at its word. At half health a second breach opens: a second channel, quicker turns, two rays |
 
 ### Streets enemies
 Still Citizen (statue until you are close, then fast), Lamplighter (kindles the others; throws its

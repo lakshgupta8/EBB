@@ -4,7 +4,7 @@
 
 ![Godot 4.7](https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white)
 ![Windows](https://img.shields.io/badge/platform-Windows-0078d6)
-![Version 1.3.0](https://img.shields.io/badge/version-1.3.0-2a9d8f)
+![Version 1.4.0](https://img.shields.io/badge/version-1.4.0-2a9d8f)
 
 Every night the sea around Marrow Rock pulls back impossibly far and exposes the drowned city of
 Saltmere. You are the new Tidekeeper. Descend through the ruins, fight what lives in them, rescue
@@ -13,11 +13,13 @@ water line creeps up the level as you play. Shallow water slows you, deep water 
 it catches you the night ends. Each night the sea goes out a little further, you get a little
 stronger, and the story goes a little deeper.
 
-| Marrow Rock, the lighthouse hub | The Flats, a wet room at tide 0.8 |
+| Marrow Rock, the lighthouse hub | The Flats: the Wreck on its bank |
 |---|---|
-| ![Marrow Rock](assets/reference/keyframes/marrow_rock.png) | ![The Flats](assets/reference/keyframes/flats.png) |
-| **The Drowned Streets, flooded to the doors** | **The Deep Hall** |
-| ![The Drowned Streets](assets/reference/keyframes/streets.png) | ![The Deep Hall](assets/reference/keyframes/hall.png) |
+| ![Marrow Rock](assets/reference/readme/marrow_rock.png) | ![The Flats](assets/reference/readme/flats.png) |
+| **The Sunken Harbour: the Chainmother's drydock** | **The Reef: the Tidewall's channels** |
+| ![The Sunken Harbour](assets/reference/readme/harbour.png) | ![The Reef](assets/reference/readme/reef.png) |
+| **The Drowned Streets: the Bell under its tower** | **The Deep Hall: the Ebb** |
+| ![The Drowned Streets](assets/reference/readme/streets.png) | ![The Deep Hall](assets/reference/readme/hall.png) |
 
 ## Play it
 
@@ -32,14 +34,20 @@ setup over an old install updates it in place; saves, settings and replays live 
 
 ## What is in the night
 
-- **Four biomes, four bosses.** The Flats and the Wreck, the Sunken Harbour and the Chainmother,
-  the Drowned Streets and the Bell of Saltmere, the Deep Hall and the Ebb. Slack water after each.
+- **Five biomes, five bosses, two roads.** The Flats and the Wreck; then the Sunken Harbour and
+  the Chainmother, or the Reef and the Tidewall, where the water runs in currents and the living
+  coral cuts; both roads meet in the Drowned Streets and the Bell of Saltmere, and end in the Deep
+  Hall and the Ebb. Slack water after each.
+- **Rooms that are places.** Fights run from one screen to two by two with a camera that follows
+  you; half of them are drawn fresh each night by the generator. Every merchant, altar, fountain,
+  cage and arena is built as a place of its own, and the water floods the ground by its height.
 - **Six weapons, each with two aspects.** Gaff Hook, Net & Knife, Harpoon Gun, Storm Lantern,
   Keeper's Bell, Line & Sinker. Every one has a combo, a charged or special move, and a forge upgrade.
-- **72 tidemarks** in five families, offered at altars during a run: offence, defence, mobility,
+- **76 tidemarks** in five families, offered at altars during a run: offence, defence, mobility,
   the weird, and what the rescued lend you.
-- **Seven echoes to bring home.** Each one you free from a cage changes the lighthouse: a forge, a
-  blessing, a chart, a hymn, a journal. Maren, under the Ebb, holds three endings.
+- **Eight echoes to bring home.** Each one you free from a cage changes the lighthouse: a forge, a
+  blessing, a chart, a hymn, a journal, a sea wall. Maren, under the Ebb, holds three endings; the
+  last needs both roads.
 - **A village that grows.** Contracts, fish, keels, gifts and affinity, a Keeper's Log of forty
   milestones, a 25-node Ledger of permanent upgrades, and epilogues that reshape the rock.
 - **Eight spring tides** once the Ebb has fallen: harder nights, better pay.
@@ -93,7 +101,9 @@ Requirements:
 | Build the installer `dist\EBB-Setup-<version>.exe` | `.\tools\installer.ps1` (fetches Inno Setup once) |
 | Let the bot play a night headless | `.\tools\sim.ps1 -Ticks 40000 -Seed 5 -Weapon harpoon` |
 | Balance table across weapons and spring tides | `.\tools\balance.ps1` |
-| Edit a room template live | `.\tools\edit_room.ps1 -Room data/rooms/biome1/flats_01.txt` |
+| Frame times in the largest rooms (windowed, real speed) | `.\tools\perf.ps1 [-Night]` |
+| Edit a room template live (T steps the tide; the hub too) | `.\tools\edit_room.ps1 -Room data/rooms/biome1/flats_01.txt` |
+| Remake the signature rooms and the hub | `python tools\gen_signature_rooms.py [biome1/boss_01 ...]` |
 | Regenerate sprites, rooms or audio | `python tools\gen_sprites.py --preview`, `python tools\gen_rooms.py`, `python tools\gen_audio.py` |
 
 The version shown on the setup file, in the exe's properties, in Apps & features and on the title
@@ -109,7 +119,7 @@ screen is one constant: `Game.VERSION` in `src/core/game.gd`. Raise it before bu
 | `tests/` | headless test suite, the bot playtester, the content checker |
 | `tools/` | PowerShell launchers and the Python generators that draw every sprite and tile and synthesise every sound |
 | `installer/` | the Inno Setup script and icon |
-| `docs/` | the manual and the art brief |
+| `docs/` | the manual, the art brief, the Reef's concept, release notes |
 
 Every piece of art and audio in the game is generated by the scripts in `tools/`. There are no
 imported asset packs. Room templates are ASCII with a legend at the top of each generator, and the
@@ -123,6 +133,8 @@ test suite checks that every open cell is reachable from the spawn.
 - [docs/ART_BRIEF.md](docs/ART_BRIEF.md), [ART_ROADMAP.md](ART_ROADMAP.md),
   [ART_PROGRESS.md](ART_PROGRESS.md), [ART_ASSET_AUDIT.md](ART_ASSET_AUDIT.md): the 23-stage art
   redesign, from brief to final polish.
+- [MAP_ROADMAP.md](MAP_ROADMAP.md): the 13-stage map redesign of 1.4.0 (its log is the Maps section
+  of ART_PROGRESS.md), and [docs/BIOME5_CONCEPT.md](docs/BIOME5_CONCEPT.md) for the Reef.
 
 ## About
 
