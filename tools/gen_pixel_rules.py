@@ -559,6 +559,7 @@ def main():
         y += row_h + 30
 
     im = im.crop((0, 0, W, y + 6))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     im.convert("RGB").save(OUT)
     print("wrote", os.path.relpath(OUT, P.ROOT), im.size)
 

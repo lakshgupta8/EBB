@@ -2,7 +2,7 @@
 
 Everything the game does, in detail: controls, weapons, the night, the people you bring home,
 the village, modes and progression. For the short version, building and the download, see the
-[README](../README.md). For why the game is the way it is, see [DESIGN.md](../DESIGN.md).
+[README](../README.md).
 
 ## Controls
 | Input | Action |
@@ -283,7 +283,7 @@ are the M5 polish pass; every sprite is still drawn by `tools/gen_sprites*.py`.
 Sandbox arena for feel tuning: `.\tools\run.ps1 src/sandbox.tscn`
 
 ## Layout
-See the Architecture section of DESIGN.md. Short version: `src/` is code and scenes,
+`src/` is code and scenes,
 `data/` is content, `assets/` is art and audio, `tests/` is headless tests, `tools/` is scripts.
 Room templates are ASCII in `tools/gen_rooms*.py` (legend at the top); every open cell must be
 reachable from the spawn, and the test suite checks it.

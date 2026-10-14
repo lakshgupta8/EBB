@@ -20,3 +20,18 @@ tools/perf.csv
 
 # Editor settings hold paths on one machine
 .vscode/
+
+# How the game was made: plans, logs, audits, briefs and review sheets. They live on this
+# machine only (2026-10-14); the repository is the game, its tools, the README, the manual and
+# the release notes.
+/ART_ROADMAP.md
+/ART_PROGRESS.md
+/ART_ASSET_AUDIT.md
+/MAP_ROADMAP.md
+/STYLE.md
+/DESIGN.md
+/docs/ART_BRIEF.md
+/docs/BIOME5_CONCEPT.md
+/docs/MAP_AUDIT.md
+/docs/ROOM_REBUILD.csv
+/assets/reference/
