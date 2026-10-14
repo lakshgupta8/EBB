@@ -17,3 +17,6 @@ __pycache__/
 dist/
 tools/balance.csv
 tools/perf.csv
+
+# Editor settings hold paths on one machine
+.vscode/
