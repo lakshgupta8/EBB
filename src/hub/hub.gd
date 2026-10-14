@@ -596,6 +596,9 @@ func _refresh_info() -> void:
 func _handle_screenshot_arg() -> void:
 	if not "--screenshot" in OS.get_cmdline_user_args():
 		return
+	# `--bare`: the rock without its lines of text, for a picture of the place (the codex).
+	if "--bare" in OS.get_cmdline_user_args():
+		$HUD.visible = false
 	for i in 30:
 		await get_tree().process_frame
 	var args := OS.get_cmdline_user_args()

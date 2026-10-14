@@ -138,7 +138,26 @@ func _row(e: Dictionary) -> Control:
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 1)
-	p.add_child(v)
+	var lore_w := 520
+	# A place met shows a picture of itself, 160x90 at 1:1, beside its words.
+	if e.found and e.has("picture") and ResourceLoader.exists(str(e.picture)):
+		var side := HBoxContainer.new()
+		side.add_theme_constant_override("separation", 6)
+		p.add_child(side)
+		var frame := PanelContainer.new()
+		frame.add_theme_stylebox_override("panel", UI.paper_style(1))
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var pic := TextureRect.new()
+		pic.texture = load(str(e.picture))
+		pic.stretch_mode = TextureRect.STRETCH_KEEP
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(pic)
+		side.add_child(frame)
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		side.add_child(v)
+		lore_w = 352
+	else:
+		p.add_child(v)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	if e.found:
@@ -148,7 +167,8 @@ func _row(e: Dictionary) -> Control:
 			edge.color = e.color
 			edge.custom_minimum_size = Vector2(2, 0)
 			h.add_child(edge)
-		h.add_child(UI.sprite_slot(e))
+		if not e.has("picture"):
+			h.add_child(UI.sprite_slot(e))
 		var a := UI.label(e.name, 8, Palette.TEXT.primary)
 		a.custom_minimum_size = Vector2(150, 0)
 		h.add_child(a)
@@ -160,7 +180,7 @@ func _row(e: Dictionary) -> Control:
 		v.add_child(h)
 		var lore := UI.label(e.lore, 8, UI.SECONDARY)
 		lore.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lore.custom_minimum_size = Vector2(520, 0)
+		lore.custom_minimum_size = Vector2(lore_w, 0)
 		v.add_child(lore)
 	else:
 		var a := UI.label("???", 8, UI.MUTED)
