@@ -115,5 +115,6 @@ for k, n in enumerate(names):
     d.text((x, y + 28), n.lower().replace("_", " ").replace("drowned", "drn").replace("light", "lt")[:8], fill=P.rgba("PALE_SLATE"))
 sheet = sheet.crop((0, 0, W, y + 44))
 out = os.path.join(ROOT, "assets", "reference", "maps", "s11_reef_sheet.png")
+os.makedirs(os.path.dirname(out), exist_ok=True)
 sheet.save(out)
 print(out, sheet.size)

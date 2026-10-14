@@ -114,6 +114,7 @@ def main():
         bg = Image.new("RGBA", (24, 24), P.rgba("STONE"))
         bg.alpha_composite(im, ((24 - im.width) // 2, (24 - im.height) // 2))
         ref.alpha_composite(zoom(bg, 6), (12 + i * (24 * 6 + 12), 28))
+    os.makedirs(REF, exist_ok=True)
     ref.convert("RGB").save(os.path.join(REF, "s11k_mason.png"))
     print("wrote npc_mason.png, portraits.png cell %d, s11k_mason.png" % PORTRAIT_INDEX)
 
