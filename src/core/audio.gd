@@ -17,6 +17,9 @@ var _last_play: Dictionary = {}  # name -> msec, to avoid machine-gunning the sa
 ## Sound rolls on its own stream. It is asked for things once a frame, and a night has to
 ## be the same night whatever the frame rate: only the game may draw from the global one.
 var _rng := RandomNumberGenerator.new()
+## Every clip asked for this session, by name (the base name, before a variant is picked),
+## for the audio audit (audio Stage 01: `--audio-log=` on the bot). Counting draws nothing.
+var asked: Dictionary = {}
 
 
 func _ready() -> void:
@@ -71,6 +74,7 @@ func _stream(name: String) -> AudioStream:
 
 ## Play a clip with optional random pitch spread (0.15 = +-15%) and volume offset.
 func play(name: String, pitch_var: float = 0.0, db: float = 0.0, min_gap_ms: int = 35) -> void:
+	asked[name] = int(asked.get(name, 0)) + 1
 	var now := Time.get_ticks_msec()
 	if now - int(_last_play.get(name, -1000)) < min_gap_ms:
 		return
@@ -94,6 +98,7 @@ func play(name: String, pitch_var: float = 0.0, db: float = 0.0, min_gap_ms: int
 
 
 func ambient(name: String, db: float = -9.0) -> void:
+	asked[name] = int(asked.get(name, 0)) + 1
 	var s := _stream(name)
 	if s == null:
 		return
@@ -118,6 +123,7 @@ func layer(name: String, db: float = -16.0) -> void:
 	if name == "":
 		_layer.stop()
 		return
+	asked[name] = int(asked.get(name, 0)) + 1
 	var s := _stream(name)
 	if s == null:
 		return
@@ -143,6 +149,7 @@ static func _loop(s: AudioStream) -> void:
 
 ## A looping track on the Music bus; the old one fades out under the new one.
 func music(name: String, db: float = -8.0) -> void:
+	asked[name] = int(asked.get(name, 0)) + 1
 	if name == music_name and _music.playing:
 		return
 	var s := _stream(name)
