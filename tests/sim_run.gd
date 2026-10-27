@@ -633,6 +633,12 @@ func _finish() -> void:
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
 	if _perf != null:
 		_perf.report()
+	# `--audio-log=PATH`: every clip the night asked for and how often, for tools/audio_audit.py.
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--audio-log="):
+			var f := FileAccess.open(a.trim_prefix("--audio-log="), FileAccess.WRITE)
+			f.store_string(JSON.stringify({"seconds": float(tick) / 60.0, "asked": Audio.asked}, "	"))
+			f.close()
 	print("sim_run: mode=%s history=%d daily_scores=%d" % [s.mode, SaveManager.data.get("history", []).size(), SaveManager.data.get("daily_scores", []).size()])
 	print("sim_run: hits by tag: %s  (heavy holds started: %d, actives used: %d, fish eaten: %d)" % [_tag_hits, _heavies_fired, _actives_used, _fish_eaten])
 	var done: Array = []
