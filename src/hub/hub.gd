@@ -44,6 +44,7 @@ func _ready() -> void:
 	Ledger.apply(player, null)
 	Atmosphere.build(self, Vector2(640, 368))
 	Audio.ambient("ambient_sea", -11.0 if epilogue != "walk" else -18.0)
+	Audio.space("rock")
 	Audio.gulls_enabled = epilogue != "walk"
 	if epilogue == "walk":
 		Audio.music("music_still", -12.0)

@@ -75,9 +75,10 @@ func _files(dir: String, suffix: String) -> Array:
 
 
 func _has_clip(name: String) -> bool:
-	if ResourceLoader.exists(AUDIO_DIR + name + ".wav"):
-		return true
-	return ResourceLoader.exists(AUDIO_DIR + name + "_0.wav")  # a clip with variants
+	for ext in [".wav", ".ogg"]:  # effects are WAV, music and beds Ogg (audio Stage 02)
+		if ResourceLoader.exists(AUDIO_DIR + name + ext) or ResourceLoader.exists(AUDIO_DIR + name + "_0" + ext):
+			return true  # name_0 is a clip with variants
+	return false
 
 
 func _check_sounds(sounds: Dictionary) -> void:
@@ -103,7 +104,7 @@ func _check_music(music: Dictionary) -> void:
 			missing.append(["music %s.wav" % name, music[name]])
 	# The other way round: a loop on disk nothing ever plays.
 	for f in DirAccess.get_files_at(AUDIO_DIR):
-		if f.begins_with("music_") and f.ends_with(".wav") and not music.has(f.trim_suffix(".wav")):
+		if f.begins_with("music_") and f.get_extension() in ["wav", "ogg"] and not music.has(f.get_basename()):
 			notes.append("%s is on disk but nothing plays it" % f)
 	notes.append("%d music and ambient loops" % n)
 

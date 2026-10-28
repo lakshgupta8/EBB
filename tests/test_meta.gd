@@ -241,7 +241,15 @@ func test_settings_and_menu_cursor() -> void:
 	assert_eq(Settings.shake(), 0.5)
 	Settings.load_settings()
 	assert_eq(float(Settings.value("master")), 1.0, "settings persist to disk")
-	assert_true(AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0, "audio buses exist")
+	assert_true(AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("Effects") >= 0 and AudioServer.get_bus_index("Space") >= 0, "audio buses exist")
+	# A file from before the mixer had one sound volume: the new buses start at it.
+	var old := FileAccess.open(Settings.path, FileAccess.WRITE)
+	old.store_string(JSON.stringify({"music": 0.5, "sfx": 0.4}))
+	old.close()
+	Settings.load_settings()
+	assert_eq(float(Settings.value("ambience")), 0.4, "the old sound volume carries to the ambience")
+	assert_eq(float(Settings.value("voice")), 0.4, "and to the voices")
+	assert_eq(float(Settings.value("music")), 0.5, "the music keeps its own")
 	Settings.data = Settings.DEFAULTS.duplicate()
 	Settings.apply()
 	Settings.path = Settings.PATH

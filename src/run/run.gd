@@ -481,6 +481,7 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 	Atmosphere.set_haze(self, b.theme)
 	Audio.gulls_enabled = b.id in ["flats", "harbour", "reef"]  # the reef is outside the wall, under open sky
 	Audio.layer("amb_" + str(b.id), -15.0)  # what this place sounds like under the sea
+	Audio.space(str(b.id))
 	Audio.music(b.music, -11.0)
 	Codex.discover("place", b.place)
 
@@ -675,6 +676,7 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			_boss_intro()
 			EventBus.request_shake.emit(0.6)
 			Audio.play(biome().boss_sfx)
+			Audio.duck()
 			_whisper(biome().boss_whisper, 2.8)
 
 	_show_room_label(biome().name, "room %d of %d   %s%s%s%s" % [state.depth + 1, biome().length + 1, RoomGraph.NAMES[type],
@@ -1030,6 +1032,7 @@ func _spawn_boss() -> void:
 		announcer.pulse(Announcer.STIR_COLOR, 0.5, 0.9)
 		Audio.play("stinger_phase", 0.0, -3.0)
 		Audio.play(biome().boss_sfx, 0.0, 2.0)
+		Audio.duck(-8.0, 0.4)
 		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + (0.7 if state.tier >= 8 else 0.35))
 	)
 	hud.set_boss(boss)
@@ -1051,6 +1054,7 @@ func _boss_second_wind(current: int, max_hp: int) -> void:
 	Audio.play("stinger_phase", 0.0, -6.0)
 	FX.ring(boss.global_position, Color(1.0, 0.5, 0.4), 2.0)
 	Audio.play(biome().boss_sfx, 0.0, -2.0)
+	Audio.duck()
 
 
 # --- tidemark hooks that live in the run ------------------------------------------------

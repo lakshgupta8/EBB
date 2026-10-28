@@ -74,6 +74,7 @@ func _ready() -> void:
 	_build_world()
 	_build_menu()
 	Audio.ambient("ambient_sea", -12.0)
+	Audio.space("rock")
 	Audio.music("music_title", -9.0)
 	Audio.gulls_enabled = true
 	slots_ui = SlotsUI.new()
@@ -432,7 +433,7 @@ func _handle_screenshot_arg() -> void:
 		settings_ui.open()
 		name = "title_settings"
 		if "--settings2" in args:
-			settings_ui.set_page(1)
+			settings_ui.set_page(SettingsUI.PAGES.size() - 1)  # how the game plays
 			name = "title_settings2"
 	elif "--controls" in args:
 		settings_ui._controls.open()
