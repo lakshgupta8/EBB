@@ -58,7 +58,7 @@ func _enter_state(s: StringName) -> void:
 			velocity = Vector2.ZERO
 			EventBus.request_shake.emit(0.7)
 			EventBus.request_hitstop.emit(0.05)
-			Audio.play("bell", 0.0, 2.0)
+			Audio.play_at(global_position, "bell", 0.0, 2.0)
 			FX.ring(global_position, Color(0.95, 0.85, 0.6), 2.6)
 			_throw_toll(14 if phase == 0 else 18)
 			_summon()
@@ -71,7 +71,7 @@ func _enter_state(s: StringName) -> void:
 			_swing_dir = d.normalized() if d != Vector2.ZERO else _swing_dir
 			face(_swing_dir.x)
 			swing_box.activate()
-			Audio.play("heavy", 0.1, 2.0)
+			Audio.play_at(global_position, "heavy", 0.1, 2.0)
 		&"stagger":
 			play("hurt")
 			swing_box.deactivate()
@@ -184,7 +184,7 @@ func _pulse() -> void:
 	hitbox.activate()
 	FX.ring(global_position, Color(1.0, 0.95, 0.8), 1.5)
 	EventBus.request_shake.emit(0.4)
-	Audio.play("bell", 0.15, -4.0)
+	Audio.play_at(global_position, "bell", 0.15, -4.0)
 
 
 func _choose_attack(d: Vector2) -> void:
@@ -256,7 +256,7 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 		EventBus.request_shake.emit(1.0)
 		EventBus.request_hitstop.emit(0.15)
 		FX.burst(global_position, Color(0.95, 0.85, 0.5), 24, 120.0)
-		Audio.play("bell", 0.0, 4.0)
+		Audio.play_at(global_position, "bell", 0.0, 4.0)
 		for e in get_tree().get_nodes_in_group("enemies"):
 			if e != self and e is Enemy and "dormant" in e and e.dormant:
 				e.wake()

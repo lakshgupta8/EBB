@@ -106,7 +106,7 @@ func _puff() -> void:
 			dir * SPORE_SPEED, SPORE_DAMAGE, SPORE, self, 64, 2.4)
 		p.knockback = 40.0
 	FX.burst(global_position + Vector2(0, -12), Color(0.7, 0.85, 0.95), 6, 35.0)
-	Audio.play("lantern", 0.15, -9.0)
+	Audio.play_at(global_position, "lantern", 0.15, -9.0)
 
 
 ## Up again on living coral (the Reef's first patch) at a fair distance from the keeper; any

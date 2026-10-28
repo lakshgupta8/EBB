@@ -103,7 +103,7 @@ func _cast() -> void:
 	p.spin = 6.0
 	Atmosphere.light(p, Atmosphere.COLD, 1.0, 0.5, Vector2.ZERO, true)
 	FX.burst(global_position, Color(0.6, 0.9, 1.0), 6, 40.0)
-	Audio.play("lantern", 0.2, -6.0)
+	Audio.play_at(global_position, "lantern", 0.2, -6.0)
 
 
 func _on_hurt_extra(_info: DamageInfo) -> void:

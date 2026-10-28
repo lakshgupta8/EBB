@@ -76,7 +76,7 @@ func _enter_state(s: StringName) -> void:
 			sweep_box.rotation = _sweep_from
 			sweep_box.activate()
 			_chain.visible = true
-			Audio.play("chain", 0.0, 0.0)
+			Audio.play_at(global_position, "chain", 0.0, 0.0)
 			EventBus.request_shake.emit(0.3)
 		&"drop_windup":
 			play("windup")
@@ -86,7 +86,7 @@ func _enter_state(s: StringName) -> void:
 				_drop_targets.append(player.global_position)
 				if phase == 1:
 					_drop_targets.append(player.global_position + player.velocity * 0.45)
-			Audio.play("creak", 0.0, -2.0)
+			Audio.play_at(global_position, "creak", 0.0, -2.0)
 		&"drop":
 			play("attack")
 			velocity = Vector2.ZERO
@@ -108,7 +108,7 @@ func _enter_state(s: StringName) -> void:
 			EventBus.request_shake.emit(0.7)
 			EventBus.request_hitstop.emit(0.05)
 			FX.burst(global_position + Vector2(0, 8), Color(0.6, 0.55, 0.45), 16, 90.0)
-			Audio.play("heavy", 0.0, 0.0)
+			Audio.play_at(global_position, "heavy", 0.0, 0.0)
 		&"recover":
 			play("idle")
 			hitbox.deactivate()
@@ -118,7 +118,7 @@ func _enter_state(s: StringName) -> void:
 			play("windup")
 			velocity = Vector2.ZERO
 			EventBus.request_shake.emit(0.3)
-			Audio.play("creak", 0.1, -4.0)
+			Audio.play_at(global_position, "creak", 0.1, -4.0)
 
 
 func _exit_state(s: StringName) -> void:
@@ -266,7 +266,7 @@ func _land_anchor(at: Vector2, a: Sprite2D) -> void:
 	EventBus.request_shake.emit(0.6)
 	FX.burst(at, Color(0.7, 0.6, 0.5), 14, 80.0)
 	FX.ring(at, Color(1.0, 0.7, 0.4), 1.2)
-	Audio.play("heavy", 0.1, 0.0)
+	Audio.play_at(global_position, "heavy", 0.1, 0.0)
 	var tw := a.create_tween()
 	tw.tween_interval(0.15)
 	tw.tween_callback(drop_box.deactivate)
@@ -284,7 +284,7 @@ func _throw_chain() -> void:
 	_chain.add_point(Vector2(0, -12))
 	_chain.add_point(to_local(player.global_position))
 	_chain.visible = true
-	Audio.play("chain", 0.1, -2.0)
+	Audio.play_at(global_position, "chain", 0.1, -2.0)
 	if player.is_dashing() or player.is_yanked():
 		FX.text(player.global_position, "SLIPPED", Color(0.7, 0.95, 1.0))
 		return

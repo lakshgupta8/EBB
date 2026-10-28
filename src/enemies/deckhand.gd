@@ -37,7 +37,7 @@ func _enter_state(s: StringName) -> void:
 			play("swing")
 			_set_guard(false)
 			hitbox.activate()
-			Audio.play("swing", 0.15, -4.0)
+			Audio.play_at(global_position, "swing", 0.15, -4.0)
 		&"open":
 			play("hurt")
 			hitbox.deactivate()
@@ -94,7 +94,7 @@ func _on_shielded(info: DamageInfo) -> void:
 		return
 	FX.spark(global_position + facing * 10.0 + Vector2(0, -6))
 	FX.text(global_position + Vector2(0, -20), "BLOCKED", Color(0.8, 0.85, 0.95))
-	Audio.play("reload", 0.1, -8.0)
+	Audio.play_at(global_position, "reload", 0.1, -8.0)
 
 
 func _on_hurt_extra(_info: DamageInfo) -> void:

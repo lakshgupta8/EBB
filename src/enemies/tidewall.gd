@@ -90,7 +90,7 @@ func _enter_state(s: StringName) -> void:
 			if s == &"stone_windup":
 				_mark_stones()
 			elif s == &"turn_windup":
-				Audio.play("creak", 0.0, -1.0)
+				Audio.play_at(global_position, "creak", 0.0, -1.0)
 				FX.ring(global_position + Vector2(0, -22), Palette.SEA_PALE, 2.0)
 		&"slam":
 			play("attack")
@@ -98,7 +98,7 @@ func _enter_state(s: StringName) -> void:
 			EventBus.request_shake.emit(0.7)
 			EventBus.request_hitstop.emit(0.05)
 			FX.burst(global_position + Vector2(0, 6), Color(0.6, 0.62, 0.66), 16, 90.0)
-			Audio.play("heavy", 0.0, 0.0)
+			Audio.play_at(global_position, "heavy", 0.0, 0.0)
 		&"stone":
 			play("attack")
 			_throw_stones()
@@ -229,7 +229,7 @@ func _mark_stones() -> void:
 	if phase == 1:
 		_stone_targets.append(player.global_position + player.velocity * 0.5)
 		_stone_targets.append(player.global_position + Vector2(randf_range(-40, 40), randf_range(-30, 30)))
-	Audio.play("creak", 0.1, -3.0)
+	Audio.play_at(global_position, "creak", 0.1, -3.0)
 
 
 ## Its own stones, prised off the wall, fall on the marked spots; the box lands with each.
@@ -254,7 +254,7 @@ func _land_stone(at: Vector2, s: Sprite2D) -> void:
 	EventBus.request_shake.emit(0.5)
 	FX.burst(at, Color(0.62, 0.64, 0.68), 12, 75.0)
 	FX.ring(at, Palette.SALT_WHITE, 1.1)
-	Audio.play("heavy", 0.15, -2.0)
+	Audio.play_at(global_position, "heavy", 0.15, -2.0)
 	var tw := s.create_tween()
 	tw.tween_interval(0.15)
 	tw.tween_callback(drop_box.deactivate)
@@ -278,7 +278,7 @@ func _open_breach() -> void:
 				(c.shape as CircleShape2D).radius = 8.0
 	FX.burst(from, Color(0.75, 0.9, 0.95, 0.9), 16, 80.0)
 	EventBus.request_shake.emit(0.4)
-	Audio.play("splash", 0.0, 2.0)
+	Audio.play_at(global_position, "splash", 0.0, 2.0)
 
 
 ## The water in the channels turns and runs the other way.
@@ -287,7 +287,7 @@ func _turn() -> void:
 	_relay()
 	EventBus.request_shake.emit(0.5)
 	FX.burst(global_position + Vector2(0, -16), Color(0.75, 0.9, 0.95, 0.9), 20, 100.0)
-	Audio.play("splash", 0.05, 0.0)
+	Audio.play_at(global_position, "splash", 0.05, 0.0)
 	if player and not player.dead:
 		FX.text(player.global_position + Vector2(0, -20), "THE WATER TURNS", Palette.SEA_PALE)
 

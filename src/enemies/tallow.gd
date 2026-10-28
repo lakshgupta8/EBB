@@ -101,7 +101,7 @@ func _pour_wax() -> void:
 	_pools.append(pool)
 	Atmosphere.light(pool, Atmosphere.FLAME, 2.0, 0.5)
 	FX.burst(at, Color(1.0, 0.75, 0.4), 10, 50.0)
-	Audio.play("kindle", 0.1, -2.0)
+	Audio.play_at(global_position, "kindle", 0.1, -2.0)
 	# It burns whoever stands in it, cools, and fades. The pool looks after itself.
 	pool.set_script(POOL_SCRIPT)
 	pool.setup(WAX_TIME, WAX_DAMAGE, WAX_TICK, self)

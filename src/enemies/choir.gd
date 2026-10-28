@@ -56,8 +56,8 @@ func _enter_state(s: StringName) -> void:
 			_hit_this_note = false
 			EventBus.request_shake.emit(0.35)
 			FX.ring(global_position, Color(0.85, 0.75, 1.0), 2.6)
-			Audio.play("bell", 0.0, -6.0)
-			Audio.play("ebb", 0.05, -14.0)
+			Audio.play_at(global_position, "bell", 0.0, -6.0)
+			Audio.play_at(global_position, "ebb", 0.05, -14.0)
 			_kindle_the_street()
 		&"recover":
 			play("idle")

@@ -54,7 +54,7 @@ func _enter_state(s: StringName) -> void:
 			hitbox.deactivate()
 			velocity = (-_strike_dir).rotated(_strafe_dir * 0.8) * SLIP_SPEED
 			FX.burst(global_position + Vector2(0, 4), Color(0.4, 0.6, 0.8, 0.8), 6, 30.0)
-			Audio.play("dash", 0.2, -10.0)
+			Audio.play_at(global_position, "dash", 0.2, -10.0)
 
 
 func _exit_state(s: StringName) -> void:
@@ -69,12 +69,12 @@ func _do_hit() -> void:
 			var p := Projectile.spawn(get_parent(), global_position + Vector2(0, -6) + _strike_dir * 12.0, _strike_dir * 380.0, 9, BOLT, self, 64, 0.45)
 			p.rotation = _strike_dir.angle()
 			p.knockback = 90.0
-			Audio.play("harpoon", 0.2, -6.0)
+			Audio.play_at(global_position, "harpoon", 0.2, -6.0)
 		_:
 			hitbox.deactivate()
 			hitbox.activate()
 			FX.slash(global_position + Vector2(0, -6), _strike_dir.angle(), _hits_left % 2 == 0, _mode == "lantern")
-			Audio.play("swing", 0.2, -6.0)
+			Audio.play_at(global_position, "swing", 0.2, -6.0)
 
 
 func _tick(delta: float) -> void:
