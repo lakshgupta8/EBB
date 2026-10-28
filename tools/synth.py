@@ -525,6 +525,21 @@ def render(instrument, text, bpm=60, pan_to=0.0, seed=1, gain=1.0):
     return pan(mono * gain, pan_to)
 
 
+def limit(x, ceiling_db=-7.0, look_ms=5.0, release_ms=80.0):
+    """A look-ahead peak limiter: the gain falls before a peak arrives and recovers slowly, so a
+    few strikes do not decide the level of a whole part."""
+    from scipy.ndimage import maximum_filter1d
+    ceil = 10 ** (ceiling_db / 20)
+    lvl = np.abs(x).max(axis=1) if x.ndim == 2 else np.abs(x)
+    look = max(1, int(look_ms * SR / 1000))
+    want = np.minimum(1.0, ceil / np.maximum(maximum_filter1d(lvl, 2 * look + 1), 1e-9))
+    rel = np.exp(-1.0 / (release_ms * SR / 1000))
+    g = lfilter([1 - rel], [1, -rel], want)  # recover slowly...
+    g = np.minimum(g, want)                  # ...but never let a peak through
+    g = -maximum_filter1d(-g, 2 * look + 1)  # and start falling before it
+    return x * (g[:, None] if x.ndim == 2 else g)
+
+
 # ----------------------------------------------------------------------------- files
 def save_ogg(name, x, folder, quality=5):
     """Stereo float to Ogg Vorbis through ffmpeg."""

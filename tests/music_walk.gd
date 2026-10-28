@@ -52,11 +52,13 @@ func _ready() -> void:
 		_check(name in _seen() or (name == "kill" and "a" in _seen()), "%s plays when asked" % name)
 	await _wait(BAR + 0.5)
 	_check(_last == "a", "the kill runs on into a (%s)" % _last)
-	# Every change is on a bar line, by the audio's clock (a frame and a mix buffer apart: 60 ms).
+	# Every change is on a bar line, by the audio's clock. The switch is exact; it is only seen a
+	# frame and a mix buffer later, so the reading jitters up to 100 ms. Off the bar is half a
+	# bar or more.
 	for c in _changes.slice(1):
 		var off: float = fmod(float(c[0]), BAR)
 		off = minf(off, BAR - off)
-		_check(off < 0.06, "%s began on a bar line (%.3f s off)" % [c[1], off])
+		_check(off < 0.1, "%s began on a bar line (%.3f s off)" % [c[1], off])
 
 	var fired := []
 	var t_ask := _d.beats()
