@@ -36,11 +36,15 @@ Back codex. Menus: d-pad or stick to highlight, A picks, B leaves. Prompts switc
 moment a pad is used.
 
 ### Settings
-From the pause menu or the title, on two pages ([Tab] turns them). Saved to `user://settings.json`,
+From the pause menu or the title, on three pages ([Tab] turns them). Saved to `user://settings.json`,
 which belongs to the machine, not to a keeper.
 
-**Screen and sound**: master / music / sound volume, screen shake (off, low, full), screen flashes,
-fullscreen, HUD size and text size (normal, large, largest), and reduced motion, which takes away
+**Sound**: the master volume and one for each part of the mix: music, effects (fights, steps, the
+world), ambience (the sea and the place under it), the interface, and voices. A settings file from
+before 1.5 keeps its volumes: its one sound volume becomes the effects, ambience, interface and
+voices.
+
+**Screen**: screen shake (off, low, full), screen flashes, fullscreen, HUD size and text size (normal, large, largest), and reduced motion, which takes away
 shake, flashes, slow time and the coloured pulses at the edge of the screen.
 
 **Play**: dialogue speed, skip dialogue seen before, hints, the colour of water (sea, amber for

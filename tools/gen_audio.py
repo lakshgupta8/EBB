@@ -1,4 +1,5 @@
-"""Procedural audio for EBB: an ambient sea loop and every sound effect, as 16-bit WAV.
+"""Procedural audio for EBB: an ambient sea loop and every sound effect, as 16-bit WAV; music
+and ambience beds (music_*, amb*) as Ogg Vorbis through ffmpeg (audio Stage 02, STYLE.md 23.4).
 
 Everything is synthesised (noise, filters, envelopes, FM) so nothing external is needed.
 Run:  python tools/gen_audio.py
@@ -22,11 +23,24 @@ def save(name, data, gain=1.0):
     pcm = (data * 32767).astype(np.int16)
     import wave
     os.makedirs(OUT, exist_ok=True)
-    with wave.open(os.path.join(OUT, name + ".wav"), "wb") as w:
+    wav = os.path.join(OUT, name + ".wav")
+    with wave.open(wav, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(SR)
         w.writeframes(pcm.tobytes())
+    if name.startswith(("music_", "amb")):
+        to_ogg(wav)
+
+
+def to_ogg(wav):
+    """A loop as Ogg Vorbis (quality 5) beside where its WAV was; the WAV goes."""
+    import subprocess
+    ogg = os.path.splitext(wav)[0] + ".ogg"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", wav, "-c:a", "libvorbis", "-q:a", "5", ogg], check=True)
+    os.remove(wav)
+    if os.path.exists(wav + ".import"):
+        os.remove(wav + ".import")
 
 
 def t(seconds):

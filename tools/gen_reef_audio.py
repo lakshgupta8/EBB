@@ -1,9 +1,9 @@
 """Map Stage 11l: the Reef's music and ambience, rendered on their own so no other sound in
 assets/audio is remade (tools/gen_audio.py rebuilds everything).
 
-- music_reef.wav: the track tools/gen_music.py lists as "music_reef", with the seed its place in
+- music_reef: the track tools/gen_music.py lists as "music_reef", with the seed its place in
   that table gives it (100 + index), exactly as gen_music.build_music would render it.
-- amb_reef.wav: 24 s laid under ambient_sea, like the other places': water running in the
+- amb_reef: 24 s laid under ambient_sea, like the other places': water running in the
   channels (a band of noise that swells and drains, never still), the dry clicking of living
   coral (snapping shrimp: tiny bright clicks, in bursts), and the sea against the outside of the
   wall (a low surge every few seconds, from the left, then the right).
@@ -60,7 +60,7 @@ def ambience():
 def main():
     music()
     ambience()
-    print("wrote music_reef.wav, amb_reef.wav")
+    print("wrote music_reef.ogg, amb_reef.ogg")
 
 
 if __name__ == "__main__":

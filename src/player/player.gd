@@ -551,6 +551,7 @@ func _on_hurt(info: DamageInfo) -> void:
 	EventBus.request_hitstop.emit(0.08)
 	FX.burst(global_position, Color(0.9, 0.3, 0.3), 10, 70.0)
 	Audio.play("hurt", 0.1)
+	Audio.duck(-6.0, 0.05)
 	if mods.hurt_dash and dash_charges < max_dash:
 		dash_charges += 1
 

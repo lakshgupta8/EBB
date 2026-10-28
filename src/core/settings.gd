@@ -1,7 +1,7 @@
 extends Node
 ## Player settings in user://settings.json: volumes, screen shake, flashes, fullscreen,
 ## dialogue, hints, and (M8) key and pad bindings, assists, accessibility, the save slot.
-## Creates the Music and SFX buses so the sliders have something to move. Settings are
+## Creates the buses (audio Stage 02, STYLE.md 23.5) so the sliders have something to move. Settings are
 ## global: they belong to the machine, not to a save slot.
 
 signal changed(key: String)
@@ -10,7 +10,10 @@ const PATH := "user://settings.json"
 const DEFAULTS := {
 	"master": 0.8,     # 0..1
 	"music": 0.6,
-	"sfx": 1.0,
+	"sfx": 1.0,        # the Effects bus (the key keeps its old name, so old volumes carry over)
+	"ambience": 1.0,   # these three start at the old sound volume when the file has none
+	"interface": 1.0,
+	"voice": 1.0,
 	"shake": 1.0,      # 0 off, 0.5 low, 1 full
 	"flash": true,     # full-screen flashes (riptide, rescues, the flare)
 	"fullscreen": true,
@@ -85,13 +88,28 @@ func _ready() -> void:
 	apply()
 
 
+## The mix (STYLE.md 23.5): the music ducks on its own amplifier; effects, ambience and
+## voices share the place's reverb on Space; the interface is dry.
+const BUSES := [["Music", "Master"], ["Space", "Master"], ["Effects", "Space"], ["Ambience", "Space"],
+	["Interface", "Master"], ["Voice", "Space"]]
+
+
 func _make_buses() -> void:
-	for name in ["Music", "SFX"]:
+	for pair in BUSES:
+		var name: String = pair[0]
 		if AudioServer.get_bus_index(name) == -1:
 			var i := AudioServer.bus_count
 			AudioServer.add_bus(i)
 			AudioServer.set_bus_name(i, name)
-			AudioServer.set_bus_send(i, "Master")
+			if name == "Music":
+				AudioServer.add_bus_effect(i, AudioEffectAmplify.new())
+			elif name == "Space":
+				var r := AudioEffectReverb.new()
+				r.dry = 1.0
+				r.wet = 0.0
+				AudioServer.add_bus_effect(i, r)
+	for pair in BUSES:
+		AudioServer.set_bus_send(AudioServer.get_bus_index(pair[0]), pair[1])
 
 
 func load_settings() -> void:
@@ -103,6 +121,10 @@ func load_settings() -> void:
 		for k in DEFAULTS:
 			if parsed.has(k):
 				data[k] = _coerce(k, parsed[k])
+		# Before the mixer (audio Stage 02) one sound volume moved every bus but the music.
+		for k in ["ambience", "interface", "voice"]:
+			if not parsed.has(k) and parsed.has("sfx"):
+				data[k] = _coerce(k, parsed.sfx)
 
 
 ## JSON hands numbers back as floats and knows nothing of our types.
@@ -153,7 +175,10 @@ func value(key: String):
 func apply() -> void:
 	_bus("Master", float(data.master))
 	_bus("Music", float(data.music))
-	_bus("SFX", float(data.sfx))
+	_bus("Effects", float(data.sfx))
+	_bus("Ambience", float(data.ambience))
+	_bus("Interface", float(data.interface))
+	_bus("Voice", float(data.voice))
 	apply_bindings()
 	var w := get_window()
 	if w == null:

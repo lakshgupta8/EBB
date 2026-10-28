@@ -1,6 +1,6 @@
 class_name SettingsUI
 extends CanvasLayer
-## Settings on two pages: the screen and sound, and how the game plays (dialogue, hints,
+## Settings on three pages: sound, the screen, and how the game plays (dialogue, hints,
 ## water colour, assists, controls). Click a row (or press its number) to step it; left /
 ## right adjusts the highlighted row; Tab or the shoulders turn the page; E / Esc / B leaves.
 ## Everything is saved the moment it changes.
@@ -8,10 +8,15 @@ extends CanvasLayer
 signal closed
 
 const PAGES := [
-	{"name": "SCREEN AND SOUND", "rows": [
+	{"name": "SOUND", "rows": [
 		{"key": "master", "name": "Master volume", "kind": "volume"},
-		{"key": "music", "name": "Music volume", "kind": "volume"},
-		{"key": "sfx", "name": "Sound volume", "kind": "volume"},
+		{"key": "music", "name": "Music", "kind": "volume"},
+		{"key": "sfx", "name": "Effects", "kind": "volume", "note": "fights, footsteps, the world"},
+		{"key": "ambience", "name": "Ambience", "kind": "volume", "note": "the sea and the place under it"},
+		{"key": "interface", "name": "Interface", "kind": "volume", "note": "menus, buying, pages"},
+		{"key": "voice", "name": "Voices", "kind": "volume", "note": "the people and the drowned"},
+	]},
+	{"name": "SCREEN", "rows": [
 		{"key": "shake", "name": "Screen shake", "kind": "shake"},
 		{"key": "flash", "name": "Screen flashes", "kind": "bool"},
 		{"key": "fullscreen", "name": "Fullscreen", "kind": "bool"},
@@ -169,14 +174,14 @@ func _build() -> void:
 	box.custom_minimum_size = Vector2(340, 0)
 	panel.add_child(box)
 	box.add_child(UI.header("SETTINGS"))
-	# The two pages as tabs.
+	# The pages as tabs.
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 4)
 	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
 	_tabs = []
 	for p in PAGES.size():
 		var t := UI.tab_button(PAGES[p].name, p == page)
-		t.custom_minimum_size = Vector2(150, 16)
+		t.custom_minimum_size = Vector2(120, 16)
 		t.pressed.connect(set_page.bind(p))
 		tabs.add_child(t)
 		_tabs.append(t)
@@ -220,7 +225,7 @@ func _build() -> void:
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(320, 0)
 	box.add_child(_note)
-	if page == 1:
+	if PAGES[page].name == "PLAY":
 		var m := Settings.assist_pearl_mult()
 		box.add_child(UI.label("assists are a trade: pearls at the end of a night x%.2f" % m if m < 1.0
 			else "assists off: full pearls", 8, UI.ACCENT if m < 1.0 else UI.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER))
