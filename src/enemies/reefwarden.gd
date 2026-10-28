@@ -41,7 +41,7 @@ func _enter_state(s: StringName) -> void:
 			velocity = Vector2.ZERO
 			hitbox.activate()
 			EventBus.request_shake.emit(0.15)
-			Audio.play("swing", 0.1, -1.0)
+			Audio.play_at(global_position, "swing", 0.1, -1.0)
 		&"surge":
 			play("slam")
 			velocity = Vector2.ZERO
@@ -114,7 +114,7 @@ func _send_surge() -> void:
 	FX.burst(at, Color(0.75, 0.9, 0.95, 0.9), 10, 55.0)
 	FX.ring(at, Palette.FOAM_WHITE, 0.6)
 	EventBus.request_shake.emit(0.2)
-	Audio.play("splash", 0.1, -2.0)
+	Audio.play_at(global_position, "splash", 0.1, -2.0)
 
 
 func _on_hurt_extra(_info: DamageInfo) -> void:

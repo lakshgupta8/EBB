@@ -54,7 +54,7 @@ func _enter_state(s: StringName) -> void:
 			lash_box.activate()
 			_chain.default_color = Color(0.85, 0.88, 0.95, 1.0)
 			_draw_chain(LASH_RANGE)
-			Audio.play("chain", 0.1, -3.0)
+			Audio.play_at(global_position, "chain", 0.1, -3.0)
 			FX.burst(global_position + _aim * 30.0, Color(0.7, 0.72, 0.78), 6, 40.0)
 		&"recover":
 			play("idle")

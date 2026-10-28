@@ -46,7 +46,7 @@ func _enter_state(s: StringName) -> void:
 			play("throw")
 			velocity = Vector2.ZERO
 			hitbox.activate()
-			Audio.play("swing", 0.15, -2.0)
+			Audio.play_at(global_position, "swing", 0.15, -2.0)
 		&"throw_windup":
 			play("windup")
 			velocity = Vector2.ZERO
@@ -124,7 +124,7 @@ func _throw_net() -> void:
 	_net.modulate = Color(1, 1, 1, 0.95)
 	_net.global_position = global_position + Vector2(0, -8)
 	_net.frame = 0   # gathered in the hand; it opens where it lands (no scale, no turn: STYLE.md 1)
-	Audio.play("net", 0.1, -2.0)
+	Audio.play_at(global_position, "net", 0.1, -2.0)
 	var tw := create_tween()
 	tw.tween_property(_net, "global_position", at, 0.22)
 	tw.tween_callback(_land_net.bind(at))

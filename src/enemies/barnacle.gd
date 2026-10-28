@@ -50,7 +50,7 @@ func _enter_state(s: StringName) -> void:
 			_burst_dir = d.normalized() if d != Vector2.ZERO else _burst_dir
 			face(_burst_dir.x)
 			hitbox.activate()
-			Audio.play("bite", 0.2, -8.0)
+			Audio.play_at(global_position, "bite", 0.2, -8.0)
 		&"recover":
 			play("idle")
 			hitbox.deactivate()

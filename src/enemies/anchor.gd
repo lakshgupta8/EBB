@@ -47,7 +47,7 @@ func _enter_state(s: StringName) -> void:
 			hitbox.activate()
 			EventBus.request_shake.emit(0.5)
 			FX.burst(global_position + Vector2(10, 6), Color(0.6, 0.62, 0.7), 12, 60.0)
-			Audio.play("heavy", 0.1, -2.0)
+			Audio.play_at(global_position, "heavy", 0.1, -2.0)
 		&"recover":
 			play("idle")
 			hitbox.deactivate()
@@ -70,7 +70,7 @@ func _throw_chain() -> void:
 	_chain.add_point(Vector2(0, -6))
 	_chain.add_point(to_local(player.global_position) + Vector2(0, -6))
 	_chain.visible = true
-	Audio.play("hook", 0.1, -2.0)
+	Audio.play_at(global_position, "hook", 0.1, -2.0)
 	if player.is_dashing() or player.is_yanked():
 		FX.text(player.global_position, "SLIPPED", Color(0.7, 0.95, 1.0))
 		return

@@ -68,7 +68,7 @@ func _enter_state(s: StringName) -> void:
 			EventBus.request_hitstop.emit(0.05)
 			FX.ring(global_position, Color(0.6, 0.85, 1.0), 2.2)
 			FX.burst(global_position, Color(0.5, 0.75, 0.95), 20, 100.0)
-			Audio.play("splash", 0.0, 4.0)
+			Audio.play_at(global_position, "splash", 0.0, 4.0)
 		&"surge":
 			play("cast")
 			velocity = Vector2.ZERO
@@ -206,7 +206,7 @@ func _send_wave(d: Vector2) -> void:
 		pr.knockback = 150.0
 		pr.tags = PackedStringArray(["projectile", "wave"])
 	FX.ring(global_position + dir * 20.0, Color(0.6, 0.85, 1.0), 1.4)
-	Audio.play("wave", 0.1)
+	Audio.play_at(global_position, "wave", 0.1)
 	EventBus.request_shake.emit(0.3)
 
 
@@ -216,7 +216,7 @@ func _haul() -> void:
 		return
 	face(d.x)
 	FX.ring(player.global_position, Color(0.6, 0.85, 1.0), 1.0)
-	Audio.play("hook", 0.0, 2.0)
+	Audio.play_at(global_position, "hook", 0.0, 2.0)
 	if player.is_dashing() or player.is_yanked():
 		FX.text(player.global_position, "SLIPPED", Color(0.7, 0.95, 1.0))
 		return
@@ -238,7 +238,7 @@ func _surge() -> void:
 		pr.rotation = ang
 		pr.knockback = 140.0
 	FX.ring(global_position, Color(0.6, 0.85, 1.0), 2.6)
-	Audio.play("wave", 0.0, 2.0)
+	Audio.play_at(global_position, "wave", 0.0, 2.0)
 	EventBus.request_shake.emit(0.5)
 
 
@@ -272,7 +272,7 @@ func _on_hurt_extra(_info: DamageInfo) -> void:
 		EventBus.request_shake.emit(1.0)
 		EventBus.request_hitstop.emit(0.15)
 		FX.burst(global_position, Color(0.5, 0.8, 1.0), 30, 140.0)
-		Audio.play("ebb", 0.0, 2.0)
+		Audio.play_at(global_position, "ebb", 0.0, 2.0)
 		phase_changed.emit(phase)
 		if state != &"haul" and state != &"slam":
 			change_state(&"surge_windup")

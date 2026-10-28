@@ -56,7 +56,7 @@ func wake() -> void:
 	dormant = false
 	FX.burst(global_position + Vector2(0, -6), Color(0.7, 0.72, 0.75), 10, 55.0)
 	FX.ring(global_position, Color(0.8, 0.82, 0.9), 0.8)
-	Audio.play("wake", 0.15, -4.0)
+	Audio.play_at(global_position, "wake", 0.15, -4.0)
 	change_state(&"chase")
 
 

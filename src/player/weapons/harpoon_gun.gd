@@ -164,9 +164,9 @@ func _on_bolt_hit(target: Hurtbox, info: DamageInfo) -> void:
 	EventBus.request_hitstop.emit(0.05 if not crit else 0.09)
 	if crit:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
-		Audio.play("crit", 0.05)
+		Audio.play_at(target.global_position, "crit", 0.05)
 	else:
-		Audio.play("hit", 0.2, -3.0)
+		Audio.play_at(target.global_position, "hit", 0.2, -3.0)
 
 
 # --- tether ----------------------------------------------------------------------

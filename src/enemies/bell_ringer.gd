@@ -36,7 +36,7 @@ func _enter_state(s: StringName) -> void:
 			EventBus.request_shake.emit(0.45)
 			FX.ring(global_position, Color(0.95, 0.85, 0.6), 1.6)
 			FX.ring(global_position, Color(1.0, 0.95, 0.8), 0.8)
-			Audio.play("bell", 0.08, -3.0)
+			Audio.play_at(global_position, "bell", 0.08, -3.0)
 			_summon()
 		&"recover":
 			play("idle")

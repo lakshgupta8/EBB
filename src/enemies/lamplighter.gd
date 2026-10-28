@@ -108,7 +108,7 @@ func _others_near() -> Array:
 func _kindle() -> void:
 	FX.ring(global_position, Color(1.0, 0.8, 0.5), 2.4)
 	FX.burst(global_position + Vector2(6, -10), Color(1.0, 0.85, 0.5), 12, 60.0)
-	Audio.play("kindle", 0.1, -2.0)
+	Audio.play_at(global_position, "kindle", 0.1, -2.0)
 	for e in _others_near():
 		e.kindle(KINDLE_TIME)
 
@@ -118,7 +118,7 @@ func _throw(d: Vector2) -> void:
 	var p := Projectile.spawn(get_parent(), global_position + Vector2(6, -10), dir * SHOT_SPEED, SHOT_DAMAGE, LANTERN, self, 64, 1.4)
 	p.knockback = 120.0
 	Atmosphere.light(p, Atmosphere.FLAME, 1.0, 0.5, Vector2.ZERO, true)
-	Audio.play("kindle", 0.3, -6.0)
+	Audio.play_at(global_position, "kindle", 0.3, -6.0)
 
 
 func _on_hurt_extra(_info: DamageInfo) -> void:
