@@ -97,16 +97,26 @@ func _check_music(music: Dictionary) -> void:
 		music[str(b.music)] = "Run.BIOMES"
 		music[str(b.boss_music)] = "Run.BIOMES"
 	var n := 0
+	var scores := 0
+	var specs: Dictionary = Audio.director.specs
 	for name in music:
-		if _has_clip(name):
+		if specs.has(name):
+			scores += 1  # a score (audio Stage 05): every section has its stems on disk
+			for sec in specs[name].sections:
+				var have := false
+				for stem in MusicDirector.STEMS:
+					have = have or ResourceLoader.exists("%s/%s_%s.ogg" % [specs[name].dir, sec, stem])
+				if not have:
+					missing.append(["score %s section %s" % [name, sec], "data/music.json"])
+		elif _has_clip(name):
 			n += 1
 		else:
-			missing.append(["music %s.wav" % name, music[name]])
+			missing.append(["music %s" % name, music[name]])
 	# The other way round: a loop on disk nothing ever plays.
 	for f in DirAccess.get_files_at(AUDIO_DIR):
 		if f.begins_with("music_") and f.get_extension() in ["wav", "ogg"] and not music.has(f.get_basename()):
 			notes.append("%s is on disk but nothing plays it" % f)
-	notes.append("%d music and ambient loops" % n)
+	notes.append("%d music and ambient loops, %d scores" % [n, scores])
 
 
 func _check_whispers(whispers: Dictionary) -> void:

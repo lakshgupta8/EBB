@@ -1,1 +1,36 @@
-{}
+{
+	"music_flats": {
+		"dir": "res://assets/audio/score/flats",
+		"bpm": 66,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 12,
+				"next": "b"
+			},
+			"b": {
+				"bars": 16,
+				"next": "c"
+			},
+			"c": {
+				"bars": 12,
+				"next": "a2"
+			},
+			"a2": {
+				"bars": 12,
+				"next": "a"
+			},
+			"boss1": {
+				"bars": 8
+			},
+			"boss2": {
+				"bars": 8
+			},
+			"kill": {
+				"bars": 2,
+				"next": "a"
+			}
+		}
+	}
+}

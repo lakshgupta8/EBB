@@ -41,6 +41,10 @@ var _actives_used: int = 0
 var _fish_eaten: int = 0
 var _resume_ok: bool = true
 var _perf: PerfProbe
+## `--record=PATH [--record-secs=N]`: what the night sounded like, from the Master bus, to a WAV
+## (audio Stage 06: hearing the score follow a real night). Stops at N seconds or the end.
+var _recording: AudioEffectRecord
+var _record_path: String = ""
 
 
 func _ready() -> void:
@@ -124,6 +128,27 @@ func _ready() -> void:
 	if "--sturdy" in OS.get_cmdline_user_args():
 		player.health.max_hp = 99999
 		player.health.hp = 99999
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--record="):
+			_record_path = a.trim_prefix("--record=")
+			_recording = AudioEffectRecord.new()
+			AudioServer.add_bus_effect(0, _recording)
+			_recording.set_recording_active(true)
+			# What the score did, every five seconds, to read beside the recording.
+			var log_t := Timer.new()
+			log_t.wait_time = 5.0
+			log_t.process_mode = Node.PROCESS_MODE_ALWAYS
+			log_t.timeout.connect(func():
+				var d: MusicDirector = Audio.director
+				print("sim_run: music %5.0f s  %-14s %-6s fight=%s tide=%.2f low=%s  rhythm %.0f dB" % [
+					float(tick) / 60.0, Audio.music_name, d.current(), d.fight, d.tide, d.low, float(d._vol.get("rhythm", -60.0))]))
+			add_child(log_t)
+			log_t.start()
+		elif a.begins_with("--record-secs="):
+			var secs := float(a.trim_prefix("--record-secs="))
+			get_tree().create_timer(secs, true, false, true).timeout.connect(func():
+				if _recording:
+					_save_recording())
 	print("sim_run: seed %d, %d ticks" % [seed_val, ticks_to_run])
 
 
@@ -617,6 +642,14 @@ func _screenshot(file: String) -> void:
 		file, error_string(img.save_png(dir + "/" + file)), tick, run.fade.color.a, get_tree().paused, Engine.time_scale])
 
 
+func _save_recording() -> void:
+	var clip := _recording.get_recording()
+	_recording.set_recording_active(false)
+	_recording = null
+	if clip:
+		print("sim_run: recorded %.0f s -> %s (%s)" % [clip.get_length(), _record_path, error_string(clip.save_to_wav(_record_path))])
+
+
 func _finish() -> void:
 	# A night takes a breath after it ends (the last drops are collected, the board is
 	# judged, the ledger is written). Quitting on `ended` alone meant the bot never
@@ -633,6 +666,8 @@ func _finish() -> void:
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
 	if _perf != null:
 		_perf.report()
+	if _recording:
+		_save_recording()
 	# `--audio-log=PATH`: every clip the night asked for and how often, for tools/audio_audit.py.
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--audio-log="):
