@@ -102,7 +102,10 @@ func _make_buses() -> void:
 			AudioServer.add_bus(i)
 			AudioServer.set_bus_name(i, name)
 			if name == "Music":
-				AudioServer.add_bus_effect(i, AudioEffectAmplify.new())
+				AudioServer.add_bus_effect(i, AudioEffectAmplify.new())  # the duck
+				var lp := AudioEffectLowPassFilter.new()  # Tam low (MusicDirector)
+				lp.cutoff_hz = MusicDirector.LOWPASS_OPEN
+				AudioServer.add_bus_effect(i, lp)
 			elif name == "Space":
 				var r := AudioEffectReverb.new()
 				r.dry = 1.0

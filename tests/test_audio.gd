@@ -38,3 +38,26 @@ func test_a_tell_takes_a_voice_and_is_never_taken() -> void:
 	for p in Audio._pool2d:
 		p.stop()
 	cam.queue_free()
+
+
+func test_the_mood_sets_the_stems() -> void:
+	var calm := MusicDirector.targets(false, 0.2, false)
+	assert_eq(calm.bed, 0.0, "the bed always plays")
+	assert_eq(calm.rhythm, MusicDirector.OFF, "exploring: no rhythm")
+	var fight := MusicDirector.targets(true, 0.2, false)
+	assert_true(fight.rhythm == 0.0 and fight.danger == 0.0, "a fight: rhythm and danger")
+	assert_eq(MusicDirector.targets(false, 0.6, false).tide, 0.0, "the tide past half: its stem")
+	assert_eq(MusicDirector.targets(true, 0.0, true).melody, -6.0, "Tam low: the melody back")
+
+
+func test_a_score_is_sections_of_stems() -> void:
+	var built := MusicDirector.build({"dir": "res://tests/music/test", "bpm": 120, "bar_beats": 4, "first": "b",
+		"sections": {"a": {"bars": 2, "next": "b"}, "b": {"bars": 2}}})
+	var stream: AudioStreamInteractive = built[0]
+	assert_eq(stream.clip_count, 2)
+	assert_eq(stream.initial_clip, 1, "it starts where it is told")
+	assert_eq(stream.get_clip_auto_advance_next_clip(0), 1, "a runs on into b")
+	var sync: AudioStreamSynchronized = built[1][0]
+	var ogg := sync.get_sync_stream(MusicDirector.STEMS.find("rhythm")) as AudioStreamOggVorbis
+	assert_true(ogg != null and ogg.beat_count == 8 and not ogg.loop, "a section's stem knows its bars, and runs on rather than loops")
+	assert_true((built[1][1].get_sync_stream(0) as AudioStreamOggVorbis).loop, "a section with no next loops")

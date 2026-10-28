@@ -358,6 +358,7 @@ func _physics_process(delta: float) -> void:
 	room.set_tide(state.tide.level)
 	EventBus.tide_changed.emit(state.tide.level)
 	_watch_tide()
+	Audio.mood(not room_cleared, state.tide.level / TideSystem.MAX_LEVEL, float(player.health.hp) / float(maxi(1, player.health.max_hp)))
 	if player.glow_full():
 		announcer.hint("flare")
 	_apply_water(delta)
@@ -672,7 +673,11 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			_spawn_echo_room()
 		RoomGraph.BOSS:
 			_spawn_boss()
-			Audio.music(str(biome().boss_music), -9.0)
+			# A scored place plays its boss as sections of its own score; the rest, a boss loop.
+			if Audio.director.score_id != "" and Audio.director.spec.sections.has("boss1"):
+				Audio.section("boss1")
+			else:
+				Audio.music(str(biome().boss_music), -9.0)
 			_boss_intro()
 			EventBus.request_shake.emit(0.6)
 			Audio.play(biome().boss_sfx)
@@ -1033,6 +1038,7 @@ func _spawn_boss() -> void:
 		Audio.play("stinger_phase", 0.0, -3.0)
 		Audio.play(biome().boss_sfx, 0.0, 2.0)
 		Audio.duck(-8.0, 0.4)
+		Audio.section("boss2")
 		state.tide.level = minf(TideSystem.MAX_LEVEL, state.tide.level + (0.7 if state.tier >= 8 else 0.35))
 	)
 	hud.set_boss(boss)
@@ -1363,6 +1369,7 @@ func _on_enemy_spared(enemy: Node) -> void:
 
 
 func _on_boss_died() -> void:
+	Audio.section("kill")
 	# The boss's summons die with it.
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e is Enemy and e != boss and is_instance_valid(e):
