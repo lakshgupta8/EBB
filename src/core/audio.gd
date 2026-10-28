@@ -44,6 +44,8 @@ var _last_play: Dictionary = {}  # name -> msec, to avoid machine-gunning the sa
 var _rng := RandomNumberGenerator.new()
 var space_name: String = ""
 var _duck_tw: Tween
+## Scored music in sections and stems (audio Stage 05); places without a score keep a loop.
+var director: MusicDirector
 ## Every clip asked for this session, by name (the base name, before a variant is picked),
 ## for the audio audit (audio Stage 01: `--audio-log=` on the bot). Counting draws nothing.
 var asked: Dictionary = {}
@@ -75,6 +77,8 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
 	add_child(_music)
+	director = MusicDirector.new()
+	add_child(director)
 
 
 var _variants: Dictionary = {}  # base name -> count of name_0, name_1, ...
@@ -268,6 +272,14 @@ func duck(db: float = -6.0, hold: float = 0.15) -> void:
 ## A looping track on the Music bus; the old one fades out under the new one.
 func music(name: String, db: float = -8.0) -> void:
 	asked[name] = int(asked.get(name, 0)) + 1
+	if director.has_score(name):
+		if name != music_name:
+			_fade_loop_out()
+		music_name = name
+		director.play(name, db)
+		return
+	if director.score_id != "":
+		director.stop()
 	if name == music_name and _music.playing:
 		return
 	var s := _stream(name)
@@ -290,7 +302,30 @@ func music(name: String, db: float = -8.0) -> void:
 	up.tween_property(_music, "volume_db", db, 1.5)
 
 
+## How the night is: a fight, the tide's height (0..1), Tam's health (0..1). Scored music only.
+func mood(fight: bool, tide_frac: float, hp_frac: float) -> void:
+	director.mood(fight, tide_frac, hp_frac)
+
+
+## A section of the score on the next bar ("boss1", "boss2", "kill"...); nothing without a score.
+func section(name: String) -> void:
+	director.switch(name)
+
+
+## A stinger on the next beat of the score (at once without one).
+func stinger(name: String, db: float = 0.0) -> void:
+	director.stinger(name, db)
+
+
+func _fade_loop_out() -> void:
+	if _music.playing:
+		var tw := _music.create_tween()
+		tw.tween_property(_music, "volume_db", -40.0, 1.5)
+		tw.tween_callback(_music.stop)
+
+
 func stop_music() -> void:
+	director.stop()
 	music_name = ""
 	if _music.playing:
 		var tw := _music.create_tween()
