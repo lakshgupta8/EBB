@@ -2,7 +2,8 @@
 stems, rendered with the kit in tools/synth.py, and listed in data/music.json for the game.
 
 A spec:
-    {"name": "music_flats", "folder": "flats", "bpm": 66, "first": "a",
+    {"name": "music_flats", "folder": "flats", "bpm": 66, "first": "a",   # "bar_beats": 6 for 6/8,
+                                                                         # bpm then in eighths
      "sections": {"a": {"bars": 12, "next": "b", "stems": {
          "bed": [("drone", "D2/48", 0.0, 0.5), ...],     # (instrument, notes, pan, gain)
          "melody": [...], "rhythm": [...], "danger": [...], "tide": [...]}}, ...}}
@@ -82,22 +83,23 @@ def roots(symbols, pattern, octave=2):
     return " ".join(out)
 
 
-def bars_of(text):
-    return sum(float(t.split("@")[0].split("/")[1]) for t in text.split()) / 4.0
+def bars_of(text, bar_beats=4):
+    return sum(float(t.split("@")[0].split("/")[1]) for t in text.split()) / float(bar_beats)
 
 
 def build(spec):
     """Render every section's stems, carry tails across joins, level, write Ogg and the spec."""
     bpm = spec["bpm"]
+    bb = spec.get("bar_beats", 4)
     folder = os.path.join(SCORES, spec["folder"])
-    bar_n = lambda bars: int(round(bars * 4 * 60.0 / bpm * synth.SR))  # noqa: E731
+    bar_n = lambda bars: int(round(bars * bb * 60.0 / bpm * synth.SR))  # noqa: E731
     raw = {}  # (section, stem) -> stereo, longer than the section
     seed = 1
     for sec, s in spec["sections"].items():
         for stem in STEMS:
             parts = []
             for inst, notes, pan, gain in s["stems"].get(stem, []):
-                assert abs(bars_of(notes) - s["bars"]) < 1e-6 or bars_of(notes) <= s["bars"], (sec, stem, inst, bars_of(notes))
+                assert bars_of(notes, bb) <= s["bars"] + 1e-6, (sec, stem, inst, bars_of(notes, bb))
                 parts.append(synth.render(inst, notes, bpm, pan, seed, gain))
                 seed += 1
             if parts:
@@ -144,7 +146,7 @@ def build(spec):
     # List the score for the game.
     music = json.load(open(MUSIC_JSON, encoding="utf-8")) if os.path.exists(MUSIC_JSON) else {}
     music[spec["name"]] = {
-        "dir": "res://assets/audio/score/" + spec["folder"], "bpm": bpm, "bar_beats": 4, "first": spec["first"],
+        "dir": "res://assets/audio/score/" + spec["folder"], "bpm": bpm, "bar_beats": bb, "first": spec["first"],
         "sections": {sec: ({"bars": s["bars"], "next": s["next"]} if "next" in s else {"bars": s["bars"]})
                      for sec, s in spec["sections"].items()},
     }
@@ -153,7 +155,7 @@ def build(spec):
         fh.write("\n")
     total = sum(s["bars"] for k, s in spec["sections"].items() if not k.startswith(("boss", "kill")))
     print(f"{spec['name']}: {len(cut)} stems, gain {20 * np.log10(gain):+.1f} dB; the place runs "
-          f"{total} bars ({total * 4 * 60.0 / bpm:.0f} s) before it repeats")
+          f"{total} bars ({total * bb * 60.0 / bpm:.0f} s) before it repeats")
     for sec, (calm, full, pk) in report.items():
         print(f"  {sec:6s} exploring {calm if calm is None else round(calm, 1)} LUFS, fighting {full if full is None else round(full, 1)} LUFS, peak {pk:.1f} dBFS")
     return report
