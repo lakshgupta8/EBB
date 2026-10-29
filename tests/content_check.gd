@@ -82,6 +82,17 @@ func _has_clip(name: String) -> bool:
 
 
 func _check_sounds(sounds: Dictionary) -> void:
+	# "hit_" + material: a prefix, not a clip; the enemies' voices are checked whole instead.
+	for name in sounds.keys():
+		if str(name).ends_with("_"):
+			sounds.erase(name)
+	for id in Enemy.VOICES:
+		var v: Dictionary = Enemy.VOICES[id]
+		for state in v.get("tells", {}):
+			sounds[v.tells[state]] = "Enemy.VOICES." + id
+		if v.has("material"):
+			sounds["hit_" + v.material] = "Enemy.VOICES." + id
+			sounds["die_" + v.material] = "Enemy.VOICES." + id
 	var n := 0
 	for name in sounds:
 		if _has_clip(name):

@@ -354,7 +354,7 @@ func _arm_and_activate(heavy: bool) -> void:
 	FX.slash(global_position, aim_angle, _swing_sign < 0.0)
 	if _sweep_double:
 		FX.slash(global_position, aim_angle, _swing_sign >= 0.0)
-	Audio.play("heavy" if heavy else "swing", 0.15)
+	Audio.play("gaff_heavy" if heavy else "gaff_swing", 0.06)  # the gaff's own set (audio Stage 09)
 
 
 func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
@@ -375,7 +375,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 		FX.text(target.global_position, "CRACKED", Color(1.0, 0.7, 0.6))
 		Audio.play("crit", 0.1, -3.0)
 	else:
-		Audio.play("hit", 0.15, -2.0 if not heavy else 2.0)
+		Audio.play("gaff_hit", 0.08, -2.0 if not heavy else 2.0)
 	if enemy and info.tags.has("third_hit") and _player.mods.bleed:
 		enemy.apply_bleed(3)
 
@@ -418,7 +418,7 @@ func _start_throw() -> void:
 
 	_throw_cd_total = THROW_COOLDOWN if target_hb else THROW_MISS_COOLDOWN
 	_throw_cd = _throw_cd_total
-	Audio.play("hook", 0.1)
+	Audio.play("gaff_hook", 0.06)
 	pivot.rotation = dir.angle()
 	sprite.flip_v = dir.x < 0.0
 	var dist := origin.distance_to(target_point)

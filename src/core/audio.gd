@@ -14,6 +14,7 @@ const FALL := 1.7
 const PAN := 1.4
 ## An enemy's tell is the first sound heard (STYLE.md 23.5): it takes any other voice and keeps
 ## -12 dB however far across the room it is (the room's FAR stretches to 1.8 x its distance).
+## Any clip named tell_* (audio Stage 09: each enemy's windup) is a tell too.
 const TELLS := ["roar", "bell", "chain", "wave", "riptide", "wake", "flare", "ebb", "hymn", "net", "harpoon"]
 const PRI_TELL := 2
 const PRI_WORLD := 1
@@ -167,7 +168,7 @@ func play_at(pos: Vector2, name: String, pitch_var: float = 0.0, db: float = 0.0
 	var s := _stream(name)
 	if s == null:
 		return
-	var pri := PRI_TELL if name in TELLS else PRI_WORLD
+	var pri := PRI_TELL if (name in TELLS or name.begins_with("tell_")) else PRI_WORLD
 	var p: AudioStreamPlayer2D = null
 	for q in _pool2d:
 		if not q.playing:

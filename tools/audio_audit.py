@@ -38,6 +38,7 @@ TARGETS = {
     "ambience": ("integrated", -26.0, 2.0),
     "tell": ("momentary", -13.0, 2.0),
     "combat": ("momentary", -15.0, 2.0),
+    "layer": ("momentary", -18.0, 2.0),   # a material's body under a weapon's hit (audio Stage 09)
     "world": ("momentary", -18.0, 2.0),
     "interface": ("momentary", -20.0, 2.0),
 }
@@ -58,6 +59,12 @@ def role_of(name):
         return "stinger"
     if name.startswith("amb") :
         return "ambience"
+    if name.startswith("tell_"):
+        return "tell"
+    if re.match(r"hit_[a-z]+_\d+$", name):
+        return "layer"
+    if name.startswith(("die_", "gaff_")):
+        return "combat"
     base = re.sub(r"_\d+$", "", name)
     for r, names in ROLES.items():
         if base in names:
@@ -203,6 +210,10 @@ def main():
         role = role_of(name)
         kind, target, tol = TARGETS[role]
         measured = integ if kind == "integrated" else mom
+        if kind == "momentary" and len(x) / sr < 0.4:
+            # Shorter than the 400 ms window: a strike is judged by its peak (as loud as it may be).
+            kind, target, tol = "peak", -1.5, 1.5
+            measured = 20 * np.log10(np.abs(resample_poly(x, 4, 1, axis=0)).max() + 1e-12)
         off = None if measured is None else measured - target
         base = re.sub(r"_\d+$", "", name)
         loops = role in ("music", "ambience")
@@ -279,7 +290,7 @@ def write_sheet(rows, night_seconds, asked):
            "Loudness as the game plays it (mono counts twice). Targets: STYLE.md section 23.</p>"]
     if night_seconds:
         out.append(f"<p>Bot night: {night_seconds / 60:.1f} min. <i>per night</i> = how often the night asked for it.</p>")
-    order = ["music", "stinger", "ambience", "tell", "combat", "world", "interface"]
+    order = ["music", "stinger", "ambience", "tell", "combat", "layer", "world", "interface"]
     for role in order:
         rs = [r for r in rows if r["role"] == role]
         if not rs:
