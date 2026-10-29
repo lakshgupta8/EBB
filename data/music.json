@@ -100,5 +100,39 @@
 				"next": "a"
 			}
 		}
+	},
+	"music_streets": {
+		"dir": "res://assets/audio/score/streets",
+		"bpm": 72,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 16,
+				"next": "b"
+			},
+			"b": {
+				"bars": 16,
+				"next": "c"
+			},
+			"c": {
+				"bars": 8,
+				"next": "a2"
+			},
+			"a2": {
+				"bars": 16,
+				"next": "a"
+			},
+			"boss1": {
+				"bars": 8
+			},
+			"boss2": {
+				"bars": 8
+			},
+			"kill": {
+				"bars": 2,
+				"next": "a"
+			}
+		}
 	}
 }
