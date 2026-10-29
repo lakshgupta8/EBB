@@ -9,7 +9,7 @@ so every place sounds related. 44.1 kHz, stereo, every note from a seeded random
 Families (each a function of frequency, seconds, velocity and a random stream, returning mono):
   plucked  cittern, harp, bass           Karplus-Strong strings, a body resonance, a pick
   reed     harmonium, concertina         additive reeds, two beating, a breath on the attack
-  metal    ship_bell, hand_bell, buoy, glass, saltmere   modal partials (FM for the buoy)
+  metal    ship_bell, hand_bell, buoy, glass, saltmere, music_box   modal partials (FM for the buoy)
   wood     frame_drum, wood_block, stone_marimba, hull   modal bars and membranes, a strike
   bowed    strings, bowed_glass, drone   band-limited saw through a body, slow bow, late vibrato
   voice    choir_ah, choir_oo, hum       a glottal source through vowel formants, an ensemble
@@ -250,6 +250,16 @@ def saltmere(f, dur, vel, rng):
     return (s + strike) * 0.35 * vel * env(n, 0.002, r=0.1)
 
 
+def music_box(f, dur, vel, rng):
+    """A worn comb plucked by a drum's pins: the tine's partials (a cantilever, 1 : 6.27 : 17.55),
+    each note up to 18 cents off true. The drowned town's tune."""
+    n = int(2.2 * SR)
+    f = f * 2 ** (rng.uniform(-18, 18) / 1200)
+    s = _modal(f, n, [1.0, 6.27, 17.55], [1.6, 0.35, 0.08], [1.0, 0.22, 0.06], rng, 0.0)
+    pin = highpass(rng.uniform(-1, 1, n) * decay(n, 0.003), 4000) * 0.08
+    return (s + pin) * 0.45 * vel
+
+
 # ----------------------------------------------------------------------------- wood and stone
 def frame_drum(f, dur, vel, rng):
     """A hand on a skin: the membrane's modes, the pitch dropping as it settles. The rhythm layer."""
@@ -427,6 +437,7 @@ INSTRUMENTS = {
     "cittern": cittern, "harp": harp, "bass": bass,
     "harmonium": harmonium, "concertina": concertina,
     "ship_bell": ship_bell, "hand_bell": hand_bell, "buoy": buoy, "glass": glass, "saltmere": saltmere,
+    "music_box": music_box,
     "frame_drum": frame_drum, "wood_block": wood_block, "stone_marimba": stone_marimba, "hull": hull,
     "strings": strings, "bowed_glass": bowed_glass, "drone": drone,
     "choir_ah": choir_ah, "choir_oo": choir_oo, "hum": hum,
