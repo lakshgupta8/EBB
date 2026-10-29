@@ -104,7 +104,7 @@ func _check_music(music: Dictionary) -> void:
 			scores += 1  # a score (audio Stage 05): every section has its stems on disk
 			for sec in specs[name].sections:
 				var have := false
-				for stem in MusicDirector.STEMS:
+				for stem in specs[name].get("stems", MusicDirector.STEMS):
 					have = have or ResourceLoader.exists("%s/%s_%s.ogg" % [specs[name].dir, sec, stem])
 				if not have:
 					missing.append(["score %s section %s" % [name, sec], "data/music.json"])

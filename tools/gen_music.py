@@ -162,6 +162,7 @@ def build_music():
     import json
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "music.json")
     scored = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+    retired = {"music_hub_choir"}  # the Choir is a layer of the rock's score now
     for i, (name, spec) in enumerate(TRACKS.items()):
-        if name not in scored:
+        if name not in scored and name not in retired:
             make_track(name, *spec, seed=100 + i)

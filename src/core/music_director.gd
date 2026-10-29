@@ -11,7 +11,9 @@ extends Node
 ## A score's spec (data/music.json, or given directly):
 ##   {"dir": "res://assets/audio/score/flats", "bpm": 66, "bar_beats": 4, "first": "a",
 ##    "sections": {"a": {"bars": 16, "next": "b"}, "b": {"bars": 16, "next": "a"}, "boss1": {"bars": 8}}}
-## with files <dir>/<section>_<stem>.ogg; a stem a section does not have is silent there.
+## with files <dir>/<section>_<stem>.ogg; a stem a section does not have is silent there. A score
+## may name more stems than the five ("stems": [...], audio Stage 08: the rock's echoes); those
+## play only while the game has them on (`layers`).
 
 const SPEC_PATH := "res://data/music.json"
 const STEMS := ["bed", "melody", "rhythm", "danger", "tide"]
@@ -30,6 +32,8 @@ var bar_beats: int = 4
 var fight: bool = false
 var tide: float = 0.0     # 0..1 of the tide's height
 var low: bool = false
+var extra: Dictionary = {}  # a score's own stems beyond the five: name -> on
+var _stems: Array = STEMS   # the stems of the score now playing
 var player: AudioStreamPlayer
 var _stream: AudioStreamInteractive
 var _syncs: Array = []    # one AudioStreamSynchronized per section, in clip order
@@ -70,15 +74,19 @@ func has_score(id: String) -> bool:
 	return specs.has(id)
 
 
-## The stems' levels for a mood, in dB (OFF is silent). Pure, so a test can walk it.
-static func targets(is_fight: bool, tide_frac: float, is_low: bool) -> Dictionary:
-	return {
+## The stems' levels for a mood, in dB (OFF is silent). Pure, so a test can walk it. A stem
+## beyond the five plays when `on` has it.
+static func targets(is_fight: bool, tide_frac: float, is_low: bool, on: Dictionary = {}) -> Dictionary:
+	var t := {
 		"bed": 0.0,
 		"melody": -6.0 if is_low else 0.0,
 		"rhythm": 0.0 if is_fight else OFF,
 		"danger": 0.0 if is_fight else OFF,
 		"tide": 0.0 if tide_frac > TIDE_HIGH else OFF,
 	}
+	for k in on:
+		t[k] = 0.0 if bool(on[k]) else OFF
+	return t
 
 
 ## Build the score's stream: a clip per section, each its stems in step.
@@ -86,16 +94,17 @@ static func build(s: Dictionary) -> Array:
 	var stream := AudioStreamInteractive.new()
 	var syncs: Array = []
 	var names: Array = s.sections.keys()
+	var stems: Array = s.get("stems", STEMS)
 	stream.clip_count = names.size()
 	var dir: String = s.dir
 	for i in names.size():
 		var name: String = names[i]
 		var sec: Dictionary = s.sections[name]
 		var sync := AudioStreamSynchronized.new()
-		sync.stream_count = STEMS.size()
+		sync.stream_count = stems.size()
 		var loops: bool = not sec.has("next")
-		for k in STEMS.size():
-			var path := "%s/%s_%s.ogg" % [dir, name, STEMS[k]]
+		for k in stems.size():
+			var path := "%s/%s_%s.ogg" % [dir, name, stems[k]]
 			if not ResourceLoader.exists(path):
 				continue
 			var ogg := (load(path) as AudioStreamOggVorbis).duplicate() as AudioStreamOggVorbis
@@ -134,7 +143,8 @@ func play(id: String, db: float = 0.0, given: Dictionary = {}) -> void:
 	bpm = float(s.bpm)
 	bar_beats = int(s.get("bar_beats", 4))
 	section = str(s.get("first", s.sections.keys()[0]))
-	_vol = targets(fight, tide, low)
+	_stems = s.get("stems", STEMS)
+	_vol = targets(fight, tide, low, extra)
 	_apply_volumes()
 	player.stream = _stream
 	player.volume_db = db
@@ -148,6 +158,15 @@ func stop() -> void:
 	score_id = ""
 	section = ""
 	_clock.stop()
+	# The night is over: its mood goes with it, so the next score (or a loop) is not heard
+	# through Tam's last low-pass.
+	fight = false
+	tide = 0.0
+	low = false
+	_cutoff = LOWPASS_OPEN
+	var bus := AudioServer.get_bus_index("Music")
+	if bus != -1 and AudioServer.get_bus_effect_count(bus) > 1:
+		(AudioServer.get_bus_effect(bus, 1) as AudioEffectLowPassFilter).cutoff_hz = LOWPASS_OPEN
 	if player.playing:
 		var tw := player.create_tween()
 		tw.tween_property(player, "volume_db", -40.0, 1.5)
@@ -159,6 +178,15 @@ func mood(is_fight: bool, tide_frac: float, hp_frac: float) -> void:
 	fight = is_fight
 	tide = tide_frac
 	low = hp_frac <= LOW_HP
+
+
+## A score's own stems on or off (the rock: an instrument for each echo brought home).
+func layers(on: Dictionary) -> void:
+	extra = on.duplicate()
+	if score_id != "":
+		for k in on:  # at once if the score has just begun, else over two bars like the rest
+			if not _vol.has(k):
+				_vol[k] = 0.0 if bool(on[k]) else OFF
 
 
 ## Change section on the next bar line (a boss's phase, the kill...).
@@ -213,7 +241,7 @@ func _process(delta: float) -> void:
 	seconds()  # count the clock's laps every frame
 	# From silent to full in two bars.
 	var rate := -OFF / (2.0 * bar_beats * 60.0 / bpm)
-	var want := targets(fight, tide, low)
+	var want := targets(fight, tide, low, extra)
 	for k in want:
 		_vol[k] = move_toward(float(_vol.get(k, OFF)), want[k], rate * delta)
 	_apply_volumes()
@@ -226,6 +254,6 @@ func _process(delta: float) -> void:
 
 func _apply_volumes() -> void:
 	for sync in _syncs:
-		for k in STEMS.size():
+		for k in _stems.size():
 			if sync.get_sync_stream(k) != null:
-				sync.set_sync_stream_volume(k, float(_vol.get(STEMS[k], OFF)))
+				sync.set_sync_stream_volume(k, float(_vol.get(_stems[k], OFF)))

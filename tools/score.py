@@ -35,6 +35,8 @@ STEM_LU = {"bed": -25.0, "melody": -22.0, "rhythm": -24.0, "danger": -27.0, "tid
 # Vorbis quality by stem: the bed and the melody are heard alone, the rest under them. A place's
 # score is about 6 MB this way (15 at quality 5); six scores keep the setup under 80 MB.
 QUALITY = {"bed": 1, "melody": 1, "rhythm": 0, "danger": 0, "tide": 0}
+# A score's own stems beyond the five (the rock's echoes), each a quiet colour.
+ECHO_LU = -31.0
 
 _STEPS = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 _SHARPS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
@@ -93,10 +95,11 @@ def build(spec):
     bb = spec.get("bar_beats", 4)
     folder = os.path.join(SCORES, spec["folder"])
     bar_n = lambda bars: int(round(bars * bb * 60.0 / bpm * synth.SR))  # noqa: E731
+    stems = spec.get("stems", STEMS)  # a score may name more (the rock's echoes)
     raw = {}  # (section, stem) -> stereo, longer than the section
     seed = 1
     for sec, s in spec["sections"].items():
-        for stem in STEMS:
+        for stem in stems:
             parts = []
             for part in s["stems"].get(stem, []):
                 inst, notes, pan, gain = part[:4]
@@ -131,21 +134,21 @@ def build(spec):
     for (sec, stem), x in cut.items():
         integ, mom, _ = loudness(synth.SR, x)
         now = integ if integ is not None else mom
-        want = STEM_LU[stem] + float(spec["sections"][sec].get("level", 0.0))
+        want = STEM_LU.get(stem, ECHO_LU) + float(spec["sections"][sec].get("level", 0.0))
         cut[(sec, stem)] = synth.limit(x * 10 ** ((want - now) / 20), -7.0)
-    peak = max(np.abs(sum(cut[(sec, st)] for st in STEMS if (sec, st) in cut)).max() for sec in spec["sections"])
+    peak = max(np.abs(sum(cut[(sec, st)] for st in stems if (sec, st) in cut)).max() for sec in spec["sections"])
     gain = min(1.0, 0.89 / peak)
     os.makedirs(folder, exist_ok=True)
     for f in os.listdir(folder):
         if f.endswith(".ogg") or f.endswith(".ogg.import"):
             os.remove(os.path.join(folder, f))
     for (sec, stem), x in cut.items():
-        synth.save_ogg(f"{sec}_{stem}", x * gain, folder, QUALITY[stem])
+        synth.save_ogg(f"{sec}_{stem}", x * gain, folder, QUALITY.get(stem, 0))
     # The loudness of each section as heard exploring (bed and melody) and fighting (all).
     report = {}
     for sec in spec["sections"]:
         calm = sum(cut[(sec, st)] for st in ("bed", "melody") if (sec, st) in cut) * gain
-        full = sum(cut[(sec, st)] for st in STEMS if (sec, st) in cut) * gain
+        full = sum(cut[(sec, st)] for st in stems if (sec, st) in cut) * gain
         report[sec] = (loudness(synth.SR, calm)[0], loudness(synth.SR, full)[0], 20 * np.log10(np.abs(full).max() + 1e-9))
     # List the score for the game.
     music = json.load(open(MUSIC_JSON, encoding="utf-8")) if os.path.exists(MUSIC_JSON) else {}
@@ -154,6 +157,8 @@ def build(spec):
         "sections": {sec: ({"bars": s["bars"], "next": s["next"]} if "next" in s else {"bars": s["bars"]})
                      for sec, s in spec["sections"].items()},
     }
+    if stems != STEMS:
+        music[spec["name"]]["stems"] = stems
     with open(MUSIC_JSON, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(music, fh, indent="\t")
         fh.write("\n")
@@ -173,9 +178,10 @@ def preview(spec, ambience=None):
     from audio_audit import read
     folder = os.path.join(SCORES, spec["folder"])
     out = os.path.join(ROOT, "assets", "reference", "audio", spec["folder"])
+    names = spec.get("stems", STEMS)
     stems = {}
     for sec in spec["sections"]:
-        for st in STEMS:
+        for st in names:
             p = os.path.join(folder, f"{sec}_{st}.ogg")
             if os.path.exists(p):
                 stems[(sec, st)] = read(p)[1]
@@ -192,6 +198,8 @@ def preview(spec, ambience=None):
         "fight": [(s, ("bed", "melody", "rhythm", "danger")) for s in order[:2]],
         "tide": [(s, STEMS) for s in order[:2]],
     }
+    if names != STEMS:
+        mixes["every_layer"] = [(s, names) for s in order]
     if "boss1" in spec["sections"]:
         mixes["boss"] = [("boss1", STEMS)] * 2 + [("boss2", STEMS)] * 2 + [("kill", STEMS), (order[0], STEMS)]
     rows = []
