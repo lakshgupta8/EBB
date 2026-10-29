@@ -354,6 +354,9 @@ func change_state(new_state: StringName) -> void:
 	state = new_state
 	state_t = 0.0
 	_cued = false
+	var tell: String = voice().get("tells", {}).get(new_state, "")
+	if tell != "":
+		Audio.play_at(global_position, tell, 0.04, 3.0 if is_boss else 0.0, 120)
 	_enter_state(new_state)
 
 
@@ -376,6 +379,25 @@ func face(dir_x: float) -> void:
 		sprite.flip_h = dir_x < 0.0
 		if hitbox:
 			hitbox.scale.x = -1.0 if dir_x < 0.0 else 1.0
+
+
+## What each kind of enemy sounds like (audio Stage 09, STYLE.md 23 law 2): the tell for each state
+## that winds up an attack, heard as the state begins and never the same for two enemies, and
+## what its body is made of, for the layer under every hit and for its death. An enemy not
+## listed yet keeps the old shared death.
+const VOICES := {
+	"shellback": {"tells": {&"windup": "tell_shellback"}, "material": "shell"},
+	"gull": {"tells": {&"windup": "tell_gull"}, "material": "feather"},
+	"wrack_crab": {"tells": {&"windup": "tell_wrack_crab"}, "material": "shell"},
+	"tidewisp": {"tells": {&"windup": "tell_tidewisp"}, "material": "light"},
+	"netted": {"tells": {&"windup": "tell_netted_swing", &"throw_windup": "tell_netted_throw"}, "material": "flesh"},
+	"wreck": {"tells": {&"slam_windup": "tell_wreck_slam", &"charge_windup": "tell_wreck_charge", &"summon": "tell_wreck_call"}, "material": "wood"},
+}
+
+
+## This enemy's entry in VOICES ({} when it has none yet).
+func voice() -> Dictionary:
+	return VOICES.get(get_script().resource_path.get_file().get_basename(), {})
 
 
 ## The "dodge now" tell: a white flash and a ring right before an attack lands.
@@ -596,6 +618,9 @@ func _on_hurt(info: DamageInfo) -> void:
 	sprite.material.set_shader_parameter("flash", flash_peak())
 	var tw := create_tween()
 	tw.tween_property(sprite.material, "shader_parameter/flash", 0.0, 0.15)
+	var mat: String = voice().get("material", "")
+	if mat != "":
+		Audio.play_at(global_position, "hit_" + mat, 0.08, 2.0 if info.tags.has("heavy") else 0.0, 40)
 	_on_hurt_extra(info)
 
 
@@ -615,7 +640,8 @@ func _on_hit_landed(_target: Hurtbox, _info: DamageInfo) -> void:
 
 func _on_died() -> void:
 	FX.burst(global_position, death_color, 8, 60.0)
-	Audio.play_at(global_position, "death", 0.2, 0.0 if not is_boss else 4.0)
+	var mat: String = voice().get("material", "")
+	Audio.play_at(global_position, "die_" + mat if mat != "" else "death", 0.08 if mat != "" else 0.2, 0.0 if not is_boss else 4.0)
 	EventBus.request_hitstop.emit(0.1)
 	EventBus.request_shake.emit(0.3)
 	_hollow_split()

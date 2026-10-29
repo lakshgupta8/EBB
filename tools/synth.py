@@ -545,7 +545,9 @@ def limit(x, ceiling_db=-7.0, look_ms=5.0, release_ms=80.0):
     look = max(1, int(look_ms * SR / 1000))
     want = np.minimum(1.0, ceil / np.maximum(maximum_filter1d(lvl, 2 * look + 1), 1e-9))
     rel = np.exp(-1.0 / (release_ms * SR / 1000))
-    g = lfilter([1 - rel], [1, -rel], want)  # recover slowly...
+    # Recover slowly... from where the gain stands at the first sample, not from silence (a
+    # filter left at rest made every limited part fade in over its release).
+    g = lfilter([1 - rel], [1, -rel], want, zi=[rel * want[0]])[0]
     g = np.minimum(g, want)                  # ...but never let a peak through
     g = -maximum_filter1d(-g, 2 * look + 1)  # and start falling before it
     return x * (g[:, None] if x.ndim == 2 else g)
