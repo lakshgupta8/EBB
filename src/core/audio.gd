@@ -126,7 +126,8 @@ func play(name: String, pitch_var: float = 0.0, db: float = 0.0, min_gap_ms: int
 	var s := _stream(name)
 	if s == null:
 		return
-	var bus := "Interface" if name in INTERFACE else "Effects"
+	# A stinger is music (audio Stage 08): the music slider holds it.
+	var bus := "Interface" if name in INTERFACE else ("Music" if name.begins_with("stinger_") else "Effects")
 	for p in _pool:
 		if not p.playing:
 			p.bus = bus
@@ -305,6 +306,11 @@ func music(name: String, db: float = -8.0) -> void:
 ## How the night is: a fight, the tide's height (0..1), Tam's health (0..1). Scored music only.
 func mood(fight: bool, tide_frac: float, hp_frac: float) -> void:
 	director.mood(fight, tide_frac, hp_frac)
+
+
+## A score's own stems beyond the five, on or off ({"bram": true, ...}): the rock's echoes.
+func music_layers(on: Dictionary) -> void:
+	director.layers(on)
 
 
 ## A section of the score on the next bar ("boss1", "boss2", "kill"...); nothing without a score.

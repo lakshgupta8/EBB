@@ -168,5 +168,81 @@
 				"next": "a"
 			}
 		}
+	},
+	"music_hub": {
+		"dir": "res://assets/audio/score/rock",
+		"bpm": 58,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 16,
+				"next": "b"
+			},
+			"b": {
+				"bars": 16,
+				"next": "c"
+			},
+			"c": {
+				"bars": 8,
+				"next": "a"
+			}
+		},
+		"stems": [
+			"bed",
+			"melody",
+			"bram",
+			"pell",
+			"mason",
+			"wren",
+			"cartographer",
+			"choir",
+			"maren",
+			"aldous"
+		]
+	},
+	"music_title": {
+		"dir": "res://assets/audio/score/title",
+		"bpm": 52,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 12
+			}
+		}
+	},
+	"music_keep": {
+		"dir": "res://assets/audio/score/keep",
+		"bpm": 58,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 16
+			}
+		}
+	},
+	"music_break": {
+		"dir": "res://assets/audio/score/break",
+		"bpm": 44,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 12
+			}
+		}
+	},
+	"music_still": {
+		"dir": "res://assets/audio/score/still",
+		"bpm": 40,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 12
+			}
+		}
 	}
 }

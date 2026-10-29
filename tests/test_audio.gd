@@ -61,3 +61,10 @@ func test_a_score_is_sections_of_stems() -> void:
 	var ogg := sync.get_sync_stream(MusicDirector.STEMS.find("rhythm")) as AudioStreamOggVorbis
 	assert_true(ogg != null and ogg.beat_count == 8 and not ogg.loop, "a section's stem knows its bars, and runs on rather than loops")
 	assert_true((built[1][1].get_sync_stream(0) as AudioStreamOggVorbis).loop, "a section with no next loops")
+
+
+func test_an_echo_brought_home_is_heard_on_the_rock() -> void:
+	var t := MusicDirector.targets(false, 0.0, false, {"bram": true, "wren": false})
+	assert_eq(t.bram, 0.0, "an echo home: its layer plays")
+	assert_eq(t.wren, MusicDirector.OFF, "an echo still out there: silent")
+	assert_eq(t.bed, 0.0, "the rock's bed as ever")

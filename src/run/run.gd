@@ -1706,6 +1706,8 @@ func _end_run() -> void:
 	state.ended = true
 	Audio.stop_music()
 	Audio.stop_layer()
+	# The night's last word (audio Stage 08): the Lamp resolved, the tide over it, or the deep.
+	Audio.play("stinger_won" if state.victory else ("stinger_taken" if state.taken else "stinger_lost"))
 	# The night's inputs go to disk first: a crash in the results still leaves the file.
 	var replay_path := ""
 	if _replay == null and input_log.ticks.size() > 0:

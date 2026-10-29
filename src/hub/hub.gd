@@ -52,11 +52,16 @@ func _ready() -> void:
 		Audio.music("music_keep", -10.0)   # the lamp is lit and someone is keeping it
 	elif epilogue == "break":
 		Audio.music("music_break", -10.0)  # the water is in and the rock is quieter for it
-	elif SaveManager.flag("echo_choir"):
-		Audio.music("music_hub_choir", -10.0)
-		SaveManager.count("hymns")
 	else:
+		# The rock's score gains an instrument for each echo brought home (audio Stage 08).
+		var home := {}
+		for id in Run.ECHOES:
+			home[id] = SaveManager.flag("echo_" + id)
+		Audio.mood(false, 0.0, 1.0)
+		Audio.music_layers(home)
 		Audio.music("music_hub", -10.0)
+		if SaveManager.flag("echo_choir"):
+			SaveManager.count("hymns")
 	for cell in room.template.marker_cells("X"):
 		var d := Door.new()
 		room.add_child(d)
