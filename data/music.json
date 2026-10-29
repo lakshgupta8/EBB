@@ -134,5 +134,39 @@
 				"next": "a"
 			}
 		}
+	},
+	"music_hall": {
+		"dir": "res://assets/audio/score/hall",
+		"bpm": 54,
+		"bar_beats": 4,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 12,
+				"next": "b"
+			},
+			"b": {
+				"bars": 12,
+				"next": "c"
+			},
+			"c": {
+				"bars": 8,
+				"next": "a2"
+			},
+			"a2": {
+				"bars": 12,
+				"next": "a"
+			},
+			"boss1": {
+				"bars": 8
+			},
+			"boss2": {
+				"bars": 8
+			},
+			"kill": {
+				"bars": 2,
+				"next": "a"
+			}
+		}
 	}
 }

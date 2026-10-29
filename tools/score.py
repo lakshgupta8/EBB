@@ -5,7 +5,7 @@ A spec:
     {"name": "music_flats", "folder": "flats", "bpm": 66, "first": "a",   # "bar_beats": 6 for 6/8,
                                                                          # bpm then in eighths
      "sections": {"a": {"bars": 12, "next": "b", "stems": {
-         "bed": [("drone", "D2/48", 0.0, 0.5), ...],     # (instrument, notes, pan, gain)
+         "bed": [("drone", "D2/48", 0.0, 0.5), ...],     # (instrument, notes, pan, gain[, (space, wet)])
          "melody": [...], "rhythm": [...], "danger": [...], "tide": [...]}}, ...}}
 
 Each stem is cut to exactly its section's bars. What still rings at the end is carried into the
@@ -98,9 +98,13 @@ def build(spec):
     for sec, s in spec["sections"].items():
         for stem in STEMS:
             parts = []
-            for inst, notes, pan, gain in s["stems"].get(stem, []):
+            for part in s["stems"].get(stem, []):
+                inst, notes, pan, gain = part[:4]
                 assert bars_of(notes, bb) <= s["bars"] + 1e-6, (sec, stem, inst, bars_of(notes, bb))
-                parts.append(synth.render(inst, notes, bpm, pan, seed, gain))
+                x = synth.render(inst, notes, bpm, pan, seed, gain)
+                if len(part) > 4:  # (space, wet): the part in a place's reverb, baked in
+                    x = synth.reverb(x, *part[4])
+                parts.append(x)
                 seed += 1
             if parts:
                 raw[(sec, stem)] = synth.mix(*parts)
