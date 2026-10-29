@@ -1,6 +1,8 @@
 """Procedural music for EBB: slow modal pads, a sparse plucked melody and a low drone, one
 loop per place, plus a pulse for the bosses. Everything is synthesised; run from gen_audio.
 """
+import os
+
 import numpy as np
 
 from gen_audio import SR, save, lowpass, noise, loopable
@@ -155,5 +157,11 @@ def make_track(name, root, mode, bpm, bars, chords, density, boss, seed):
 
 
 def build_music():
+    # A place that has a score (data/music.json, audio Stage 06 on) has no loop to make; the table
+    # keeps it, since each loop's seed is its place in the table.
+    import json
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "music.json")
+    scored = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
     for i, (name, spec) in enumerate(TRACKS.items()):
-        make_track(name, *spec, seed=100 + i)
+        if name not in scored:
+            make_track(name, *spec, seed=100 + i)

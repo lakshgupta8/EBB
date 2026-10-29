@@ -66,5 +66,39 @@
 				"next": "a"
 			}
 		}
+	},
+	"music_reef": {
+		"dir": "res://assets/audio/score/reef",
+		"bpm": 204,
+		"bar_beats": 6,
+		"first": "a",
+		"sections": {
+			"a": {
+				"bars": 24,
+				"next": "b"
+			},
+			"b": {
+				"bars": 32,
+				"next": "c"
+			},
+			"c": {
+				"bars": 16,
+				"next": "a2"
+			},
+			"a2": {
+				"bars": 24,
+				"next": "a"
+			},
+			"boss1": {
+				"bars": 8
+			},
+			"boss2": {
+				"bars": 8
+			},
+			"kill": {
+				"bars": 2,
+				"next": "a"
+			}
+		}
 	}
 }
