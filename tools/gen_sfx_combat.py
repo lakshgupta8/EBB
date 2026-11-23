@@ -42,12 +42,19 @@ def save(name, x, role):
     x[-fade:] *= np.linspace(1, 0, fade)
     # Measured as played (loudness() counts a mono clip on both speakers). A strike's peak would
     # otherwise decide its level, so the peaks are limited, not the whole clip turned down; until it
-    # holds, since limiting takes a little loudness with it.
-    for _ in range(5):
-        _, mom, _ = loudness(SR, x[:, None])
-        if abs(TARGET[role] - mom) < 0.3:
-            break
-        x = synth.limit(x * 10 ** ((TARGET[role] - mom) / 20), -2.3, look_ms=1.5, release_ms=40.0)
+    # holds, since limiting takes a little loudness with it. Never more than 6 dB a pass: driven
+    # far into the limiter, its gain follows the waveform and bends it lopsided (a DC offset that a
+    # long reverb turns into a held thump). A strike shorter than the 400 ms window is not chased
+    # at all: the window cannot see its level, so its peak sets it (below).
+    if len(x) >= 0.4 * SR:
+        for _ in range(5):
+            _, mom, _ = loudness(SR, x[:, None])
+            if abs(TARGET[role] - mom) < 0.3:
+                break
+            x = synth.limit(x * 10 ** (min(TARGET[role] - mom, 6.0) / 20), -2.3, look_ms=1.5, release_ms=40.0)
+    x = highpass(x, 20)  # and no clip carries DC, whatever made it
+    x = x - np.mean(x)
+    x[-fade:] *= np.linspace(1, 0, fade)
     # The true peak (between the samples) as the audit reads it: a strike shorter than the 400 ms
     # window is set by its peak alone, and nothing may ring over -1 dBTP.
     tp = 20 * np.log10(np.abs(resample_poly(x, 4, 1)).max() + 1e-12)

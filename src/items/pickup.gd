@@ -7,6 +7,9 @@ const SHEET := preload("res://assets/sprites/pickups.png")
 ## Pages, salt-glass and shells go straight to the profile (the sea cannot take them back).
 enum Kind { SALT, PEARL, KEY, PAGE, GLASS, SHELL, FISH }
 const MAGNET_RANGE := 48.0
+## What each thing sounds like picked up (audio Stage 10).
+const SOUNDS := {Kind.SALT: "pick_salt", Kind.PEARL: "pick_pearl", Kind.KEY: "pick_key", Kind.PAGE: "pick_page",
+	Kind.GLASS: "pick_glass", Kind.SHELL: "pick_shell", Kind.FISH: "pick_fish"}
 const MAGNET_SPEED := 220.0
 const POP_DECEL := 320.0
 
@@ -72,7 +75,7 @@ func _on_body_entered(body: Node) -> void:
 	if body is Player and _age > 0.15 and not is_queued_for_deletion():
 		EventBus.pickup_collected.emit(kind, value)
 		FX.burst(global_position, Palette.SALT_WHITE if kind == Kind.SALT else Palette.PALE_SLATE, 5, 30.0)
-		Audio.play_at(global_position, "pickup" if kind == Kind.SALT else "pearl", 0.12, -6.0, 60)
+		Audio.play_at(global_position, SOUNDS[kind], 0.06, -6.0 if kind == Kind.SALT else -3.0, 60)
 		match kind:
 			Kind.KEY: FX.text(global_position, "A KEY", Color(0.95, 0.85, 0.5))
 			Kind.PAGE: FX.text(global_position, "A PAGE", Color(0.95, 0.92, 0.8))

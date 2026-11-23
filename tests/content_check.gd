@@ -25,6 +25,7 @@ func _ready() -> void:
 	_scan_source(sounds, music, whispers)
 	_check_sounds(sounds)
 	_check_music(music)
+	_check_audio_loads()
 	_check_whispers(whispers)
 	_check_sprites()
 	_check_dialog()
@@ -93,6 +94,8 @@ func _check_sounds(sounds: Dictionary) -> void:
 		if v.has("material"):
 			sounds["hit_" + v.material] = "Enemy.VOICES." + id
 			sounds["die_" + v.material] = "Enemy.VOICES." + id
+	for surface in Player.STEP_DB:
+		sounds["step_" + surface] = "Player.STEP_DB"
 	var n := 0
 	for name in sounds:
 		if _has_clip(name):
@@ -100,6 +103,23 @@ func _check_sounds(sounds: Dictionary) -> void:
 		else:
 			missing.append(["sound %s.wav" % name, sounds[name]])
 	notes.append("%d sound effects, all present" % n if missing.is_empty() else "%d of %d sound effects present" % [n, sounds.size()])
+
+
+## Every clip on disk loads, not only exists: a broken import (a cache read while the editor was
+## writing it) leaves the file present and its score silent (audio Stage 10).
+func _check_audio_loads() -> void:
+	var dirs := [AUDIO_DIR]
+	var n := 0
+	while not dirs.is_empty():
+		var d: String = dirs.pop_back()
+		for sub in DirAccess.get_directories_at(d):
+			dirs.append(d + sub + "/")
+		for f in DirAccess.get_files_at(d):
+			if f.ends_with(".wav") or f.ends_with(".ogg"):
+				n += 1
+				if load(d + f) == null:
+					missing.append(["a clip that loads: " + d + f, "the import (run --import again)"])
+	notes.append("%d audio files load" % n)
 
 
 func _check_music(music: Dictionary) -> void:

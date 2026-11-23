@@ -754,7 +754,9 @@ func _tick_drips(delta: float) -> void:
 	if _drip_t >= 4.0:
 		_drip_t -= 4.0
 		var p: Vector2 = _drip_points[_bubble_rng.randi() % _drip_points.size()]
-		FX.drip(p + Vector2(_bubble_rng.randi_range(-6, 6), 0), self)
+		var at := p + Vector2(_bubble_rng.randi_range(-6, 6), 0)
+		FX.drip(at, self)
+		Audio.play_at(to_global(at) + Vector2(0, 16), "drip", 0.15, -8.0)
 
 
 ## Water tiles for the current animation tick: shallow in three frames, deep in two.
