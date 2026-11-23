@@ -40,6 +40,7 @@ static func spawn(parent: Node, pos: Vector2, vel: Vector2, p_damage: int, tex: 
 
 
 func _ready() -> void:
+	add_to_group(NetReplicator.GROUP)
 	body_entered.connect(func(_b): _die())
 
 

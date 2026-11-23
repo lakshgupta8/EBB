@@ -46,6 +46,7 @@ var is_boss: bool = false
 const AFFIXES := ["crusted", "lit", "anchored", "hollow"]
 const AFFIX_NAMES := {"crusted": "Salt-crusted", "lit": "Lit", "anchored": "Anchored", "hollow": "Hollow"}
 var affix: String = ""
+var _retarget_t: float = 0.0
 var armour: float = 1.0          # incoming damage multiplier from the crust
 var hollow_child: bool = false   # a half of a hollow elite: weaker, drops little
 var room: Room
@@ -202,6 +203,7 @@ func _ready() -> void:
 		hitbox.source = self
 		hitbox.landed.connect(_on_hit_landed)
 	player = get_tree().get_first_node_in_group("player") as Player
+	add_to_group(NetReplicator.GROUP)
 	room = get_tree().get_first_node_in_group("room") as Room
 	health.changed.connect(func(_c, _m): _refresh_mult())
 	if not flying:
@@ -462,6 +464,11 @@ func hold_frame(anim: StringName, secs: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	state_t += delta
+	if Net.state == NetSession.State.IN_COOP:  # net: chase whichever keeper is nearest
+		_retarget_t -= delta
+		if _retarget_t <= 0.0:
+			_retarget_t = 0.25
+			player = Player.nearest_to(global_position, get_tree())
 	_tick_bleed(delta)
 	# Stun and water bonuses come and go every frame; the multiplier is cheap to redo.
 	if player and (stunned > 0.0 or float(player.mods.wet_bonus) > 0.0):

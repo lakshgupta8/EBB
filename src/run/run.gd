@@ -116,6 +116,7 @@ const TIERS := [
 
 var state := RunState.new()
 var graph: RoomGraph
+var coop: CoopHost = null  # net: the second keeper, when this is a shared night
 var room: Room
 var room_type: int = RoomGraph.COMBAT
 var room_cleared: bool = false
@@ -229,6 +230,10 @@ func _ready() -> void:
 	altar_ui.rerolled.connect(_on_altar_reroll)
 	state.stats["weapon"] = player.weapon.id
 	EventBus.run_started.emit(state.seed)
+	if Net.state == NetSession.State.IN_COOP and Net.is_host():  # net: a shared night
+		coop = CoopHost.new()
+		add_child(coop)
+		coop.setup(self)
 	fade.color.a = 1.0
 	Atmosphere.build(self, Vector2(640, 368), Palette.NIGHT_TINT_RUN)
 	Audio.ambient("ambient_sea", -14.0)
@@ -616,6 +621,8 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			player.global_position = room.cell_to_world(Vector2i(int(xy[0]), int(xy[1])))
 	player.velocity = Vector2.ZERO
 	player.rally = 0.0
+	if coop != null:  # net: tell the guest which room, and bring the ally along
+		coop.on_room_entered()
 	state.tide.room_entered()
 	room.set_tide(state.tide.level)
 	us.append(Time.get_ticks_usec())
@@ -1239,6 +1246,8 @@ func _set_cleared() -> void:
 	if room_cleared:
 		return
 	room_cleared = true
+	if coop != null:  # net: anyone who fell stands up
+		coop.on_room_cleared()
 	state.rooms_cleared += 1
 	if int(player.mods.clear_heal) > 0 and not player.dead:
 		player.health.heal(int(player.mods.clear_heal))
@@ -1688,6 +1697,8 @@ func _enter_rested_room(type: int, template_name: String, room_seed: int, props:
 # --- ending ------------------------------------------------------------------------
 func _on_player_died() -> void:
 	if state.ended:
+		return
+	if coop != null and not coop.host_fell():  # net: the guest still stands, the night goes on
 		return
 	state.taken = player.last_hit_tags.has("tide")
 	_end_run()
