@@ -66,6 +66,19 @@ setup over an old install updates it in place; saves, settings and replays live 
 The [manual](docs/MANUAL.md) covers all of it: every control, weapon, enemy tell, room type,
 person and mode.
 
+## Two keepers (multiplayer)
+
+Title screen, **Two keepers**: one player hosts, the other joins by address (same Wi-Fi, a hotspot,
+a cable, or a VPN such as Tailscale; UDP port 24680).
+
+- **Co-op:** two keepers share one night: combat rooms and bosses. The host's game is the real one; the
+  guest is a thin client with prediction and interpolation.
+- **Duel:** a best-of-three arena fight on equal stats.
+- **F3** shows the connection (RTT, bandwidth, snapshots), **F4** adds simulated latency and loss.
+
+How it works, the wire protocol and measurements: [docs/NETWORKING.md](docs/NETWORKING.md). Demo
+notes: [docs/net/demo-checklist.md](docs/net/demo-checklist.md).
+
 ## Controls
 
 | Input | Action |
@@ -129,6 +142,7 @@ test suite checks that every open cell is reachable from the spawn.
 ## Documents
 
 - [docs/MANUAL.md](docs/MANUAL.md): how to play, in full.
+- [docs/NETWORKING.md](docs/NETWORKING.md): the multiplayer modules: architecture, protocol, measurements.
 - [docs/releases/](docs/releases): what changed in each version.
 
 ## About
