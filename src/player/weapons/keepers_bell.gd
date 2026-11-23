@@ -210,14 +210,13 @@ func _arm_and_activate() -> void:
 		FX.ring(at, Color(0.95, 0.9, 0.75), _wave_radius / 24.0)
 		FX.burst(at, Color(0.8, 0.75, 0.6), 12, 70.0)
 		EventBus.request_shake.emit(0.55)
-		Audio.play("heavy", 0.1, 1.0)
-		Audio.play("bell", 0.0, -12.0)
+		Audio.play("kbell_slam", 0.05)
 		return
 	pivot.rotation = _sweep_from
 	var tw := create_tween()
 	tw.tween_property(pivot, "rotation", _sweep_to, ACTIVE[0]).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	FX.slash(global_position, (_sweep_from + _sweep_to) * 0.5, _swing_sign < 0.0)
-	Audio.play("swing", 0.15, 2.0)
+	Audio.play("kbell_swing", 0.08)  # the bell's own set (audio Stage 09)
 
 
 # --- lunge -----------------------------------------------------------------------------
@@ -265,7 +264,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		Audio.play("crit", 0.05)
 	else:
-		Audio.play("hit", 0.15, 1.0 if slam else -1.0)
+		Audio.play("kbell_hit", 0.08, 1.0 if slam else -2.0)
 
 
 # --- toll: the parry ------------------------------------------------------------------
@@ -276,7 +275,7 @@ func _start_toll() -> void:
 	_player.parry_t = _parry_window
 	FX.ring(_player.global_position, Color(0.95, 0.9, 0.7), TOLL_RADIUS / 24.0)
 	FX.burst(_player.global_position, Color(0.95, 0.9, 0.7), 10, 60.0)
-	Audio.play("bell", 0.0, -4.0)
+	Audio.play("kbell_toll", 0.0)
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e is Enemy and not e.is_boss and e.global_position.distance_to(_player.global_position) <= TOLL_RADIUS:
 			e.stunned = maxf(e.stunned, TOLL_STUN)

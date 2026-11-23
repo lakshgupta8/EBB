@@ -90,7 +90,6 @@ func _enter_state(s: StringName) -> void:
 			if s == &"stone_windup":
 				_mark_stones()
 			elif s == &"turn_windup":
-				Audio.play_at(global_position, "creak", 0.0, -1.0)
 				FX.ring(global_position + Vector2(0, -22), Palette.SEA_PALE, 2.0)
 		&"slam":
 			play("attack")

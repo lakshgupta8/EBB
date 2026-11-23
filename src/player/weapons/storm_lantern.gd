@@ -219,7 +219,7 @@ func _arm_and_activate(lunge: bool) -> void:
 	var tw := create_tween()
 	tw.tween_property(pivot, "rotation", _sweep_to, ACTIVE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	FX.slash(global_position, (_sweep_from + _sweep_to) * 0.5, _swing_sign < 0.0, true)
-	Audio.play("lantern", 0.15, -3.0)
+	Audio.play("lantern_arc", 0.06)  # the lantern's own set (audio Stage 09)
 
 
 func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
@@ -235,7 +235,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		Audio.play("crit", 0.05)
 	else:
-		Audio.play("hit", 0.2, -5.0)
+		Audio.play("lantern_hit", 0.08, -2.0)
 
 
 # --- beacon ----------------------------------------------------------------------------
@@ -262,7 +262,7 @@ func _throw_beacon() -> void:
 	tw.tween_callback(func():
 		_beacon_t = _beacon_time
 		FX.ring(target, Color(1.0, 0.9, 0.6), 2.0)
-		Audio.play("beacon", 0.05)
+		Audio.play("lantern_beacon", 0.05)
 		for e in get_tree().get_nodes_in_group("enemies"):
 			if e is Enemy and e.global_position.distance_to(target) <= _beacon_radius:
 				var info := DamageInfo.make(int(round(BEACON_DAMAGE * float(_player.mods.damage) * float(_player.mods.ranged_mult))), _player, e.global_position - target, 30.0)
@@ -271,7 +271,7 @@ func _throw_beacon() -> void:
 				if e.hurtbox.receive(info):
 					EventBus.damage_dealt.emit(e, info)
 	)
-	Audio.play("dash", 0.2, -8.0)
+	Audio.play("lantern_throw", 0.08)
 
 
 func _tick_beacon(delta: float) -> void:
