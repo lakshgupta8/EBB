@@ -310,7 +310,11 @@ func _spot_sound(name: String, at: Vector2) -> void:
 	# Out of step with any other of its kind in the room (its own generator: no other draw moves).
 	var r := RandomNumberGenerator.new()
 	r.seed = hash(at)
-	p.play(r.randf() * s.get_length())
+	var from := r.randf() * s.get_length()
+	if p.is_inside_tree():
+		p.play(from)
+	else:  # a room built before it is placed (the tests): start once it is
+		p.tree_entered.connect(func() -> void: p.play(from), CONNECT_ONE_SHOT)
 	Audio.asked[name] = int(Audio.asked.get(name, 0)) + 1
 
 

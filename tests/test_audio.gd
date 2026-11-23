@@ -77,3 +77,28 @@ func test_an_echo_brought_home_is_heard_on_the_rock() -> void:
 	assert_eq(t.bram, 0.0, "an echo home: its layer plays")
 	assert_eq(t.wren, MusicDirector.OFF, "an echo still out there: silent")
 	assert_eq(t.bed, 0.0, "the rock's bed as ever")
+
+
+## The drowned breathe between blows and never over their own tell; the Choir holds its note
+## (audio Stage 12).
+func test_the_drowned_breathe_and_the_choir_holds_its_note() -> void:
+	var e: Enemy = load("res://src/enemies/mooring.tscn").instantiate()
+	Audio.add_child(e)
+	var heard := func() -> int: return int(Audio.asked.get("breath_drowned", 0)) + int(Audio.asked.get("groan_drowned", 0))
+	var before: int = heard.call()
+	for i in 4:
+		Audio._last_play.erase("breath_drowned")
+		Audio._last_play.erase("groan_drowned")
+		e._tick_idle(Enemy.IDLE_EVERY.y + 0.1)
+	assert_eq(heard.call() - before, 4, "wandering, it breathes each time its breath comes round")
+	e.state = &"windup"
+	before = heard.call()
+	for i in 4:
+		e._tick_idle(Enemy.IDLE_EVERY.y + 0.1)
+	assert_eq(heard.call(), before, "winding up, it holds its breath")
+	e.free()
+	var c: Enemy = load("res://src/enemies/choir.tscn").instantiate()
+	Audio.add_child(c)
+	assert_true(c._hum != null and c._hum.playing, "the Choir's note is held from the start")
+	assert_true((c._hum.stream as AudioStreamOggVorbis).loop, "and never runs out")
+	c.free()

@@ -16,12 +16,19 @@ const RING_MAX := 130.0
 const RING_DAMAGE := 8
 const KINDLE_TIME := 5.0
 const SPARE_RANGE := 40.0
+## Its note never stops (audio Stage 12): held low as it drifts, swelling as it draws breath to
+## sing, gone when it falters.
+const HUM_DB := -6.0
+const HUM_SWELL_DB := 2.0
+const HUM_REACH := 420.0
 
 var _drift_dir: float = 1.0
 var _sing_t: float = 0.0
 var _hit_this_note: bool = false
 var _prompt: Label
 var spared: bool = false
+var _hum: AudioStreamPlayer2D
+var _hum_tw: Tween
 
 
 func _setup_animations() -> void:
@@ -37,6 +44,36 @@ func _setup_animations() -> void:
 	_prompt.visible = false
 	_prompt.z_index = 5
 	add_child(_prompt)
+	_start_hum()
+
+
+func _start_hum() -> void:
+	var path := "res://assets/audio/choir_hum.ogg"
+	if not ResourceLoader.exists(path):
+		return
+	var s := (load(path) as AudioStreamOggVorbis).duplicate() as AudioStreamOggVorbis
+	s.loop = true
+	_hum = AudioStreamPlayer2D.new()
+	_hum.stream = s
+	_hum.bus = "Effects"
+	_hum.max_distance = HUM_REACH
+	_hum.attenuation = 1.6
+	_hum.volume_db = -40.0
+	add_child(_hum)
+	# Its own generator, so where the note starts moves no other draw.
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(get_instance_id())
+	_hum.play(r.randf() * s.get_length())
+	_hum_to(HUM_DB, 1.5)
+
+
+func _hum_to(db: float, secs: float) -> void:
+	if _hum == null:
+		return
+	if _hum_tw:
+		_hum_tw.kill()
+	_hum_tw = create_tween()
+	_hum_tw.tween_property(_hum, "volume_db", db, secs)
 
 
 func _enter_state(s: StringName) -> void:
@@ -49,6 +86,7 @@ func _enter_state(s: StringName) -> void:
 		&"windup":
 			play("windup")
 			velocity = Vector2.ZERO
+			_hum_to(HUM_SWELL_DB, WINDUP)
 			FX.burst(global_position + Vector2(0, -12), Color(0.85, 0.75, 1.0, 0.8), 6, 30.0)
 		&"sing":
 			play("sing")
@@ -56,12 +94,13 @@ func _enter_state(s: StringName) -> void:
 			_hit_this_note = false
 			EventBus.request_shake.emit(0.35)
 			FX.ring(global_position, Color(0.85, 0.75, 1.0), 2.6)
-			Audio.play_at(global_position, "bell", 0.0, -6.0)
-			Audio.play_at(global_position, "ebb", 0.05, -14.0)
+			Audio.play_at(global_position, "choir_sing", 0.0, 0.0)
+			_hum_to(-30.0, 0.1)
 			_kindle_the_street()
 		&"recover":
 			play("idle")
 			velocity = Vector2.ZERO
+			_hum_to(HUM_DB, RECOVER)
 		&"falter":
 			# The note fails: it stands, the ring fades, and it can be let go.
 			play("hurt")
@@ -69,6 +108,8 @@ func _enter_state(s: StringName) -> void:
 			FX.text(global_position + Vector2(0, -20), "THE NOTE FALTERS", Color(0.85, 0.75, 1.0))
 			if hitbox and hitbox.active:
 				hitbox.deactivate()
+			_hum_to(-80.0, 0.3)
+			Audio.play_at(global_position, "choir_falter", 0.0, 0.0)
 
 
 func _tick(delta: float) -> void:
@@ -168,6 +209,8 @@ func _spare() -> void:
 	hurtbox.set_deferred("monitorable", false)
 	FX.burst(global_position, Color(0.85, 0.8, 1.0), 18, 80.0)
 	EventBus.enemy_spared.emit(self)
+	Audio.play_at(global_position, "choir_sing", 0.0, -8.0)   # let finish: the note, once, softly
+	_hum_to(-80.0, 1.0)
 	var tw := create_tween()
 	tw.tween_property(sprite, "modulate:a", 0.0, 1.2)
 	tw.parallel().tween_property(sprite, "position:y", sprite.position.y - 18.0, 1.2)

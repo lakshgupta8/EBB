@@ -59,6 +59,10 @@ def role_of(name):
         return "music"
     if name.startswith("stinger_") or name == "clear":
         return "stinger"
+    if name.startswith("amb_spot_") or name == "choir_hum":
+        return "spot"
+    if name.startswith("choir_sing"):
+        return "combat"
     if name.startswith("amb_spot_"):
         return "spot"
     if name.startswith("amb") :

@@ -94,6 +94,10 @@ func _check_sounds(sounds: Dictionary) -> void:
 		if v.has("material"):
 			sounds["hit_" + v.material] = "Enemy.VOICES." + id
 			sounds["die_" + v.material] = "Enemy.VOICES." + id
+		if v.has("idle"):  # the drowned breathing (Enemy._tick_idle)
+			sounds["breath_" + v.idle] = "Enemy.VOICES." + id
+			sounds["groan_" + v.idle] = "Enemy.VOICES." + id
+	sounds["choir_hum"] = "Choir._start_hum"
 	for surface in Player.STEP_DB:
 		sounds["step_" + surface] = "Player.STEP_DB"
 	for who in Prop.PORTRAIT:  # each person's wordless voice (TalkUI)

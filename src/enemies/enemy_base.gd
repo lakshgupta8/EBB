@@ -386,20 +386,21 @@ func face(dir_x: float) -> void:
 ## What each kind of enemy sounds like (audio Stage 09, STYLE.md 23 law 2): the tell for each state
 ## that winds up an attack, heard as the state begins and never the same for two enemies, and
 ## what its body is made of, for the layer under every hit and for its death. An enemy not
-## listed keeps the old shared death.
+## listed keeps the old shared death. "idle" names what it breathes as it wanders and waits
+## (audio Stage 12): breath_<idle> every few seconds, now and then groan_<idle>.
 const VOICES := {
 	# the Flats
 	"shellback": {"tells": {&"windup": "tell_shellback"}, "material": "shell"},
 	"gull": {"tells": {&"windup": "tell_gull"}, "material": "feather"},
 	"wrack_crab": {"tells": {&"windup": "tell_wrack_crab"}, "material": "shell"},
 	"tidewisp": {"tells": {&"windup": "tell_tidewisp"}, "material": "light"},
-	"netted": {"tells": {&"windup": "tell_netted_swing", &"throw_windup": "tell_netted_throw"}, "material": "flesh"},
+	"netted": {"tells": {&"windup": "tell_netted_swing", &"throw_windup": "tell_netted_throw"}, "material": "flesh", "idle": "drowned"},
 	"wreck": {"tells": {&"slam_windup": "tell_wreck_slam", &"charge_windup": "tell_wreck_charge", &"summon": "tell_wreck_call"}, "material": "wood"},
 	# the Harbour
-	"anchor": {"tells": {&"slam_windup": "tell_anchor_slam", &"chain_windup": "tell_anchor_chain"}, "material": "flesh"},
+	"anchor": {"tells": {&"slam_windup": "tell_anchor_slam", &"chain_windup": "tell_anchor_chain"}, "material": "flesh", "idle": "drowned"},
 	"barnacle": {"tells": {&"windup": "tell_barnacle"}, "material": "shell"},
-	"mooring": {"tells": {&"windup": "tell_mooring"}, "material": "flesh"},
-	"deckhand": {"tells": {&"windup": "tell_deckhand"}, "material": "flesh"},
+	"mooring": {"tells": {&"windup": "tell_mooring"}, "material": "flesh", "idle": "drowned"},
+	"deckhand": {"tells": {&"windup": "tell_deckhand"}, "material": "flesh", "idle": "drowned"},
 	"chainmother": {"tells": {&"sweep_windup": "tell_chainmother_sweep", &"drop_windup": "tell_chainmother_drop", &"haul_windup": "tell_chainmother_haul", &"slam_windup": "tell_chainmother_slam", &"summon": "tell_chainmother_call"}, "material": "metal"},
 	# the Reef
 	"coral_crab": {"tells": {&"windup": "tell_coral_crab"}, "material": "coral"},
@@ -408,13 +409,13 @@ const VOICES := {
 	"reefwarden": {"tells": {&"windup": "tell_reefwarden", &"surge_windup": "tell_reefwarden_surge"}, "material": "metal"},
 	"tidewall": {"tells": {&"slam_windup": "tell_tidewall_slam", &"stone_windup": "tell_tidewall_stone", &"breach_windup": "tell_tidewall_breach", &"turn_windup": "tell_tidewall_turn", &"summon": "tell_tidewall_call"}, "material": "stone"},
 	# the Streets
-	"bell_ringer": {"tells": {&"windup": "tell_bell_ringer"}, "material": "flesh"},
+	"bell_ringer": {"tells": {&"windup": "tell_bell_ringer"}, "material": "flesh", "idle": "drowned"},
 	"still_citizen": {"tells": {&"windup": "tell_still_citizen"}, "material": "stone"},
-	"swimmer": {"tells": {&"windup": "tell_swimmer"}, "material": "flesh"},
+	"swimmer": {"tells": {&"windup": "tell_swimmer"}, "material": "flesh", "idle": "drowned"},
 	"choir": {"tells": {&"windup": "tell_choir"}, "material": "flesh"},
 	"bell": {"tells": {&"toll_windup": "tell_bell_toll", &"swing_windup": "tell_bell_swing", &"peal_windup": "tell_bell_peal"}, "material": "metal"},
 	# the Hall
-	"lamplighter": {"tells": {&"kindle_windup": "tell_lamplighter_kindle", &"throw_windup": "tell_lamplighter_throw"}, "material": "wax"},
+	"lamplighter": {"tells": {&"kindle_windup": "tell_lamplighter_kindle", &"throw_windup": "tell_lamplighter_throw"}, "material": "wax", "idle": "drowned"},
 	"tallow": {"tells": {&"windup": "tell_tallow"}, "material": "wax"},
 	"deep_maw": {"tells": {&"windup": "tell_deep_maw"}, "material": "flesh"},
 	"keeper_shade": {"tells": {&"windup": "tell_keeper_shade"}, "material": "water"},
@@ -425,6 +426,36 @@ const VOICES := {
 ## This enemy's entry in VOICES ({} when it has none yet).
 func voice() -> Dictionary:
 	return VOICES.get(get_script().resource_path.get_file().get_basename(), {})
+
+
+## The drowned breathing between blows (audio Stage 12): only while nothing is being wound up
+## or struck, never stunned, at its own pace from its own generator so no other draw moves.
+const IDLE_EVERY := Vector2(3.5, 7.5)
+const IDLE_DB := -9.0
+const GROAN_CHANCE := 0.25
+var _idle_kind: String = ""
+var _idle_t: float = -1.0
+var _idle_rng: RandomNumberGenerator
+
+
+func _tick_idle(delta: float) -> void:
+	if _idle_rng == null:
+		_idle_kind = str(voice().get("idle", ""))
+		_idle_rng = RandomNumberGenerator.new()
+		_idle_rng.seed = hash(get_instance_id())
+		_idle_t = _idle_rng.randf_range(0.5, IDLE_EVERY.y)
+	if _idle_kind == "":
+		return
+	_idle_t -= delta
+	if _idle_t > 0.0:
+		return
+	_idle_t = _idle_rng.randf_range(IDLE_EVERY.x, IDLE_EVERY.y)
+	if stunned > 0.0 or (hitbox and hitbox.active) or voice().get("tells", {}).has(state) 			or str(state).ends_with("windup") or state == &"attack":
+		return
+	var groan := _idle_rng.randf() < GROAN_CHANCE
+	# A crowd takes turns: the same sound is not started again within the gap, whoever asks.
+	Audio.play_at(global_position, ("groan_" if groan else "breath_") + _idle_kind, 0.06,
+		IDLE_DB + (1.0 if groan else 0.0), 900 if groan else 450)
 
 
 ## The "dodge now" tell: a white flash and a ring right before an attack lands.
@@ -472,6 +503,7 @@ func _physics_process(delta: float) -> void:
 			_retarget_t = 0.25
 			player = Player.nearest_to(global_position, get_tree())
 	_tick_bleed(delta)
+	_tick_idle(delta)
 	# Stun and water bonuses come and go every frame; the multiplier is cheap to redo.
 	if player and (stunned > 0.0 or float(player.mods.wet_bonus) > 0.0):
 		_refresh_mult()
