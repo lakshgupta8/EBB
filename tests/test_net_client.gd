@@ -51,3 +51,24 @@ func test_unknown_scene_key_still_gets_a_puppet() -> void:
 	v.handle_spawn({"id": 11, "kind": NetReplicator.Kind.PICKUP, "pos": Vector2.ZERO, "scene_key": "pickup"})
 	assert_eq(v.puppets.size(), 3)
 	_free(v)
+
+
+func test_events_for_unknown_ids_are_harmless() -> void:
+	var v := _view()
+	for kind in [NetProtocol.Ev.HIT, NetProtocol.Ev.DEATH, NetProtocol.Ev.TELEGRAPH, NetProtocol.Ev.BOSS_PHASE]:
+		v.handle_event({"kind": kind, "a": 999, "b": 1, "pos": Vector2(5, 5)})
+	assert_eq(v.puppets.size(), 0)
+	_free(v)
+
+
+func test_telegraph_and_boss_events_light_up_the_puppet() -> void:
+	var v := _view()
+	v.handle_spawn({"id": 5, "kind": NetReplicator.Kind.ENEMY, "pos": Vector2(10, 20), "scene_key": "enemies/gull"})
+	var p: Puppet = v.puppets[5]
+	assert_eq(p.scene_key, "enemies/gull")
+	v.handle_event({"kind": NetProtocol.Ev.TELEGRAPH, "a": 5, "b": 0, "pos": Vector2(10, 20)})
+	assert_true(p._flash > 0.0, "the strike cue flashes the puppet")
+	p._flash = 0.0
+	v.handle_event({"kind": NetProtocol.Ev.BOSS_PHASE, "a": 5, "b": 1, "pos": Vector2(10, 20)})
+	assert_true(p._flash > 0.0, "a phase change flashes it too")
+	_free(v)

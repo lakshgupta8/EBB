@@ -7,6 +7,15 @@ extends Node2D
 const MP_MENU := "res://src/multiplayer/mp_menu.tscn"
 const TICK_MS := 1000.0 / 60.0
 
+## A bot's hands: when set, it supplies each tick's PlayerInput instead of the devices.
+var bot: Callable = Callable()
+## The scene was told the session ended (bots listen; a player is sent back to the menu).
+signal session_ended(reason: String)
+var rooms_entered: int = 0
+var snapshots: int = 0
+var snaps: int = 0
+var max_error: float = 0.0
+
 var epoch: int = -1
 var entities: Node2D
 var puppets: Dictionary = {}  # net id -> Puppet
@@ -48,6 +57,7 @@ func _ready() -> void:
 	layer.add_child(_toast)
 	Net.message.connect(_on_message)
 	Net.left.connect(_on_left)
+	Net.send_reliable(NetProtocol.encode_resync())  # in case the room was announced before this scene was up
 	_say("waiting for the host's room")
 
 
@@ -101,6 +111,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _gather() -> PlayerInput:
+	if bot.is_valid():
+		return bot.call(self)
 	var i := PlayerInput.new()
 	i.move = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
@@ -135,6 +147,9 @@ func _reconcile(e: Dictionary, ack: int) -> void:
 		return pos + PlayerMotor.walk_velocity(f.move, Player.SPEED) / 60.0
 	var r := Prediction.reconcile(e.pos, ack, history, local.global_position, step)
 	var st := _stats()
+	max_error = maxf(max_error, float(r.error))
+	if bool(r.snapped):
+		snaps += 1
 	if st != null and float(r.error) > 0.0:
 		st.record_correction(float(r.error))
 	if bool(r.snapped) or _motor.dash_t <= 0.0:
@@ -167,11 +182,16 @@ func _on_message(type: int, bytes: PackedByteArray) -> void:
 				handle_event(d)
 
 
-func _on_left(_reason: String) -> void:
-	get_tree().call_deferred("change_scene_to_file", MP_MENU)
+func _on_left(reason: String) -> void:
+	session_ended.emit(reason)
+	if not bot.is_valid():
+		get_tree().call_deferred("change_scene_to_file", MP_MENU)
 
 
 func handle_room_enter(d: Dictionary) -> void:
+	if int(d.epoch) == epoch and room != null:
+		return  # a repeat of the room we are already in (the answer to our RESYNC)
+	rooms_entered += 1
 	epoch = int(d.epoch)
 	_clear_puppets()
 	if room != null:
@@ -192,6 +212,7 @@ func handle_room_enter(d: Dictionary) -> void:
 func handle_snapshot(d: Dictionary) -> void:
 	if int(d.epoch) != epoch:
 		return  # from the room before this one
+	snapshots += 1
 	var tick := int(d.tick)
 	var latest := float(tick) * TICK_MS
 	if _srv_t < 0.0 or absf(latest - _srv_t) > 500.0:
@@ -252,10 +273,30 @@ func handle_event(d: Dictionary) -> void:
 			FX.text(pos + Vector2(0, -14), str(int(d.b)), Color(1.0, 0.95, 0.85))
 		NetProtocol.Ev.DEATH:
 			FX.burst(pos, Color(0.85, 0.8, 0.75), 10, 50.0)
+		NetProtocol.Ev.TELEGRAPH:
+			var p: Puppet = puppets.get(int(d.a))
+			if p != null:
+				p.flash()
+				FX.ring(pos + Vector2(0, -8), Palette.SALT_RED, 0.5)
+				var tell = Enemy.VOICES.get(p.scene_key.get_file(), {}).get("tells", {}).get(&"windup", "")
+				if str(tell) != "":
+					Audio.play(str(tell))
+		NetProtocol.Ev.BOSS_PHASE:
+			var p: Puppet = puppets.get(int(d.a))
+			if p != null:
+				p.flash()
+				FX.ring(pos + Vector2(0, -12), Palette.WARM_YELLOW, 2.0)
+				FX.flash_screen(Color(1.0, 0.9, 0.7, 0.35), 0.4)
 		NetProtocol.Ev.DOWNED:
 			_say("a keeper has fallen")
 		NetProtocol.Ev.REVIVED:
 			_say("a keeper stands again")
+		NetProtocol.Ev.ROUND_RESULT:
+			_say("the night is won" if int(d.a) == 1 else "the night is over")
+			get_tree().create_timer(4.0).timeout.connect(func():
+				if not bot.is_valid() and Net.state != NetSession.State.IDLE:
+					Net.return_to_lobby()
+					get_tree().change_scene_to_file(MP_MENU))
 		NetProtocol.Ev.CLEARED:
 			if room != null:
 				room.open_doors()

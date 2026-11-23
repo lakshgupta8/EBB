@@ -44,6 +44,18 @@ func _process(_delta: float) -> void:
 	tick()
 
 
+## `--netsim=latency_ms,jitter_ms,loss` on the command line: a bad network on purpose.
+## Anything that is not exactly that returns {} (no conditions).
+static func parse_netsim(args: PackedStringArray) -> Dictionary:
+	for a in args:
+		if a.begins_with("--netsim="):
+			var parts := a.trim_prefix("--netsim=").split(",")
+			if parts.size() != 3 or not (parts[0].is_valid_int() and parts[1].is_valid_int() and parts[2].is_valid_float()):
+				return {}
+			return {"latency": int(parts[0]), "jitter": int(parts[1]), "loss": float(parts[2])}
+	return {}
+
+
 func is_host() -> bool:
 	return _is_host
 
@@ -169,6 +181,9 @@ func _open(as_host: bool) -> void:
 	_started = int(now_ms.call())
 	_last_rx = _started
 	transport = NetTransport.new()
+	var cond := parse_netsim(OS.get_cmdline_user_args())
+	if not cond.is_empty():
+		transport.set_conditions(int(cond.latency), int(cond.jitter), float(cond.loss))
 	transport.connected.connect(_on_connected)
 	transport.disconnected.connect(_on_down)
 	transport.packet.connect(_on_packet)

@@ -9,6 +9,7 @@ const SHEET := preload("res://assets/sprites/player.png")
 const ENEMY_FALLBACK := Color(0.72, 0.36, 0.34)
 
 var net_id: int = 0
+var scene_key: String = ""
 var kind: int = 0
 var buffer := InterpBuffer.new()
 var visual: Node
@@ -22,6 +23,7 @@ static func make(p_id: int, p_kind: int, scene_key: String, at: Vector2) -> Pupp
 	var p := Puppet.new()
 	p.net_id = p_id
 	p.kind = p_kind
+	p.scene_key = scene_key
 	p.position = at
 	p.visual = _build(p_kind, scene_key)
 	p.add_child(p.visual)

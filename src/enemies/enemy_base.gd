@@ -437,6 +437,7 @@ func strike_cue() -> void:
 	if _cued:
 		return
 	_cued = true
+	EventBus.enemy_telegraphed.emit(self)
 	sprite.material.set_shader_parameter("flash", flash_peak())
 	var tw := create_tween()
 	tw.tween_property(sprite.material, "shader_parameter/flash", 0.0, 0.2)
@@ -456,6 +457,7 @@ func play(anim: StringName) -> void:
 func hold_frame(anim: StringName, secs: float) -> void:
 	if sprite == null or sprite.sprite_frames == null or not sprite.sprite_frames.has_animation(anim):
 		return
+	EventBus.boss_beat.emit(self, anim)
 	sprite.play(anim)
 	await get_tree().create_timer(secs, false).timeout
 	if is_instance_valid(self) and sprite != null and sprite.animation == anim:

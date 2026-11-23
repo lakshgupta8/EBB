@@ -105,3 +105,13 @@ func test_scratch_profile_isolated_and_restored() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(orig))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(NetSession.SCRATCH_PATH))
 	SaveManager.use_path(SaveManager.PATH)
+
+
+func test_netsim_arg_parsed() -> void:
+	var c := NetSession.parse_netsim(["--seed=1", "--netsim=100,20,0.05"])
+	assert_eq(c.latency, 100)
+	assert_eq(c.jitter, 20)
+	assert_near(c.loss, 0.05)
+	assert_true(NetSession.parse_netsim(["--seed=1"]).is_empty())
+	assert_true(NetSession.parse_netsim(["--netsim=banana"]).is_empty(), "garbage means no conditions, not a crash")
+	assert_true(NetSession.parse_netsim(["--netsim=10,5"]).is_empty())

@@ -69,6 +69,12 @@ func weapon_id() -> String:
 
 
 func go_to_hub() -> void:
+	# A shared night ends in the lobby, not the village: the session stays open and saves stay scratch.
+	if Net.state in [NetSession.State.LOBBY, NetSession.State.IN_COOP, NetSession.State.IN_PVP]:
+		Net.return_to_lobby()
+		state = State.BOOT
+		get_tree().call_deferred("change_scene_to_file", "res://src/multiplayer/mp_menu.tscn")
+		return
 	state = State.HUB
 	get_tree().call_deferred("change_scene_to_file", HUB_SCENE)
 
