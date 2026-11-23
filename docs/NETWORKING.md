@@ -83,7 +83,9 @@ a few frames (it is told the truth by snapshots); the host has zero input latenc
 round trip.
 
 What the guest can do in Co-op: fight in combat and boss rooms. Shops, altars, tidemarks and the village
-stay host-only (the guest sees a toast); the guest uses the gaff and base stats.
+stay host-only: while the host's game is paused for one of them the guest freezes and sees "the host is
+choosing" (`HOST_CHOOSING` / `CHOICE_MADE`), and the host drops the input that piled up during the pause.
+The guest uses the gaff and base stats.
 
 ## 4. Protocol
 
@@ -163,6 +165,13 @@ sequenceDiagram
   Note over G,H: 5 s of silence = timeout, both return to the menu
 ```
 
+- **Pauses:** the `Net` autoload keeps running while the host's tree is paused (shops, altars, menus), so
+  the connection does not time out while a player reads an offer.
+- **Handshake robustness:** a visitor who leaves before the handshake (wrong version, cancel, a port probe)
+  does not end the host's session; one that connects and never says hello is dropped after 5 s; `HELLO` is
+  only accepted while waiting for a guest.
+- **Leaving:** going to the title screen, or pressing Esc in a duel or as the guest, ends the session and
+  restores the real save path.
 - **Keep-alive and RTT:** a `PING` every 500 ms; `PONG` echoes the timestamp, giving a smoothed RTT (0.2
   weight). Any received packet resets the 5000 ms silence timer.
 - **Save isolation:** entering a session redirects `SaveManager.path` to `user://net_scratch.json` without
@@ -180,17 +189,19 @@ host queues new frames (duplicates from redundancy are dropped by sequence, u16 
 per tick to the ally keeper and reports the last applied `seq` in each snapshot as `ack`. The queue is
 bounded (6 frames) so a burst cannot make the guest lag permanently.
 
-**Prediction.** The guest moves its own keeper immediately with the same maths the host uses
-(`PlayerMotor.walk_velocity`, `dash_velocity`, the same constants) and the same collision against the
-locally built room. It keeps the unacknowledged frames.
+**Prediction.** The guest moves its own keeper immediately with the same walk and dash maths the host uses
+(`PlayerMotor`, the same constants) and the same collision against the locally built room. For every frame it
+sends it also records the displacement the local body actually made (after walls, water and the weapon's
+slow-down), and keeps the unacknowledged frames with those displacements.
 
-**Reconciliation.** On each snapshot the guest takes the host's position at `ack`, replays the frames after
-it, and compares with where it drew itself:
+**Reconciliation.** On each snapshot the guest takes the host's position at `ack`, adds the recorded displacements of the frames
+after it, and compares with where it drew itself. A snapshot is taken before the ally has moved with the
+current tick's frame, so it acknowledges the frame applied one step earlier (`snapshot_ack`):
 
 - error ≤ 48 px (`SNAP_DIST`): close 25 % of the gap per snapshot (`SMOOTH`), invisible in play;
 - error > 48 px: jump (a respawn, a knockback, a missed collision);
-- during a dash the local body is trusted unless the error exceeds the snap distance, since the replay does
-  not model dashes.
+- because the replay sums what the body really did, dashes, walls and slow-downs are part of it; there is no
+  special case.
 
 **Interpolation.** Each remote entity keeps timestamped samples (host tick × 16.67 ms). The guest renders
 100 ms behind the newest (`DELAY_MS`), so there is nearly always a sample on both sides. If the newest sample
@@ -265,51 +276,55 @@ is unchanged.
 ## 11. Measurements
 
 One co-op night per cell (`tools/net_bench.ps1`): a host bot and a guest bot, two Godot processes, real UDP
-on loopback, 1500 physics ticks (about 25 s of play, 3-4 rooms), conditions set on the guest only. "Nominal
+on loopback, 1500 physics ticks (about 25 s of play, 2-4 rooms), conditions set on the guest only. "Nominal
 RTT" is twice the one-way latency configured (jitter is 10 % of the RTT, at most 20 ms); the measured RTT
 also includes frame granularity and the jitter, so it is higher. Figures are payload bytes per second and
-per-second averages over the run (raw data: `docs/net/measurements.csv`).
+per-second averages over the run (raw data: `docs/net/measurements.csv`). These are the numbers after the
+review fixes described below.
 
 | Nominal RTT | Loss | Measured RTT (ms) | Down B/s | Up B/s | Snapshots/s | Corrections/s | Mean correction (px) | Max error (px) | Snaps | Underruns/s |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0 ms | 0 % | 9.0 | 1235 | 1190 | 18.8 | 18.7 | 2.54 | 35.4 | 0 | 1.2 |
-| 0 ms | 2 % | 7.6 | 1206 | 1189 | 18.1 | 18.0 | 2.56 | 40.0 | 0 | 1.2 |
-| 0 ms | 5 % | 6.9 | 1173 | 1188 | 18.1 | 18.0 | 3.16 | 29.4 | 0 | 1.4 |
-| 50 ms | 0 % | 68.0 | 1233 | 1190 | 19.0 | 19.0 | 2.85 | 37.7 | 0 | 0.0 |
-| 50 ms | 2 % | 68.6 | 1228 | 1189 | 18.8 | 18.8 | 5.92 | 34.2 | 0 | 0.1 |
-| 50 ms | 5 % | 67.9 | 1277 | 1192 | 18.8 | 18.6 | 3.23 | 34.1 | 0 | 0.0 |
-| 100 ms | 0 % | 153.3 | 1267 | 1188 | 19.9 | 19.8 | 6.54 | 42.4 | 0 | 0.0 |
-| 100 ms | 2 % | 155.9 | 1246 | 1189 | 19.6 | 19.6 | 6.15 | 42.2 | 0 | 0.1 |
-| 100 ms | 5 % | 150.3 | 1205 | 1190 | 18.7 | 18.6 | 6.43 | 43.3 | 0 | 0.5 |
-| 200 ms | 0 % | 236.7 | 1290 | 1189 | 19.8 | 19.8 | 5.47 | 42.2 | 0 | 0.0 |
-| 200 ms | 2 % | 235.3 | 1277 | 1190 | 19.6 | 19.4 | 4.16 | 42.2 | 0 | 0.3 |
-| 200 ms | 5 % | 233.7 | 1205 | 1190 | 19.0 | 19.0 | 5.78 | 41.7 | 0 | 1.0 |
+| 0 ms | 0 % | 7.7 | 1147 | 1180 | 17.5 | 17.4 | 1.36 | 15.6 | 0 | 4.7 |
+| 0 ms | 2 % | 7.9 | 1108 | 1180 | 17.2 | 17.2 | 1.50 | 11.9 | 0 | 6.9 |
+| 0 ms | 5 % | 8.3 | 1015 | 1180 | 15.9 | 15.8 | 1.90 | 15.5 | 0 | 17.1 |
+| 50 ms | 0 % | 72.7 | 1172 | 1180 | 18.2 | 18.1 | 1.19 | 12.9 | 0 | 2.7 |
+| 50 ms | 2 % | 72.1 | 1136 | 1179 | 17.6 | 17.4 | 1.09 | 14.5 | 0 | 3.0 |
+| 50 ms | 5 % | 73.3 | 1116 | 1182 | 17.4 | 17.3 | 1.76 | 13.9 | 0 | 5.8 |
+| 100 ms | 0 % | 178.1 | 1220 | 1177 | 18.4 | 18.3 | 1.42 | 15.7 | 0 | 0.4 |
+| 100 ms | 2 % | 185.9 | 1185 | 1176 | 17.9 | 17.9 | 1.74 | 16.0 | 0 | 1.6 |
+| 100 ms | 5 % | 186.6 | 1131 | 1179 | 17.2 | 17.1 | 1.65 | 17.3 | 0 | 4.7 |
+| 200 ms | 0 % | 240.4 | 1262 | 1178 | 19.5 | 19.4 | 1.50 | 17.9 | 0 | 0.0 |
+| 200 ms | 2 % | 241.5 | 1259 | 1179 | 19.3 | 19.2 | 2.16 | 18.9 | 0 | 0.4 |
+| 200 ms | 5 % | 239.3 | 1224 | 1182 | 18.6 | 18.5 | 2.02 | 16.4 | 0 | 1.4 |
 
 What the table shows:
 
-- **All 12 conditions complete the night** with the guest entering every room the host did. There were
-  **no snap corrections** anywhere: the largest prediction error was 43 px, under the 48 px snap distance, so
-  the local keeper was only ever smoothed, never teleported.
-- **Bandwidth is flat and small**: about 1.2 KB/s up (60 inputs/s × 20 B: three frames each, so a lost input
-  packet costs nothing) and 1.2-1.3 KB/s down in these rooms (full snapshots, a handful of entities). It does
+- **All 12 conditions complete the night**, the guest entering the rooms the host did, with **no snap
+  corrections**: the largest prediction error was 19 px against a 48 px snap distance, so the local keeper
+  was only ever smoothed, never teleported.
+- **Bandwidth is flat and small**: about 1.2 KB/s up (60 inputs/s x 20 B: three frames each, so a lost input
+  packet costs nothing) and 1.0-1.3 KB/s down in these rooms (full snapshots, a handful of entities). It does
   not grow with latency or loss.
-- **Snapshots arrive at ~19-20 per second** even at 5 % loss (nominal 20). The loss is absorbed by
-  interpolation (100 ms of buffer is more than two snapshot intervals).
-- **Prediction error grows with latency, not with loss**: mean correction 2.5-3 px at 0-70 ms round trips
-  (one 5.9 px outlier at 50 ms/2 %) and 4-6.5 px at 150 ms and above, which fits the guest having more
-  unacknowledged inputs to replay and the host applying effects (knockback, water slow) the replay does not
-  model. We did not isolate the cause further.
-- **Underruns** (a puppet drawn by extrapolation because its newest snapshot was too old, counted per puppet
-  sample) were between 0 and 1.4 per second and did not rise with latency: the highest values were at no
-  added latency. On loopback they most likely come from room changes and spawn timing rather than the
-  network; this was not measured separately.
-- Loopback bots are gentle: real Wi-Fi adds bursty loss and jitter. The overlay (F3) and sliders (F4) exist to
-  see this live during the demo.
+- **Prediction error is small and does not grow much with latency**: mean correction 1.1-2.2 px and max
+  12-19 px across all cells.
+- **Snapshots per second and underruns depend on how busy the machine is.** This run delivered 16-19.5
+  snapshots/s (nominal 20) and 0-17 underruns/s, with the worst values at no added latency and 5 % loss. We
+  repeated the zero-condition run on the code from before the review fixes at the same time and got the same
+  17.5 snapshots/s, about 2 lost per second and 7-11 underruns/s, while an earlier session of the same
+  commit had measured 19 snapshots/s and about 1 underrun/s. So the drift is the machine (the host bot
+  produced snapshots more slowly while other programs ran), not the network settings and not the fixes.
+  Treat the snapshot and underrun columns as indicative; the byte counts and the prediction error columns
+  were stable across runs.
+
+The review of this branch found that the first version of reconciliation was less accurate than it should be
+(the replay ignored walls, water, dashes and weapon slow-down, and snapshots acknowledged an input before the
+keeper had moved with it). Fixing both under identical conditions on the same day moved max error from
+24-28 px to 12-19 px and mean correction from 2.6-5.3 px to 1.1-2.2 px. The first bench (max error 29-43 px,
+mean 2.5-6.5 px) is kept in the git history.
 
 Duel (`tools/net_sim.ps1 -Mode pvp`, clean and with 50 ms/10 ms/5 % loss): both sides finished the
-best-of-three with the same score (checked by the script), 991-1024 snapshots, only the round-start
+best-of-three with the same score (checked by the script), about 1000 snapshots, only the round-start
 teleports snapped.
-
 
 ## 12. Limitations and future work
 
@@ -323,8 +338,8 @@ teleports snapped.
 - **Guest scope.** Fights only: no shops, altars, tidemarks or village; base stats and the gaff.
 - **Puppet fidelity.** Flip direction and projectile textures are not replicated; the guest's rooms do not
   get the host's wet-way water bonus.
-- **Prediction scope.** Walk, dash and walls only. Knockback, currents, water slow and tide damage are
-  corrected through reconciliation.
+- **Prediction scope.** The guest predicts its own walk, dash, walls and water slow-down. Knockback, currents
+  and tide damage happen on the host only and arrive through reconciliation.
 - **Host trusted.** No anti-cheat. A lagging host lags both players.
 - **Camera and wax.** The host's camera stays on the host's keeper even when they are down; wax pools only
   hurt the host's keeper.
