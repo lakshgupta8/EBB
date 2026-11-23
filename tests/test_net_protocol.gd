@@ -107,3 +107,17 @@ func test_truncated_and_garbage_decode_to_empty() -> void:
 		var b: PackedByteArray = valid[k]
 		var short := b.slice(0, b.size() - 1)
 		assert_true((cut[k] as Callable).call(short).is_empty(), "%s cut by one byte" % k)
+
+
+func test_refuse_welcome_lobby_round_trip() -> void:
+	assert_eq(NetProtocol.decode_refuse(NetProtocol.encode_refuse("version mismatch")).reason, "version mismatch")
+	assert_eq(NetProtocol.msg_type(NetProtocol.encode_welcome()), NetProtocol.Msg.WELCOME)
+	var l := NetProtocol.decode_lobby(NetProtocol.encode_lobby(1, true, false, true))
+	assert_eq(l.mode, 1)
+	assert_eq(l.host_ready, true)
+	assert_eq(l.guest_ready, false)
+	assert_eq(l.start, true)
+	var r := NetProtocol.encode_refuse("x")
+	assert_true(NetProtocol.decode_refuse(r.slice(0, r.size() - 1)).is_empty())
+	assert_true(NetProtocol.decode_lobby(PackedByteArray([NetProtocol.Msg.LOBBY_STATE])).is_empty())
+	assert_true(NetProtocol.decode_refuse(PackedByteArray()).is_empty())

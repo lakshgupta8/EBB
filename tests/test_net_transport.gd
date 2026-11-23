@@ -56,8 +56,6 @@ func test_loopback_two_peers_in_process() -> void:
 	assert_true(a.stats.report(Time.get_ticks_msec()).bytes_out >= 43, "stats counted the bytes")
 	a.close()
 	b.close()
-	a.free()
-	b.free()
 
 
 func test_sim_latency_applies_on_receive() -> void:
@@ -78,8 +76,6 @@ func test_sim_latency_applies_on_receive() -> void:
 	assert_eq(got.size(), 1)
 	a.close()
 	b.close()
-	a.free()
-	b.free()
 
 
 func test_close_emits_disconnected_on_peer() -> void:
@@ -97,5 +93,3 @@ func test_close_emits_disconnected_on_peer() -> void:
 			break
 	assert_eq(down[0], 1)
 	a.close()
-	a.free()
-	b.free()
