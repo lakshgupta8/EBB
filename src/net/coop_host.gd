@@ -18,12 +18,14 @@ var epoch: int = 0
 
 var _tick: int = 0
 var _deep_tick: float = 0.0
+var _was_paused: bool = false
 
 
 func setup(p_run: Node) -> void:
 	run = p_run
 	host = run.player
 	process_physics_priority = -10  # before the keepers, so the ally has this tick's input
+	process_mode = Node.PROCESS_MODE_ALWAYS  # so it can tell the guest when the host pauses
 	add_child(repl)
 	ally = PLAYER_SCENE.instantiate()
 	ally.name = "Ally"
@@ -54,6 +56,15 @@ func _exit_tree() -> void:
 
 func _physics_process(delta: float) -> void:
 	if ally == null or not is_instance_valid(ally) or run.room == null:
+		return
+	var paused := get_tree().paused
+	if paused != _was_paused:
+		_was_paused = paused
+		# A shop, altar or menu on the host: the guest waits instead of walking away from a frozen ally.
+		repl.send_event(NetProtocol.Ev.HOST_CHOOSING if paused else NetProtocol.Ev.CHOICE_MADE, 0, 0, host.global_position)
+		if not paused:
+			repl.clear_queue()
+	if paused:
 		return
 	repl.step_ally(ally)
 	_tide(delta)

@@ -85,6 +85,14 @@ func _ready() -> void:
 	_start_round()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	# Esc leaves the shared game for the Multiplayer menu (the session ends for both).
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		Net.leave("")
+		get_tree().change_scene_to_file(MP_MENU)
+
+
 func _exit_tree() -> void:
 	for pair in [[Net.message, _on_message], [Net.left, _on_left], [EventBus.damage_dealt, _on_damage]]:
 		if pair[0].is_connected(pair[1]):
@@ -116,6 +124,7 @@ func _physics_process(delta: float) -> void:
 			_label.text = str(maxi(1, int(ceil(_t))))
 			if _t <= 0.0:
 				_phase = Phase.FIGHT
+				rules.fighting = true
 				_freeze(false)
 				_label.text = "FIGHT"
 				_state(Phase.FIGHT, rules.round)
@@ -142,6 +151,7 @@ func _start_round() -> void:
 	host.velocity = Vector2.ZERO
 	ally.velocity = Vector2.ZERO
 	_freeze(true)
+	rules.fighting = false
 	_phase = Phase.COUNTDOWN
 	_t = COUNTDOWN
 	_state(Phase.COUNTDOWN, rules.round)
@@ -169,6 +179,7 @@ func _resolve() -> void:
 	var r := rules.resolve()
 	if r.kind == "none":
 		return
+	rules.fighting = false  # a blow landing after the round is decided does not count
 	_freeze(true)
 	var winner := 2 if r.kind == "draw" else int(r.winner)
 	if bool(r.match_over):

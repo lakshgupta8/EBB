@@ -57,7 +57,13 @@ func toggle_fullscreen() -> void:
 	Settings.set_value("fullscreen", not bool(Settings.value("fullscreen")))
 
 
+## Leave any open multiplayer session (and put the real save path back).
+func drop_session() -> void:
+	Net.leave("")
+
+
 func go_to_title() -> void:
+	drop_session()
 	state = State.BOOT
 	get_tree().call_deferred("change_scene_to_file", TITLE_SCENE)
 

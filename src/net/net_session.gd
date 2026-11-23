@@ -34,6 +34,7 @@ var _last_rx: int = 0
 var _next_ping: int = 0
 var _started: int = 0
 var _have_rtt: bool = false
+var _peer_since: int = 0
 var _log_next: int = 0
 var _log_started: bool = false
 
@@ -43,6 +44,9 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	# The host's shops, altars and menus pause the tree; the network must not stop with them, or
+	# the guest times out after 5 s.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(NetOverlay.new())  # F3 / F4
 
 
@@ -170,6 +174,9 @@ func tick() -> void:
 		_write_log(now)
 	if state == State.JOINING and now - _started > TIMEOUT_MS:
 		leave("could not connect")
+	elif state == State.HOSTING and transport.is_up() and now - _peer_since > TIMEOUT_MS:
+		transport.kick()  # connected and never said hello: the one slot is not for squatting
+		_peer_since = now
 	elif state in [State.LOBBY, State.IN_COOP, State.IN_PVP]:
 		if now - _last_rx > TIMEOUT_MS:
 			leave("timeout")
@@ -221,11 +228,14 @@ func _set_state(s: State) -> void:
 
 func _on_connected() -> void:
 	_last_rx = int(now_ms.call())
+	_peer_since = _last_rx
 	if not _is_host:
 		send_reliable(NetProtocol.encode_hello(version))
 
 
 func _on_down() -> void:
+	if state == State.HOSTING:
+		return  # a visitor left before the handshake finished: keep waiting for the real guest
 	if state != State.IDLE:
 		leave("connection lost")
 
@@ -239,7 +249,7 @@ func _on_packet(data: PackedByteArray, _channel: int) -> void:
 	var type := NetProtocol.msg_type(data)
 	match type:
 		NetProtocol.Msg.HELLO:
-			if _is_host:
+			if _is_host and state == State.HOSTING:
 				_on_hello(data)
 		NetProtocol.Msg.WELCOME:
 			if not _is_host:

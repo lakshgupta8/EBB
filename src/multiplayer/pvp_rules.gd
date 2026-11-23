@@ -9,12 +9,14 @@ const TO_WIN := 2
 var wins: Array = [0, 0]
 var round: int = 1
 var match_over: bool = false
+## The arena sets this false outside the fight (countdown, between rounds): falls then do not count.
+var fighting: bool = true
 
 var _fell: Array = [false, false]
 
 
 func fall(i: int) -> void:
-	if not match_over:
+	if not match_over and fighting:
 		_fell[i] = true
 
 
