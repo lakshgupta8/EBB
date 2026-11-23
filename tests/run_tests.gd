@@ -15,6 +15,11 @@ func _ready() -> void:
 		if not (f.begins_with("test_") and f.ends_with(".gd")) or f == "test_case.gd":
 			continue
 		var script: GDScript = load("res://tests/" + f)
+		if script == null or not script.can_instantiate():
+			total_fail += 1
+			all_failures.append("%s failed to compile" % f)
+			print("%-32s FAILED TO COMPILE" % f)
+			continue
 		var case = script.new()
 		if not (case is TestCase):
 			continue
