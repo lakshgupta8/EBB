@@ -56,7 +56,7 @@ func _on_state(s: int) -> void:
 	if s == NetSession.State.IN_COOP:
 		_launch_coop()
 	elif s == NetSession.State.IN_PVP:
-		_launch(PVP_SCENE)
+		_launch(PVP_SCENE if Net.is_host() else CLIENT_SCENE)
 	else:
 		_render()
 

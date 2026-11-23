@@ -12,6 +12,11 @@ var bot: Callable = Callable()
 ## The scene was told the session ended (bots listen; a player is sent back to the menu).
 signal session_ended(reason: String)
 var rooms_entered: int = 0
+## A duel freezes both keepers during the countdown.
+var frozen: bool = false
+var pvp_states: int = 0
+var pvp_match_over: bool = false
+var pvp_wins: Vector2 = Vector2.ZERO
 var snapshots: int = 0
 var snaps: int = 0
 var max_error: float = 0.0
@@ -111,6 +116,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _gather() -> PlayerInput:
+	if frozen:
+		return PlayerInput.new()
 	if bot.is_valid():
 		return bot.call(self)
 	var i := PlayerInput.new()
@@ -297,10 +304,36 @@ func handle_event(d: Dictionary) -> void:
 				if not bot.is_valid() and Net.state != NetSession.State.IDLE:
 					Net.return_to_lobby()
 					get_tree().change_scene_to_file(MP_MENU))
+		NetProtocol.Ev.PVP_STATE:
+			_on_pvp_state(int(d.a), int(d.b), pos)
 		NetProtocol.Ev.CLEARED:
 			if room != null:
 				room.open_doors()
 			_say("the doors are open")
+
+
+## A duel's phases (PvpArena.Phase): the host says when to count down, fight, and who won.
+func _on_pvp_state(phase: int, b: int, wins: Vector2) -> void:
+	pvp_wins = wins
+	pvp_states += 1
+	match phase:
+		PvpArena.Phase.COUNTDOWN:
+			frozen = true
+			_say("round %d: get ready" % b)
+		PvpArena.Phase.FIGHT:
+			frozen = false
+			_say("FIGHT")
+		PvpArena.Phase.ROUND_OVER:
+			frozen = true
+			_say("a draw" if b == 2 else ("you take the round" if b == 1 else "they take the round"))
+		PvpArena.Phase.MATCH_OVER:
+			frozen = true
+			pvp_match_over = true
+			_say("you win the duel" if b == 1 else "they win the duel")
+			get_tree().create_timer(4.0).timeout.connect(func():
+				if not bot.is_valid() and Net.state != NetSession.State.IDLE:
+					Net.return_to_lobby()
+					get_tree().change_scene_to_file(MP_MENU))
 
 
 # --- helpers -------------------------------------------------------------------------------------

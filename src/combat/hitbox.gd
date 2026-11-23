@@ -25,6 +25,12 @@ func _ready() -> void:
 		source = get_parent() as Node2D
 
 
+## True when `hb` belongs to the one who swings: nobody hits themselves (it matters once a
+## weapon can also hit keepers, in a duel).
+static func is_own(hb: Node, p_source: Node) -> bool:
+	return p_source != null and hb.get_parent() == p_source
+
+
 func activate() -> void:
 	_already_hit.clear()
 	active = true
@@ -42,6 +48,8 @@ func _physics_process(_delta: float) -> void:
 	for area in get_overlapping_areas():
 		var hb := area as Hurtbox
 		if hb == null or hb in _already_hit:
+			continue
+		if is_own(hb, source):
 			continue
 		var origin: Vector2 = source.global_position if source else global_position
 		var dir := hb.global_position - origin

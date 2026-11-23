@@ -79,6 +79,9 @@ var net_input: PlayerInput = null
 var is_remote: bool = false
 ## The weapon this keeper carries regardless of the profile (the guest always has the gaff).
 var forced_weapon: String = ""
+## A duel: no specials or flares, and (frozen) no input at all during the countdown.
+var pvp_locked: bool = false
+var pvp_frozen: bool = false
 ## Sprite tint, so the guest's keeper reads as a different person.
 var body_tint: Color = Color.WHITE
 ## A remote keeper fell (the host's own fall goes through EventBus.player_died as before).
@@ -309,6 +312,16 @@ func lunge(dir: Vector2, speed: float = 260.0) -> void:
 ## One tick of intent. A remote keeper (the guest, on the host) takes the network frame;
 ## every other keeper reads the devices. Aim lands in `aim` / `aim_dist` either way.
 func _intent() -> PlayerInput:
+	var i := _read_intent()
+	if pvp_frozen:
+		return PlayerInput.new()
+	if pvp_locked:
+		i.special_pressed = false
+		i.use_pressed = false
+	return i
+
+
+func _read_intent() -> PlayerInput:
 	if net_input != null:
 		if net_input.aim != Vector2.ZERO:
 			aim = net_input.aim.normalized()
