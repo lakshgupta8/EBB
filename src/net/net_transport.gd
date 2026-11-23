@@ -1,5 +1,5 @@
 class_name NetTransport
-extends Node
+extends RefCounted
 ## ENet transport, polled by hand (no SceneMultiplayer, no @rpc). Two logical channels:
 ## CH_UNRELIABLE (state that goes stale: inputs, snapshots; sequencing is by the `seq` and
 ## `tick` fields in the payload) and CH_RELIABLE (everything that must arrive, in order).
@@ -22,7 +22,11 @@ var _joining: bool = false
 
 
 func _init() -> void:
-	stats.clock = func(): return clock.call()
+	stats.clock = _now  # a method callable, not a lambda: a lambda would capture self and leak
+
+
+func _now() -> int:
+	return int(clock.call())
 
 
 func host(port: int) -> Error:
@@ -94,10 +98,6 @@ func pump() -> void:
 	_flush_out(now)
 	if _peer != null and _peer.get_connection_status() == MultiplayerPeer.CONNECTION_DISCONNECTED and (_up or _joining):
 		_drop()
-
-
-func _process(_delta: float) -> void:
-	pump()
 
 
 func _wire() -> void:

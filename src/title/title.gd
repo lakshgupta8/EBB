@@ -226,6 +226,7 @@ func _build_menu() -> void:
 		["Codex", func(): codex_ui.open()],
 		["Settings", func(): settings_ui.open()],
 		["Keeper", func(): slots_ui.open()],
+		["Two keepers", func(): get_tree().change_scene_to_file("res://src/multiplayer/mp_menu.tscn")],
 		["Quit", func(): _quit()],
 	]
 	for i in items.size():

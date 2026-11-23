@@ -206,3 +206,31 @@ static func decode_ping(b: PackedByteArray) -> Dictionary:
 	if b.size() != 5 or (int(b[0]) != Msg.PING and int(b[0]) != Msg.PONG):
 		return {}
 	return {"t_ms": b.decode_u32(1), "is_pong": int(b[0]) == Msg.PONG}
+
+
+static func encode_refuse(reason: String) -> PackedByteArray:
+	var s := reason.to_utf8_buffer()
+	var b := PackedByteArray([Msg.REFUSE, mini(s.size(), 255)])
+	b.append_array(s.slice(0, 255))
+	return b
+
+
+static func decode_refuse(b: PackedByteArray) -> Dictionary:
+	if not _is(b, Msg.REFUSE, 2) or b.size() != 2 + int(b[1]):
+		return {}
+	return {"reason": b.slice(2).get_string_from_utf8()}
+
+
+static func encode_welcome() -> PackedByteArray:
+	return PackedByteArray([Msg.WELCOME])
+
+
+## mode_id 0 = co-op, 1 = PvP.
+static func encode_lobby(mode_id: int, host_ready: bool, guest_ready: bool, start: bool) -> PackedByteArray:
+	return PackedByteArray([Msg.LOBBY_STATE, mode_id & 0xFF, 1 if host_ready else 0, 1 if guest_ready else 0, 1 if start else 0])
+
+
+static func decode_lobby(b: PackedByteArray) -> Dictionary:
+	if not _is(b, Msg.LOBBY_STATE, 5) or b.size() != 5:
+		return {}
+	return {"mode": int(b[1]), "host_ready": b[2] == 1, "guest_ready": b[3] == 1, "start": b[4] == 1}
