@@ -20,7 +20,10 @@ const FLAG_FLIP := 8
 ## Where the replicated nodes come from; tests point this at a plain array.
 var source: Callable = Callable()
 ## The seq of the guest frame the ally last applied: sent in every snapshot.
-var ack_seq: int = 0
+var ack_seq: int = 0xFFFF
+## What snapshots acknowledge: the frame applied one step earlier, because a snapshot is taken
+## before the keeper has moved with this tick's frame.
+var snapshot_ack: int = 0xFFFF
 
 var _queue: Array = []
 var _last_queued: int = -1
@@ -51,6 +54,7 @@ func push_input_frames(frames: Array) -> void:
 ## One physics tick: give the ally the next queued frame; with none queued it keeps walking
 ## the way it was, with no new button edges.
 func step_ally(ally: Player) -> void:
+	snapshot_ack = ack_seq
 	if not _queue.is_empty():
 		var f: Dictionary = _queue.pop_front()
 		ally.net_input = PlayerInput.from_buttons(f.move, f.aim, f.buttons)
@@ -59,6 +63,11 @@ func step_ally(ally: Player) -> void:
 		ally.net_input = PlayerInput.new()
 	else:
 		ally.net_input.consume_edges()
+
+
+## Frames that waited while the host's game was paused are stale: drop them.
+func clear_queue() -> void:
+	_queue.clear()
 
 
 ## Everything replicated right now, plus what appeared and what vanished since the last call.
@@ -107,14 +116,14 @@ func flush(host: Player, ally: Player, tick: int, epoch: int, tide_level: float)
 	var ents: Array = [_describe_player(HOST_ID, Kind.PLAYER_HOST, host), _describe_player(GUEST_ID, Kind.PLAYER_GUEST, ally),
 			{"id": TIDE_ID, "kind": Kind.TIDE, "pos": Vector2.ZERO, "hp": clampi(int(tide_level * 100.0), 0, 65535), "anim": 0, "flags": 0}]
 	ents.append_array(c.entities)
-	Net.send_unreliable(NetProtocol.encode_snapshot(tick, ack_seq, epoch, ents))
+	Net.send_unreliable(NetProtocol.encode_snapshot(tick, snapshot_ack, epoch, ents))
 
 
 func send_event(kind: int, a: int, b: int, pos: Vector2) -> void:
 	Net.send_reliable(NetProtocol.encode_event(kind, a, b, pos))
 
 
-## The net id of a node already announced (0 when it has none): events refer to things by it.
+## The net id of a node already announced (-1 when it has none): events refer to things by it.
 func id_of(n: Node) -> int:
 	return int(_ids.get(n.get_instance_id(), -1))
 

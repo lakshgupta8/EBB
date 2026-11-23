@@ -19,6 +19,8 @@ var _peer: ENetMultiplayerPeer
 var _remote: int = 1
 var _up: bool = false
 var _joining: bool = false
+var _hosting: bool = false
+var _gone: bool = false  # a peer disconnected during poll(); handled once poll() has returned
 
 
 func _init() -> void:
@@ -36,6 +38,7 @@ func host(port: int) -> Error:
 	if err != OK:
 		_peer = null
 		return err
+	_hosting = true
 	_wire()
 	return OK
 
@@ -49,6 +52,7 @@ func join(address: String, port: int) -> Error:
 		return err
 	_remote = 1
 	_joining = true
+	_hosting = false
 	_wire()
 	return OK
 
@@ -86,6 +90,17 @@ func pump() -> void:
 	if _peer == null:
 		return
 	_peer.poll()
+	if _gone:
+		# Never close or free the peer from inside its own poll(): handle the disconnect here.
+		_gone = false
+		if _hosting:
+			_up = false  # the server stays open for the next guest
+			disconnected.emit()
+		else:
+			_drop()
+			return
+	if _peer == null:
+		return
 	var now := int(clock.call())
 	while _peer != null and _peer.get_available_packet_count() > 0:
 		var mode := _peer.get_packet_mode()
@@ -113,7 +128,13 @@ func _on_peer_connected(id: int) -> void:
 
 
 func _on_peer_disconnected(_id: int) -> void:
-	_drop()
+	_gone = true
+
+
+## Host side: drop the connected peer and keep listening.
+func kick() -> void:
+	if _peer != null and _up:
+		_peer.disconnect_peer(_remote)
 
 
 func _drop() -> void:

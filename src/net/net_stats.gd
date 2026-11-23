@@ -24,10 +24,12 @@ func _now() -> int:
 
 func record_sent(channel: int, bytes: int) -> void:
 	_sent.append([_now(), channel, bytes])
+	_prune(_sent, _now(), false)
 
 
 func record_received(channel: int, bytes: int) -> void:
 	_recv.append([_now(), channel, bytes])
+	_prune(_recv, _now(), false)
 
 
 func record_rtt(ms: float) -> void:
@@ -41,18 +43,22 @@ func record_rtt(ms: float) -> void:
 
 func record_snapshot() -> void:
 	_snaps.append(_now())
+	_prune(_snaps, _now(), true)
 
 
 func record_correction(px: float) -> void:
 	_corr.append([_now(), px])
+	_prune(_corr, _now(), false)
 
 
 func record_underrun() -> void:
 	_under.append(_now())
+	_prune(_under, _now(), true)
 
 
 func record_lost(n: int) -> void:
 	_lost.append([_now(), n])
+	_prune(_lost, _now(), false)
 
 
 static func _prune(a: Array, now_ms: int, is_scalar: bool) -> void:

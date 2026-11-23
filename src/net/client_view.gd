@@ -67,6 +67,14 @@ func _ready() -> void:
 	_say("waiting for the host's room")
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	# A bot never presses Esc; a player does. Esc leaves the shared game for the Multiplayer menu (the session ends for both).
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		Net.leave("")
+		get_tree().change_scene_to_file(MP_MENU)
+
+
 func _exit_tree() -> void:
 	for pair in [[Net.message, _on_message], [Net.left, _on_left]]:
 		if pair[0].is_connected(pair[1]):
@@ -107,7 +115,9 @@ func _physics_process(delta: float) -> void:
 	history.push(frame)
 	var speed := Player.SPEED * (0.7 if room.is_flooded_at(local.global_position) else 1.0)
 	local.velocity = PlayerMotor.step(_motor, inp, speed, delta)
+	var before := local.global_position
 	local.move_and_slide()
+	frame["d"] = local.global_position - before  # what the body really did: walls, water, dashes, weapon slow-down
 	_animate_local(inp)
 	Net.send_unreliable(NetProtocol.encode_inputs(history.last_three()))
 	var render_t := int(_srv_t) - InterpBuffer.DELAY_MS
@@ -153,22 +163,26 @@ func _animate_local(inp: PlayerInput) -> void:
 		sp.play(nm)
 
 
-## Replay the inputs the host has not seen onto where it says we were. Walking is replayed;
-## during a dash we trust the local body unless the two are far apart.
+## One recorded frame, replayed: the displacement the local body actually made (falling back to
+## plain walking for a frame that has none).
+static func replay_step(pos: Vector2, f: Dictionary) -> Vector2:
+	if f.has("d"):
+		return pos + (f.d as Vector2)
+	return pos + PlayerMotor.walk_velocity(f.move, Player.SPEED) / 60.0
+
+
+## Replay the inputs the host has not seen onto where it says we were.
 func _reconcile(e: Dictionary, ack: int) -> void:
 	if local == null or room == null:
 		return
-	var step := func(pos: Vector2, f: Dictionary) -> Vector2:
-		return pos + PlayerMotor.walk_velocity(f.move, Player.SPEED) / 60.0
-	var r := Prediction.reconcile(e.pos, ack, history, local.global_position, step)
+	var r := Prediction.reconcile(e.pos, ack, history, local.global_position, replay_step)
 	var st := _stats()
 	max_error = maxf(max_error, float(r.error))
 	if bool(r.snapped):
 		snaps += 1
 	if st != null and float(r.error) > 0.0:
 		st.record_correction(float(r.error))
-	if bool(r.snapped) or _motor.dash_t <= 0.0:
-		local.global_position = r.pos
+	local.global_position = r.pos
 
 
 # --- messages ------------------------------------------------------------------------------------
@@ -312,6 +326,13 @@ func handle_event(d: Dictionary) -> void:
 				if not bot.is_valid() and Net.state != NetSession.State.IDLE:
 					Net.return_to_lobby()
 					get_tree().change_scene_to_file(MP_MENU))
+		NetProtocol.Ev.HOST_CHOOSING:
+			frozen = true
+			_say("the host is choosing")
+		NetProtocol.Ev.CHOICE_MADE:
+			frozen = false
+			if _toast != null:
+				_toast.text = ""
 		NetProtocol.Ev.PVP_STATE:
 			_on_pvp_state(int(d.a), int(d.b), pos)
 		NetProtocol.Ev.CLEARED:
