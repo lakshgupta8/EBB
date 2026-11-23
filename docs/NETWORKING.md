@@ -130,7 +130,7 @@ are not, so they travel as spawns and snapshots.
 HOST_CHOOSING, DOWNED, REVIVED, CLEARED, PVP_STATE`. Wind-ups, boss phase changes and fight state are events
 rather than state in snapshots, so a lost snapshot cannot lose a boss phase.
 
-**Bandwidth budget** (payload only; ENet adds about 10 bytes and UDP/IP 28 per datagram): inputs are
+**Bandwidth budget** (payload only; ENet, UDP and IP add their own headers to every datagram, not counted here): inputs are
 60 Hz × 20 B (three frames, repeated for loss tolerance) = 1.2 KB/s up. A snapshot with 8 entities is
 98 B × 20 Hz ≈ 2 KB/s down. Snapshots are full each time; delta encoding was left out (see 12).
 
@@ -295,11 +295,14 @@ What the table shows:
   not grow with latency or loss.
 - **Snapshots arrive at ~19-20 per second** even at 5 % loss (nominal 20). The loss is absorbed by
   interpolation (100 ms of buffer is more than two snapshot intervals).
-- **Prediction error grows with latency, not with loss**: mean correction 2.5-3 px at LAN round trips and
-  4-6.5 px from 150 ms upward, because the guest has more unacknowledged inputs to replay and the host has
-  effects (knockback, water slow) the replay does not model.
-- **Underruns** (frames drawn by extrapolation because the newest snapshot was too old) stay around or below
-  one per second; the worst cell (236 ms RTT, 5 % loss) had one per second.
+- **Prediction error grows with latency, not with loss**: mean correction 2.5-3 px at 0-70 ms round trips
+  (one 5.9 px outlier at 50 ms/2 %) and 4-6.5 px at 150 ms and above, which fits the guest having more
+  unacknowledged inputs to replay and the host applying effects (knockback, water slow) the replay does not
+  model. We did not isolate the cause further.
+- **Underruns** (a puppet drawn by extrapolation because its newest snapshot was too old, counted per puppet
+  sample) were between 0 and 1.4 per second and did not rise with latency: the highest values were at no
+  added latency. On loopback they most likely come from room changes and spawn timing rather than the
+  network; this was not measured separately.
 - Loopback bots are gentle: real Wi-Fi adds bursty loss and jitter. The overlay (F3) and sliders (F4) exist to
   see this live during the demo.
 
