@@ -96,6 +96,12 @@ func _check_sounds(sounds: Dictionary) -> void:
 			sounds["die_" + v.material] = "Enemy.VOICES." + id
 	for surface in Player.STEP_DB:
 		sounds["step_" + surface] = "Player.STEP_DB"
+	for piece in Room.PIECE_SOUNDS:
+		sounds[Room.PIECE_SOUNDS[piece]] = "Room.PIECE_SOUNDS." + piece
+	for b in Run.BIOMES:  # a place with a bed in layers has all three (Audio.bed)
+		if _has_clip("amb_%s_dry" % b.id):
+			for k in Audio.BED_LAYERS:
+				sounds["amb_%s_%s" % [b.id, k]] = "Audio.bed(%s)" % b.id
 	var n := 0
 	for name in sounds:
 		if _has_clip(name):

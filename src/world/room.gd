@@ -232,6 +232,8 @@ func _build_pieces() -> void:
 		var r: Array = info.region
 		var o: Array = info.origin
 		var top_left := Vector2(p.cell) * Tiles.SIZE - Vector2(o[0], o[1])
+		if PIECE_SOUNDS.has(str(p.id)):
+			_spot_sound(str(PIECE_SOUNDS[str(p.id)]), Vector2(p.cell) * Tiles.SIZE + SetPieces.size(str(p.id)) * Tiles.SIZE * 0.5)
 		for part in [[under, int(o[1]), int(r[3]) - int(o[1])], [over, 0, int(o[1])]]:
 			if int(part[2]) <= 0:
 				continue
@@ -266,6 +268,35 @@ func _build_pieces() -> void:
 			var tw := pool.create_tween().set_loops()
 			tw.tween_property(pool, "modulate:a", a * (1.0 + beat[0]), period * 0.5).set_trans(Tween.TRANS_SINE)
 			tw.tween_property(pool, "modulate:a", a * (1.0 - beat[0]), period * 0.5).set_trans(Tween.TRANS_SINE)
+
+
+## Spot sounds (audio Stage 11): what a set piece sounds like, a loop placed at its middle, heard
+## from about a screen away and louder as Tam nears it. On the Ambience bus, in the place's reverb.
+const PIECE_SOUNDS := {"cairn": "amb_spot_fire", "kelplight": "amb_spot_glow", "wreck": "amb_spot_wreck",
+	"tidepool": "amb_spot_pool", "boat": "amb_spot_boat", "mast": "amb_spot_rigging"}
+const SPOT_REACH := 360.0
+const SPOT_DB := -2.0
+
+
+func _spot_sound(name: String, at: Vector2) -> void:
+	var path := "res://assets/audio/%s.ogg" % name
+	if not ResourceLoader.exists(path):
+		return
+	var s := (load(path) as AudioStreamOggVorbis).duplicate() as AudioStreamOggVorbis
+	s.loop = true
+	var p := AudioStreamPlayer2D.new()
+	p.stream = s
+	p.bus = "Ambience"
+	p.position = at
+	p.max_distance = SPOT_REACH
+	p.attenuation = 1.6
+	p.volume_db = SPOT_DB
+	add_child(p)
+	# Out of step with any other of its kind in the room (its own generator: no other draw moves).
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(at)
+	p.play(r.randf() * s.get_length())
+	Audio.asked[name] = int(Audio.asked.get(name, 0)) + 1
 
 
 ## Large decals flat on the floor (map Stage 04): ribs in the sand, a drain, the tide sigil.

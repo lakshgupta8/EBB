@@ -50,6 +50,15 @@ func test_the_mood_sets_the_stems() -> void:
 	assert_eq(MusicDirector.targets(true, 0.0, true).melody, -6.0, "Tam low: the melody back")
 
 
+func test_the_bed_follows_the_tide() -> void:
+	var out := Audio.bed_gains(0.0)
+	assert_true(out[0] == 1.0 and out[1] == 0.0 and out[2] == 0.0, "tide out: only the dry layer")
+	var low := Audio.bed_gains(1.0)
+	assert_true(low[1] == 1.0 and low[2] == 0.0, "over the low ground: the water in the channels, no flood")
+	var high := Audio.bed_gains(2.5)
+	assert_true(high[2] == 1.0 and high[0] < 0.3, "over the floor: the flood, the dry all but gone")
+
+
 func test_a_score_is_sections_of_stems() -> void:
 	var built := MusicDirector.build({"dir": "res://tests/music/test", "bpm": 120, "bar_beats": 4, "first": "b",
 		"sections": {"a": {"bars": 2, "next": "b"}, "b": {"bars": 2}}})

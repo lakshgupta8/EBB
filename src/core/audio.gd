@@ -244,6 +244,70 @@ func layer(name: String, db: float = -16.0) -> void:
 
 func stop_layer() -> void:
 	_layer.stop()
+	stop_bed()
+
+
+## A place's bed in three layers the tide moves between (audio Stage 11): amb_<place>_dry while
+## the tide is out, _wet as it fills the channels, _flood once it is over the floor. It takes the
+## place of the sea and the place's one layer; a place without the three keeps the old pair.
+const BED_LAYERS := ["dry", "wet", "flood"]
+var _bed: Array = []
+var _bed_place: String = ""
+var _bed_level: float = 0.0
+var bed_db: float = -6.0
+
+
+func bed(place: String) -> void:
+	if _path("amb_%s_dry" % place) == "":
+		stop_bed()
+		ambient("ambient_sea", -14.0)
+		layer("amb_" + place, -15.0)
+		return
+	_ambient.stop()
+	_layer.stop()
+	if place == _bed_place and not _bed.is_empty():
+		return
+	stop_bed()
+	_bed_place = place
+	for k in BED_LAYERS:
+		var name := "amb_%s_%s" % [place, k]
+		asked[name] = int(asked.get(name, 0)) + 1
+		var p := AudioStreamPlayer.new()
+		p.bus = "Ambience"
+		var s := _stream(name)
+		if s == null:
+			continue
+		s = s.duplicate()
+		_loop(s)
+		p.stream = s
+		add_child(p)
+		p.play()
+		_bed.append(p)
+	bed_tide(_bed_level)
+
+
+func stop_bed() -> void:
+	for p in _bed:
+		p.queue_free()
+	_bed.clear()
+	_bed_place = ""
+
+
+## Each layer's share at a tide level (0 out .. 1 over the low ground .. 2 over the floor .. 4).
+static func bed_gains(level: float) -> Array:
+	var dry := 1.0 - 0.8 * smoothstep(0.3, 1.6, level)
+	var wet := smoothstep(0.1, 1.0, level) * (1.0 - 0.5 * smoothstep(1.8, 3.0, level))
+	var flood := smoothstep(1.2, 2.4, level)
+	return [dry, wet, flood]
+
+
+func bed_tide(level: float) -> void:
+	_bed_level = level
+	if _bed.size() != BED_LAYERS.size():
+		return
+	var g := bed_gains(level)
+	for i in _bed.size():
+		_bed[i].volume_db = bed_db + (linear_to_db(g[i]) if g[i] > 0.001 else -80.0)
 
 
 static func _loop(s: AudioStream) -> void:
@@ -323,6 +387,7 @@ func music(name: String, db: float = -8.0) -> void:
 ## How the night is: a fight, the tide's height (0..1), Tam's health (0..1). Scored music only.
 func mood(fight: bool, tide_frac: float, hp_frac: float) -> void:
 	director.mood(fight, tide_frac, hp_frac)
+	bed_tide(tide_frac * 4.0)
 
 
 ## A score's own stems beyond the five, on or off ({"bram": true, ...}): the rock's echoes.

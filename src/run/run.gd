@@ -510,7 +510,7 @@ func _setup_biome(index: int, echo_depths: Array) -> void:
 		night.color = b.tint
 	Atmosphere.set_haze(self, b.theme)
 	Audio.gulls_enabled = b.id in ["flats", "harbour", "reef"]  # the reef is outside the wall, under open sky
-	Audio.layer("amb_" + str(b.id), -15.0)  # what this place sounds like under the sea
+	Audio.bed(str(b.id))  # what this place sounds like, in layers the tide moves between
 	Audio.space(str(b.id))
 	Audio.music(b.music, -11.0)
 	Codex.discover("place", b.place)
