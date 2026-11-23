@@ -143,8 +143,12 @@ static func decode_event(b: PackedByteArray) -> Dictionary:
 	return {"kind": b.decode_u8(1), "a": b.decode_u16(2), "b": b.decode_u16(4), "pos": _get_pos(b, 6)}
 
 
-static func encode_room_enter(epoch: int, type: int, template: String, room_seed: int, wet: bool, biome: int) -> PackedByteArray:
-	var s := template.to_utf8_buffer()
+## The room travels as text (name + rows and directives): generated rooms have no file on the
+## guest. Layout: type u8, epoch u8, type u8, seed u32, wet u8, biome u8, name_len u8, name,
+## text_len u16, text.
+static func encode_room_enter(epoch: int, type: int, p_name: String, text: String, room_seed: int, wet: bool, biome: int) -> PackedByteArray:
+	var n := p_name.to_utf8_buffer().slice(0, 255)
+	var t := text.to_utf8_buffer().slice(0, 65535)
 	var b := PackedByteArray()
 	b.resize(10)
 	b[0] = Msg.ROOM_ENTER
@@ -153,16 +157,27 @@ static func encode_room_enter(epoch: int, type: int, template: String, room_seed
 	b.encode_u32(3, room_seed & 0xFFFFFFFF)
 	b.encode_u8(7, 1 if wet else 0)
 	b.encode_u8(8, biome & 0xFF)
-	b.encode_u8(9, mini(s.size(), 255))
-	b.append_array(s.slice(0, 255))
+	b.encode_u8(9, n.size())
+	b.append_array(n)
+	var len_at := b.size()
+	b.resize(len_at + 2)
+	b.encode_u16(len_at, t.size())
+	b.append_array(t)
 	return b
 
 
 static func decode_room_enter(b: PackedByteArray) -> Dictionary:
-	if not _is(b, Msg.ROOM_ENTER, 10) or b.size() != 10 + int(b[9]):
+	if not _is(b, Msg.ROOM_ENTER, 12):
+		return {}
+	var n := int(b[9])
+	if b.size() < 12 + n:
+		return {}
+	var tl := b.decode_u16(10 + n)
+	if b.size() != 12 + n + tl:
 		return {}
 	return {"epoch": b.decode_u8(1), "type": b.decode_u8(2), "room_seed": b.decode_u32(3),
-			"wet": b.decode_u8(7) == 1, "biome": b.decode_u8(8), "template": b.slice(10).get_string_from_utf8()}
+			"wet": b.decode_u8(7) == 1, "biome": b.decode_u8(8),
+			"name": b.slice(10, 10 + n).get_string_from_utf8(), "text": b.slice(12 + n).get_string_from_utf8()}
 
 
 static func encode_spawn(id: int, kind: int, pos: Vector2, scene_key: String) -> PackedByteArray:
