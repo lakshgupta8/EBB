@@ -77,6 +77,7 @@ func on_room_cleared() -> void:
 		var p: Player = host if i == 0 else ally
 		p.revive(p.health.max_hp / 2)
 		repl.send_event(NetProtocol.Ev.REVIVED, i, 0, p.global_position)
+	repl.send_event(NetProtocol.Ev.CLEARED, 0, 0, host.global_position)
 
 
 ## The tide's damage to the guest's keeper (the run applies it to the host's).
