@@ -184,7 +184,7 @@ func open() -> void:
 	FX.burst(global_position + _interior * 8.0, Color(0.6, 0.85, 1.0), 10, 40.0)
 	var l := Atmosphere.light(self, Atmosphere.COLD, 1.6, 0.4, _interior * 10.0)
 	Atmosphere.breathe(l, 0.34, 0.46, 1.6)
-	Audio.play_at(global_position, "door", 0.05, -4.0)
+	Audio.play_at(global_position, "door_open", 0.05, -4.0)
 
 
 func _physics_process(_delta: float) -> void:

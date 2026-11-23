@@ -125,6 +125,7 @@ func _ready() -> void:
 	sprite.material = ShaderMaterial.new()
 	sprite.material.shader = FLASH_SHADER
 	sprite.play("idle")
+	sprite.frame_changed.connect(_on_frame)
 	hurtbox.hit.connect(_on_hurt)
 	hurtbox.dodged.connect(_on_dodged)
 	hurtbox.shielded.connect(_on_shielded)
@@ -411,6 +412,33 @@ func _recharge(delta: float) -> void:
 	if _recharge_timer >= every:
 		_recharge_timer -= every
 		dash_charges += 1
+
+
+## Steps (audio Stage 10): a foot lands on the walk's first and fourth frames, and sounds of what
+## it lands in: the water's depth first, then the ground of the place. Each surface's level evens
+## out a click against a crunch, and all of them sit well under the fight.
+const STEP_BY_LOOK := {Tiles.Look.FLATS: "sand", Tiles.Look.HUB: "sand", Tiles.Look.HARBOUR: "wood",
+	Tiles.Look.STREETS: "stone", Tiles.Look.DEEP: "stone", Tiles.Look.REEF: "stone"}
+const STEP_DB := {"sand": -4.0, "wood": -1.0, "stone": 0.0, "shallow": -3.0, "deep": -2.0}
+const STEP_LEVEL := -10.0
+
+
+func _on_frame() -> void:
+	if sprite.animation == "walk" and (sprite.frame == 0 or sprite.frame == 3) and not dead:
+		var s := surface()
+		Audio.play("step_" + s, 0.08, STEP_LEVEL + float(STEP_DB[s]), 0)
+
+
+## What Tam is standing on: "deep", "shallow", or the place's ground.
+func surface() -> String:
+	var room := get_tree().get_first_node_in_group("room") as Room
+	if room == null:
+		return "sand"
+	if room.is_deep_at(global_position):
+		return "deep"
+	if room.is_flooded_at(global_position):
+		return "shallow"
+	return STEP_BY_LOOK.get(room.theme, "sand")
 
 
 func _animate(input: Vector2) -> void:

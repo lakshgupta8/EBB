@@ -204,6 +204,7 @@ func _ready() -> void:
 	$HUD.move_child(marks, 0)
 	shop.setup(self)
 	_tide_step = int(floor(state.tide.level))
+	_tide_eighth = int(floor(state.tide.level / TIDE_EIGHTH))
 	EventBus.pickup_collected.connect(_hint_pickup)
 	EventBus.riptided.connect(func(): announcer.hint("riptide"); announcer.pulse(Announcer.SEA_PALE, 0.45, 0.6))
 	EventBus.player_health_changed.connect(_watch_health)
@@ -1186,18 +1187,25 @@ func _boss_intro() -> void:
 		announcer.letterbox(false)
 
 
-## What the water just covered: a flash on the staff, a pulse at the edge, a word.
+## What the water just covered: a flash on the staff, a pulse at the edge, a word. The sea is
+## heard coming in at every eighth of its height (audio Stage 10), and longer at a whole level.
 var _tide_step: int = 0
+var _tide_eighth: int = 0
+const TIDE_EIGHTH := TideSystem.MAX_LEVEL / 8.0
 
 
 func _watch_tide() -> void:
+	var eighth := int(floor(state.tide.level / TIDE_EIGHTH))
 	var step := int(floor(state.tide.level))
+	if eighth > _tide_eighth and step <= _tide_step:
+		Audio.play("tide_rise", 0.03, -4.0)
+	_tide_eighth = maxi(_tide_eighth, eighth)
 	if step <= _tide_step:
 		return
 	_tide_step = step
 	hud.flash_tide()
 	announcer.pulse(Announcer.SEA_PALE, 0.55, 1.0)
-	Audio.play("wave", 0.0, -10.0)
+	Audio.play("tide_mark", 0.0, -2.0)
 	var words := ["", "the tide is over the low ground", "the tide is over the floor", "the tide is over everything"]
 	announcer.toast(words[mini(step, 3)], Announcer.SEA_PALE, 2.8)
 	announcer.hint("tide" if step == 1 else "tide2")
@@ -1263,7 +1271,7 @@ func _set_cleared() -> void:
 		Juice.slowmo(0.3, 0.9)
 		announcer.letterbox(false)
 		announcer.card(str(biome().won), "The way down opens.", 2.8, Announcer.WON_COLOR, true)
-		Audio.play("door", 0.0, 0.0)
+		Audio.play("door_open", 0.0, 0.0)
 	EventBus.room_cleared.emit(room)
 
 
@@ -1292,7 +1300,6 @@ func _on_cage_opened(p: Prop) -> void:
 		return
 	announcer.whisper(str(info.line), str(info.name))
 	room.open_doors()
-	Audio.play("door", 0.05, -4.0)
 
 
 func _on_enemy_died(enemy: Node) -> void:
@@ -1451,6 +1458,7 @@ func _on_fountain(_p: Prop) -> void:
 
 
 func _on_chest(p: Prop) -> void:
+	Audio.play_at(p.global_position, "chest_open", 0.05, -2.0)
 	for i in 3 + int(player.mods.chest_bonus):
 		Pickup.spawn(content, p.global_position + Vector2(0, 8), Pickup.Kind.PEARL)
 	for i in 10:
