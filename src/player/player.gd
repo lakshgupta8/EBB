@@ -77,6 +77,12 @@ var aim_override: Vector2 = Vector2.ZERO
 var net_input: PlayerInput = null
 ## A keeper that another machine drives (the guest's body on the host, puppets on the guest).
 var is_remote: bool = false
+## The weapon this keeper carries regardless of the profile (the guest always has the gaff).
+var forced_weapon: String = ""
+## Sprite tint, so the guest's keeper reads as a different person.
+var body_tint: Color = Color.WHITE
+## A remote keeper fell (the host's own fall goes through EventBus.player_died as before).
+signal downed
 var last_hit_tags: PackedStringArray = []
 var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
@@ -122,13 +128,14 @@ var weapon: Weapon
 
 func _ready() -> void:
 	add_to_group("player")
-	_equip(Game.weapon_id())
+	_equip(forced_weapon if forced_weapon != "" else Game.weapon_id())
 	# The coat is a cosmetic from the Log: a recoloured sheet with the same frames.
 	var sheet: Texture2D = load(KeeperLog.coat_sheet())
 	sprite.sprite_frames = SheetFrames.build(sheet if sheet else SHEET, 24, ANIMS)
 	sprite.material = ShaderMaterial.new()
 	sprite.material.shader = FLASH_SHADER
 	sprite.play("idle")
+	sprite.modulate = body_tint
 	sprite.frame_changed.connect(_on_frame)
 	hurtbox.hit.connect(_on_hurt)
 	hurtbox.dodged.connect(_on_dodged)
@@ -136,7 +143,7 @@ func _ready() -> void:
 	EventBus.room_cleared.connect(_on_room_cleared)
 	EventBus.room_entered.connect(func(_r): first_ready = true)
 	health.died.connect(_on_died)
-	health.changed.connect(func(c, m): EventBus.player_health_changed.emit(c, m))
+	health.changed.connect(func(c, m): if not is_remote: EventBus.player_health_changed.emit(c, m))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	_build_wake()
 	_wet_edge = Sprite2D.new()
@@ -263,6 +270,38 @@ func root(duration: float) -> void:
 
 
 ## Short forward push used by the lunge attack.
+## Of `players`, the nearest living one to `pos` (the nearest of all when everyone is down).
+static func nearest_of(pos: Vector2, players: Array) -> Player:
+	var best: Player = null
+	var best_d := INF
+	var best_dead := true
+	for p in players:
+		var pl := p as Player
+		if pl == null or not is_instance_valid(pl):
+			continue
+		var d := pos.distance_to(pl.global_position if pl.is_inside_tree() else pl.position)
+		if (best_dead and not pl.dead) or ((pl.dead == best_dead) and d < best_d):
+			best = pl
+			best_d = d
+			best_dead = pl.dead
+	return best
+
+
+static func nearest_to(pos: Vector2, tree: SceneTree) -> Player:
+	return nearest_of(pos, tree.get_nodes_in_group("player"))
+
+
+## Stand a fallen keeper up again with `hp` and a second of grace.
+func revive(hp: int) -> void:
+	dead = false
+	health.hp = clampi(hp, 1, health.max_hp)
+	health._iframes = 1.5
+	health.changed.emit(health.hp, health.max_hp)
+	sprite.modulate = body_tint
+	sprite.play("idle")
+	weapon.visible = true
+
+
 func lunge(dir: Vector2, speed: float = 260.0) -> void:
 	_lunge_vel = dir.normalized() * speed
 
@@ -655,4 +694,7 @@ func _on_died() -> void:
 	var tw := create_tween()
 	tw.tween_property(sprite, "modulate", Color(0.45, 0.45, 0.55), 0.8).set_delay(0.7)
 	FX.burst(global_position, Color(0.75, 0.8, 0.95), 14, 60.0)
-	EventBus.player_died.emit()
+	if is_remote:
+		downed.emit()
+	else:
+		EventBus.player_died.emit()

@@ -47,12 +47,15 @@ func _ready() -> void:
 	add_child(s)
 	_vel = Vector2.from_angle(randf() * TAU) * randf_range(40.0, 80.0)
 	_player = get_tree().get_first_node_in_group("player") as Player
+	add_to_group(NetReplicator.GROUP)
 	_room = get_tree().get_first_node_in_group("room") as Room
 	body_entered.connect(_on_body_entered)
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	if Net.state == NetSession.State.IN_COOP:  # net: drift to whichever keeper is nearer
+		_player = Player.nearest_to(global_position, get_tree())
 	var magnet := false
 	if _age > 0.3 and _player and is_instance_valid(_player) and not _player.dead:
 		var to := _player.global_position - global_position
