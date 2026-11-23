@@ -62,10 +62,10 @@ func _ready() -> void:
 
 	var fired := []
 	var t_ask := _d.beats()
-	_d.stinger("ui", -30.0)
-	Audio._last_play.erase("ui")
-	var before := int(Audio.asked.get("ui", 0))
-	while int(Audio.asked.get("ui", 0)) == before:
+	_d.stinger("ui_confirm", -30.0)
+	Audio._last_play.erase("ui_confirm")
+	var before := int(Audio.asked.get("ui_confirm", 0))
+	while int(Audio.asked.get("ui_confirm", 0)) == before:
 		await get_tree().process_frame
 	fired.append(_d.beats())
 	var frac: float = fmod(float(fired[0]), 1.0)

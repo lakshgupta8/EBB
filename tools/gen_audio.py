@@ -15,7 +15,14 @@ SR = 22050
 rng = np.random.default_rng(7)
 
 
+# Clips the game no longer plays (audio Stage 13): the menus' old beeps and each place's one
+# ambience layer, replaced by ui_* and the three tide layers. Still drawn so later seeds hold.
+RETIRED = {"ui", "buy", "page", "pickup", "amb_flats", "amb_harbour", "amb_streets", "amb_hall"}
+
+
 def save(name, data, gain=1.0):
+    if name in RETIRED:
+        return
     data = np.asarray(data, dtype=np.float64) * gain
     peak = np.max(np.abs(data)) or 1.0
     if peak > 0.98:

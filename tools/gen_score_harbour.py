@@ -148,7 +148,7 @@ SPEC = {
 def main():
     if "--preview" not in sys.argv:
         score.build(SPEC)
-    amb = read(os.path.join(ROOT, "assets", "audio", "amb_harbour.ogg"))[1]
+    amb = read(os.path.join(ROOT, "assets", "audio", "amb_harbour_dry.ogg"))[1]
     # The old bed is 22 kHz mono; as stereo at the kit's rate for the preview.
     import numpy as np
     from scipy.signal import resample_poly

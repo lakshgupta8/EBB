@@ -28,7 +28,7 @@ static func voiced(name: String) -> bool:
 			return true
 	return false
 ## Clips that belong to the menus play on the Interface bus, dry (STYLE.md 23.5).
-const INTERFACE := ["ui", "buy", "page", "gift"]
+const INTERFACE := ["gift"]
 ## The reverb of each place on the Space bus (STYLE.md 23.6): room size, damping, wet, pre-delay ms.
 const SPACES := {
 	"rock": [0.25, 0.6, 0.06, 10.0],
@@ -46,7 +46,6 @@ var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
 var _pool2d: Array[AudioStreamPlayer2D] = []
 var _ambient: AudioStreamPlayer
-var _layer: AudioStreamPlayer   # a second bed under the sea: the place itself (M8)
 var _music: AudioStreamPlayer
 var music_name: String = ""
 var _gull_t: float = 0.0
@@ -83,10 +82,6 @@ func _ready() -> void:
 	_ambient.volume_db = -9.0
 	_ambient.bus = "Ambience"
 	add_child(_ambient)
-	_layer = AudioStreamPlayer.new()
-	_layer.volume_db = -16.0
-	_layer.bus = "Ambience"
-	add_child(_layer)
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
 	add_child(_music)
@@ -236,33 +231,14 @@ func stop_ambient() -> void:
 	_ambient.stop()
 
 
-## The second ambience bed: what this place sounds like under the sea (amb_flats,
-## amb_harbour, amb_streets, amb_hall). "" stops it.
-func layer(name: String, db: float = -16.0) -> void:
-	if name == "":
-		_layer.stop()
-		return
-	asked[name] = int(asked.get(name, 0)) + 1
-	var s := _stream(name)
-	if s == null:
-		return
-	_loop(s)
-	if _layer.stream == s and _layer.playing:
-		_layer.volume_db = db
-		return
-	_layer.stream = s
-	_layer.volume_db = db
-	_layer.play()
-
-
+## Stops the place's bed (the sea under it keeps on).
 func stop_layer() -> void:
-	_layer.stop()
 	stop_bed()
 
 
 ## A place's bed in three layers the tide moves between (audio Stage 11): amb_<place>_dry while
 ## the tide is out, _wet as it fills the channels, _flood once it is over the floor. It takes the
-## place of the sea and the place's one layer; a place without the three keeps the old pair.
+## place of the sea; a place without the three has only the sea.
 const BED_LAYERS := ["dry", "wet", "flood"]
 var _bed: Array = []
 var _bed_place: String = ""
@@ -274,10 +250,8 @@ func bed(place: String) -> void:
 	if _path("amb_%s_dry" % place) == "":
 		stop_bed()
 		ambient("ambient_sea", -14.0)
-		layer("amb_" + place, -15.0)
 		return
 	_ambient.stop()
-	_layer.stop()
 	if place == _bed_place and not _bed.is_empty():
 		return
 	stop_bed()

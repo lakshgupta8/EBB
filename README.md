@@ -4,7 +4,7 @@
 
 ![Godot 4.7](https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white)
 ![Windows](https://img.shields.io/badge/platform-Windows-0078d6)
-![Version 1.4.0](https://img.shields.io/badge/version-1.4.0-2a9d8f)
+![Version 1.5.0](https://img.shields.io/badge/version-1.5.0-2a9d8f)
 ![License MIT](https://img.shields.io/badge/license-MIT-lightgrey)
 
 Every night the sea around Marrow Rock pulls back impossibly far and exposes the drowned city of

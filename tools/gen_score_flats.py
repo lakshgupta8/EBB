@@ -14,13 +14,11 @@ right, and drips in the pools; a 64 s loop, -26 LUFS.
 import os
 import sys
 
-import numpy as np
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import score  # noqa: E402
 import synth  # noqa: E402
 from score import chords, roots  # noqa: E402
-from audio_audit import loudness  # noqa: E402
+from audio_audit import read  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -129,35 +127,10 @@ SPEC = {
 }
 
 
-def ambience():
-    """The Flats under the sea bed: wind, waves at no fixed interval, drips in the pools. Rendered
-    3 s long and the tail crossfaded into the head, so the 64 s loop has no seam."""
-    rng = np.random.default_rng(66)
-    secs, fade = 64.0, 3.0
-    n = int((secs + fade) * synth.SR)
-    out = synth.pan(synth.wind(0, secs + fade, 0.6, rng)[:n], -0.1) + synth.pan(synth.wind(0, secs + fade, 0.5, rng)[:n], 0.3)
-    t = rng.uniform(0, 4)
-    while t < secs + fade - 1:
-        x = synth.pan(synth.surf(0, rng.uniform(5, 8), rng.uniform(0.5, 1.0), rng), rng.uniform(-0.7, 0.7))
-        i = int(t * synth.SR)
-        m = min(len(x), n - i)
-        out[i:i + m] += x[:m]
-        t += rng.uniform(6, 12)
-    out += synth.pan(synth.highpass(synth.rain(0, secs + fade, 0.15, rng)[:n], 1200), 0.2) * 0.6
-    k = int(fade * synth.SR)
-    ramp = np.linspace(0, 1, k)[:, None]
-    loop = out[:n - k].copy()
-    loop[:k] = out[n - k:] * (1 - ramp) + out[:k] * ramp
-    integ, _, _ = loudness(synth.SR, loop)
-    return loop * 10 ** ((-26.0 - integ) / 20)
-
-
 def main():
     if "--preview" not in sys.argv:
         score.build(SPEC)
-    amb = ambience()
-    synth.save_ogg("amb_flats", amb, os.path.join(ROOT, "assets", "audio"))
-    print("amb_flats: %.1f LUFS, %.0f s" % (loudness(synth.SR, amb)[0], len(amb) / synth.SR))
+    amb = read(os.path.join(ROOT, "assets", "audio", "amb_flats_dry.ogg"))[1]
     # As heard in the game: the music at -11 dB and the ambience at -15 dB (run.gd).
     score.preview(SPEC, amb * 10 ** ((-15 + 11) / 20))
 

@@ -138,7 +138,6 @@ func _check_music(music: Dictionary) -> void:
 	# The biomes name their own loops in a table, not as literals in a call.
 	for b in Run.BIOMES:
 		music[str(b.music)] = "Run.BIOMES"
-		music[str(b.boss_music)] = "Run.BIOMES"
 	var n := 0
 	var scores := 0
 	var specs: Dictionary = Audio.director.specs

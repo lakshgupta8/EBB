@@ -43,7 +43,7 @@ const BIOMES := [
 		"step": 0, "next": ["harbour", "reef"], "road": "",
 		"echoes": ["bram"], "music": "music_flats", "place": "flats", "whisper": "first_night", "boss_whisper": "wreck",
 		"boss_sfx": "roar", "tint": Palette.NIGHT_TINT_RUN, "wet": GULL,
-		"elite": NETTED, "elite_name": "The Netted", "boss_music": "music_boss",
+		"elite": NETTED, "elite_name": "The Netted",
 		"intro": "Ten rooms down, then the Wreck. The water follows you in.",
 		"boss_sub": "Slams, charges, calls the flats. Break it and the way down opens."},
 	{"id": "harbour", "name": "THE SUNKEN HARBOUR", "dir": "res://data/rooms/harbour/", "length": 9, "theme": Tiles.Look.HARBOUR,
@@ -51,7 +51,7 @@ const BIOMES := [
 		"step": 1, "next": ["streets"], "road": "The harbour road",
 		"echoes": ["pell"], "music": "music_harbour", "place": "harbour", "whisper": "harbour", "boss_whisper": "chainmother",
 		"boss_sfx": "creak", "tint": Palette.NIGHT_TINT_RUN, "wet": BARNACLE,
-		"elite": DECKHAND, "elite_name": "The Bosun", "boss_music": "music_boss",
+		"elite": DECKHAND, "elite_name": "The Bosun",
 		"intro": "Nine rooms down, then the Chainmother. Every ship that tried to leave is still tied up.",
 		"boss_sub": "Sweeps, drops anchors, hauls you in. Break it and the way down opens."},
 	{"id": "streets", "name": "THE DROWNED STREETS", "dir": "res://data/rooms/biome2/", "length": 11, "theme": Tiles.Look.STREETS,
@@ -59,7 +59,7 @@ const BIOMES := [
 		"step": 2, "next": ["hall"], "road": "",
 		"echoes": ["wren", "cartographer"], "music": "music_streets", "place": "streets", "whisper": "streets", "boss_whisper": "bell",
 		"boss_sfx": "bell", "tint": Palette.NIGHT_TINT_RUN, "wet": SWIMMER,
-		"elite": CHOIR, "elite_name": "The Choir", "boss_music": "music_deep",
+		"elite": CHOIR, "elite_name": "The Choir",
 		"intro": "Eleven rooms down, then the Bell. Something is still ringing.",
 		"boss_sub": "It called the sea in. Silence it and the way down opens."},
 	{"id": "hall", "name": "THE DEEP HALL", "dir": "res://data/rooms/biome3/", "length": 9, "theme": Tiles.Look.DEEP,
@@ -67,7 +67,7 @@ const BIOMES := [
 		"step": 3, "next": [], "road": "",
 		"echoes": ["aldous"], "music": "music_hall", "place": "hall", "whisper": "hall", "boss_whisper": "ebb",
 		"boss_sfx": "ebb", "tint": Palette.NIGHT_TINT_RUN, "wet": ANCHOR,
-		"elite": SHADE, "elite_name": "Echo of Maren", "boss_music": "music_deep",
+		"elite": SHADE, "elite_name": "Echo of Maren",
 		"intro": "Nine rooms down, then the Ebb. Every keeper before you is standing in it.",
 		"boss_sub": "Maren is in there with it. Break it, and the night is yours."},
 	# Map Stage 11g: the reef road, the other way from the Flats to the Streets. Its drowned came
@@ -78,7 +78,7 @@ const BIOMES := [
 		"step": 1, "next": ["streets"], "road": "The reef road",
 		"echoes": ["mason"], "music": "music_reef", "place": "reef", "whisper": "reef", "boss_whisper": "tidewall",
 		"boss_sfx": "heavy", "tint": Palette.NIGHT_TINT_RUN, "wet": REEF_RAY,
-		"elite": REEFWARDEN, "elite_name": "The Reefwarden", "boss_music": "music_boss",
+		"elite": REEFWARDEN, "elite_name": "The Reefwarden",
 		"intro": "Nine rooms along the sea wall, then its breach. The water runs here; let it, or fight it.",
 		"boss_sub": "The wall itself. It turns the water; watch which way it runs. Break it and the way into the city opens."},
 ]
@@ -704,11 +704,9 @@ func _enter_room(type: int, wet: bool = false) -> void:
 			_spawn_echo_room()
 		RoomGraph.BOSS:
 			_spawn_boss()
-			# A scored place plays its boss as sections of its own score; the rest, a boss loop.
+			# Every place plays its boss as sections of its own score (audio Stages 06-07).
 			if Audio.director.score_id != "" and Audio.director.spec.sections.has("boss1"):
 				Audio.section("boss1")
-			else:
-				Audio.music(str(biome().boss_music), -9.0)
 			_boss_intro()
 			EventBus.request_shake.emit(0.6)
 			Audio.play(biome().boss_sfx)

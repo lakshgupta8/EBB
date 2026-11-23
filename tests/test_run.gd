@@ -127,7 +127,7 @@ func test_biome_table() -> void:
 		ids[b.id] = true
 		assert_true(DirAccess.dir_exists_absolute(b.dir), "rooms for " + str(b.id))
 		for k in ["name", "length", "theme", "boss", "boss_name", "stir", "echoes", "intro", "music", "place",
-				"whisper", "boss_whisper", "boss_sfx", "tint", "won", "wet", "elite", "elite_name", "boss_music",
+				"whisper", "boss_whisper", "boss_sfx", "tint", "won", "wet", "elite", "elite_name",
 				"step", "next", "road"]:
 			assert_true(b.has(k), "%s has %s" % [b.id, k])
 		assert_true(b.elite is PackedScene and str(b.elite_name) != "", "a named elite for " + str(b.id))

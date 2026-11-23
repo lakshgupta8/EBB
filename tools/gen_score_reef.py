@@ -156,7 +156,7 @@ SPEC = {
 def main():
     if "--preview" not in sys.argv:
         score.build(SPEC)
-    amb = read(os.path.join(ROOT, "assets", "audio", "amb_reef.ogg"))[1]
+    amb = read(os.path.join(ROOT, "assets", "audio", "amb_reef_dry.ogg"))[1]
     amb = resample_poly(amb, 2, 1, axis=0) if len(amb) < 30 * 44100 else amb
     amb = np.repeat(amb, 2, axis=1) if amb.shape[1] == 1 else amb
     score.preview(SPEC, amb * 10 ** ((-15 + 11) / 20))
