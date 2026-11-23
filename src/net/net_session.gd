@@ -34,10 +34,16 @@ var _last_rx: int = 0
 var _next_ping: int = 0
 var _started: int = 0
 var _have_rtt: bool = false
+var _log_next: int = 0
+var _log_started: bool = false
 
 
 func _init() -> void:
 	version = Game.VERSION
+
+
+func _ready() -> void:
+	add_child(NetOverlay.new())  # F3 / F4
 
 
 func _process(_delta: float) -> void:
@@ -159,6 +165,9 @@ func tick() -> void:
 	if transport == null:
 		return  # the pump may have ended the session
 	var now := int(now_ms.call())
+	if "--net-log" in OS.get_cmdline_user_args() and now >= _log_next:
+		_log_next = now + 1000
+		_write_log(now)
 	if state == State.JOINING and now - _started > TIMEOUT_MS:
 		leave("could not connect")
 	elif state in [State.LOBBY, State.IN_COOP, State.IN_PVP]:
@@ -167,6 +176,20 @@ func tick() -> void:
 		elif now >= _next_ping:
 			_next_ping = now + PING_EVERY_MS
 			send_reliable(NetProtocol.encode_ping(now, false))
+
+
+## `--net-log`: one CSV row a second to user://net_stats.csv, for the report's graphs.
+func _write_log(now: int) -> void:
+	var f := FileAccess.open("user://net_stats.csv", FileAccess.READ_WRITE if _log_started else FileAccess.WRITE)
+	if f == null:
+		return
+	if _log_started:
+		f.seek_end()
+	else:
+		f.store_line(transport.stats.csv_header())
+		_log_started = true
+	f.store_line(transport.stats.csv_row(now))
+	f.close()
 
 
 func _open(as_host: bool) -> void:

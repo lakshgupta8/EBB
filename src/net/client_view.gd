@@ -15,6 +15,7 @@ var rooms_entered: int = 0
 ## A duel freezes both keepers during the countdown.
 var frozen: bool = false
 var pvp_states: int = 0
+var _underruns_seen: int = 0
 var pvp_match_over: bool = false
 var pvp_wins: Vector2 = Vector2.ZERO
 var snapshots: int = 0
@@ -110,8 +111,15 @@ func _physics_process(delta: float) -> void:
 	_animate_local(inp)
 	Net.send_unreliable(NetProtocol.encode_inputs(history.last_three()))
 	var render_t := int(_srv_t) - InterpBuffer.DELAY_MS
+	var under := 0
 	for p in puppets.values():
 		p.apply(render_t)
+		under += p.buffer.underruns
+	var st := _stats()
+	if st != null:
+		for i in maxi(0, under - _underruns_seen):
+			st.record_underrun()
+	_underruns_seen = under
 	_refresh_hud()
 
 

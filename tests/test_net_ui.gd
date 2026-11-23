@@ -17,3 +17,14 @@ func test_addresses_skip_loopback_and_link_local() -> void:
 	var a := MpMenu._addresses()
 	assert_true(not a.contains("127.0.0.1"))
 	assert_true(not a.contains("169.254."))
+
+
+func test_overlay_report_text() -> void:
+	var r := {"rtt": 50.4, "jitter": 3.0, "bytes_in": 1800, "bytes_out": 700, "snaps_per_s": 20, "lost": 1,
+			"corrections": 20, "mean_correction": 0.8, "underruns": 2}
+	var text := NetOverlay.format_report(r, {"latency": 80, "jitter": 10, "loss": 0.05})
+	assert_true(text.contains("rtt  50 ms"), text)
+	assert_true(text.contains("1800 B/s"), text)
+	assert_true(text.contains("snap 20/s"), text)
+	assert_true(text.contains("loss 5%"), text)
+	assert_true(NetOverlay.format_report({}, {}).contains("rtt"), "an empty report still renders")
