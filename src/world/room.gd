@@ -272,8 +272,23 @@ func _build_pieces() -> void:
 
 ## Spot sounds (audio Stage 11): what a set piece sounds like, a loop placed at its middle, heard
 ## from about a screen away and louder as Tam nears it. On the Ambience bus, in the place's reverb.
-const PIECE_SOUNDS := {"cairn": "amb_spot_fire", "kelplight": "amb_spot_glow", "wreck": "amb_spot_wreck",
-	"tidepool": "amb_spot_pool", "boat": "amb_spot_boat", "mast": "amb_spot_rigging"}
+const PIECE_SOUNDS := {
+	# the Flats
+	"cairn": "amb_spot_fire", "kelplight": "amb_spot_glow", "wreck": "amb_spot_wreck",
+	"tidepool": "amb_spot_pool", "boat": "amb_spot_boat", "mast": "amb_spot_rigging",
+	# the Harbour
+	"crane": "amb_spot_crane", "lamppost": "amb_spot_lamp", "pier": "amb_spot_piles", "slipway": "amb_spot_piles",
+	"moored": "amb_spot_boat", "buoy": "amb_spot_buoy",
+	# the Streets
+	"well": "amb_spot_well", "tower": "amb_spot_tower", "shrine": "amb_spot_glow", "coldlamp": "amb_spot_glow",
+	"bridge": "amb_spot_pool",
+	# the Hall
+	"altar": "amb_spot_candles", "candles": "amb_spot_candles", "organ": "amb_spot_organ", "font": "amb_spot_pool",
+	"kelpglow": "amb_spot_glow",
+	# the Reef
+	"brainhead": "amb_spot_coral", "staghorn": "amb_spot_coral", "fans": "amb_spot_coral", "ribcoral": "amb_spot_coral",
+	"breach": "amb_spot_breach", "clam": "amb_spot_clam", "glowcoral": "amb_spot_glow", "jelly": "amb_spot_jelly",
+}
 const SPOT_REACH := 360.0
 const SPOT_DB := -2.0
 
