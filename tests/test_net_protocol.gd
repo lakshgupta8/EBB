@@ -125,3 +125,8 @@ func test_refuse_welcome_lobby_round_trip() -> void:
 	assert_true(NetProtocol.decode_refuse(r.slice(0, r.size() - 1)).is_empty())
 	assert_true(NetProtocol.decode_lobby(PackedByteArray([NetProtocol.Msg.LOBBY_STATE])).is_empty())
 	assert_true(NetProtocol.decode_refuse(PackedByteArray()).is_empty())
+
+
+func test_resync_message() -> void:
+	assert_eq(NetProtocol.msg_type(NetProtocol.encode_resync()), NetProtocol.Msg.RESYNC)
+	assert_eq(NetProtocol.encode_resync().size(), 1)

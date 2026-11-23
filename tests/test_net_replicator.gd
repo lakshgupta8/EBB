@@ -83,3 +83,17 @@ func test_revive_on_clear_brings_back_the_fallen() -> void:
 	assert_eq(rules.revive_all(), [1])
 	assert_eq(rules.revive_all(), [], "nobody left to revive")
 	assert_true(not rules.on_down(0), "the guest stands again, so one fall is not the end")
+
+
+func test_forget_all_reannounces_everything() -> void:
+	var r := NetReplicator.new()
+	var e1 := Node2D.new()
+	e1.set_meta("net_kind", NetReplicator.Kind.ENEMY)
+	var live: Array = [e1]
+	r.source = func(): return live
+	assert_eq(r.collect().spawned.size(), 1)
+	assert_eq(r.collect().spawned.size(), 0)
+	r.forget_all()  # a guest that loaded late asks to be told everything again
+	assert_eq(r.collect().spawned.size(), 1)
+	e1.free()
+	r.free()

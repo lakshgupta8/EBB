@@ -90,6 +90,13 @@ func collect() -> Dictionary:
 	return {"entities": ents, "spawned": spawned, "despawned": gone}
 
 
+## Forget what has been announced: the next collect announces everything again (a guest that
+## loaded its scene late asks for this).
+func forget_all() -> void:
+	_ids.clear()
+	_nodes.clear()
+
+
 ## Send one snapshot (and the announcements that go with it) to the guest.
 func flush(host: Player, ally: Player, tick: int, epoch: int, tide_level: float) -> void:
 	var c := collect()

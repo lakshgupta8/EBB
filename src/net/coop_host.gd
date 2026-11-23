@@ -39,11 +39,15 @@ func setup(p_run: Node) -> void:
 	EventBus.damage_dealt.connect(_on_damage)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.pickup_collected.connect(_on_pickup)
+	EventBus.run_ended.connect(_on_run_ended)
+	EventBus.enemy_telegraphed.connect(_on_telegraph)
+	EventBus.boss_beat.connect(_on_boss_beat)
 
 
 func _exit_tree() -> void:
 	for pair in [[Net.message, _on_message], [Net.left, _on_left], [EventBus.damage_dealt, _on_damage],
-			[EventBus.enemy_died, _on_enemy_died], [EventBus.pickup_collected, _on_pickup]]:
+			[EventBus.enemy_died, _on_enemy_died], [EventBus.pickup_collected, _on_pickup], [EventBus.run_ended, _on_run_ended],
+			[EventBus.enemy_telegraphed, _on_telegraph], [EventBus.boss_beat, _on_boss_beat]]:
 		if pair[0].is_connected(pair[1]):
 			pair[0].disconnect(pair[1])
 
@@ -66,10 +70,18 @@ func host_fell() -> bool:
 
 func on_room_entered() -> void:
 	epoch = (epoch + 1) & 0xFF
-	var t: RoomTemplate = run.room.template
-	Net.send_reliable(NetProtocol.encode_room_enter(epoch, run.room_type, t.name, t.to_text(), run._room_seed, run._wet_room, run.state.biome))
+	_send_room()
 	ally.global_position = host.global_position + Vector2(14, 6)
 	ally.velocity = Vector2.ZERO
+
+
+func _send_room() -> void:
+	if run.room == null:
+		return
+	var t: RoomTemplate = run.room.template
+	Net.send_reliable(NetProtocol.encode_room_enter(epoch, run.room_type, t.name, t.to_text(), run._room_seed, run._wet_room, run.state.biome))
+	if run.room_cleared:
+		repl.send_event(NetProtocol.Ev.CLEARED, 0, 0, host.global_position)
 
 
 func on_room_cleared() -> void:
@@ -110,6 +122,9 @@ func _on_fell(i: int) -> void:
 func _on_message(type: int, bytes: PackedByteArray) -> void:
 	if type == NetProtocol.Msg.INPUT:
 		repl.push_input_frames(NetProtocol.decode_inputs(bytes))
+	elif type == NetProtocol.Msg.RESYNC:
+		repl.forget_all()
+		_send_room()
 
 
 ## The guest is gone: the night cannot go on as a shared one. Back to the menu, not recorded.
@@ -135,6 +150,23 @@ func _on_enemy_died(enemy: Node) -> void:
 	var id := _net_id(enemy)
 	if id >= 0 and enemy is Node2D:
 		repl.send_event(NetProtocol.Ev.DEATH, id, 0, enemy.global_position)
+
+
+func _on_telegraph(enemy: Node) -> void:
+	var id := _net_id(enemy)
+	if id >= 0 and enemy is Node2D:
+		repl.send_event(NetProtocol.Ev.TELEGRAPH, id, 0, enemy.global_position)
+
+
+## b: 0 the intro pose, 1 a phase change.
+func _on_boss_beat(enemy: Node, beat: StringName) -> void:
+	var id := _net_id(enemy)
+	if id >= 0 and enemy is Node2D:
+		repl.send_event(NetProtocol.Ev.BOSS_PHASE, id, 1 if beat == &"phase" else 0, enemy.global_position)
+
+
+func _on_run_ended(result: Dictionary) -> void:
+	repl.send_event(NetProtocol.Ev.ROUND_RESULT, 1 if bool(result.get("victory", false)) else 0, 0, host.global_position)
 
 
 func _on_pickup(kind: int, value: int) -> void:

@@ -10,6 +10,9 @@ signal player_died()
 signal flared()
 signal riptided()
 signal player_health_changed(current: int, max_hp: int)
+## An enemy's "dodge now" tell, and a boss's intro / phase-change pose (the guest of a shared night is told).
+signal enemy_telegraphed(enemy: Node)
+signal boss_beat(enemy: Node, beat: StringName)
 
 # Run flow
 signal room_entered(room: Node)

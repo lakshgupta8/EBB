@@ -13,7 +13,7 @@ const SNAPSHOT_HEADER := 10  # type u8, tick u32, ack u16, epoch u8, count u16
 const ENTITY_BYTES := 11     # id u16, kind u8, x i16, y i16, hp u16, anim u8, flags u8
 const INPUT_FRAME_BYTES := 6 # seq u16, mx i8, my i8, aim u8, buttons u8
 
-enum Msg { HELLO = 1, WELCOME, REFUSE, LOBBY_STATE, ROOM_ENTER, SPAWN, DESPAWN, EVENT, PING, PONG, INPUT, SNAPSHOT }
+enum Msg { HELLO = 1, WELCOME, REFUSE, LOBBY_STATE, ROOM_ENTER, SPAWN, DESPAWN, EVENT, PING, PONG, INPUT, SNAPSHOT, RESYNC }
 enum Ev { HIT, DEATH, TELEGRAPH, BOSS_PHASE, PICKUP, ROUND_RESULT, CHOICE_MADE, HOST_CHOOSING, DOWNED, REVIVED, CLEARED }
 
 const BTN_ATTACK := 1
@@ -234,6 +234,11 @@ static func decode_refuse(b: PackedByteArray) -> Dictionary:
 	if not _is(b, Msg.REFUSE, 2) or b.size() != 2 + int(b[1]):
 		return {}
 	return {"reason": b.slice(2).get_string_from_utf8()}
+
+
+## Guest to host: "my scene is up, tell me the room and everything in it again".
+static func encode_resync() -> PackedByteArray:
+	return PackedByteArray([Msg.RESYNC])
 
 
 static func encode_welcome() -> PackedByteArray:

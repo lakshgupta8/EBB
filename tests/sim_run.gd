@@ -41,6 +41,7 @@ var _actives_used: int = 0
 var _fish_eaten: int = 0
 var _resume_ok: bool = true
 var _perf: PerfProbe
+var _mp_port: int = 0  # --mp-host=PORT: host a co-op night and wait for a guest (tests/sim_net_guest.gd)
 ## `--record=PATH [--record-secs=N]`: what the night sounded like, from the Master bus, to a WAV
 ## (audio Stage 06: hearing the score follow a real night). Stops at N seconds or the end.
 var _recording: AudioEffectRecord
@@ -59,6 +60,7 @@ func _ready() -> void:
 		elif a.begins_with("--pause-shot="): _pause_shot_tick = int(a.trim_prefix("--pause-shot="))
 		elif a.begins_with("--weapon="): _weapon = a.trim_prefix("--weapon=")
 		elif a == "--must-win": _must_win = true
+		elif a.begins_with("--mp-host="): _mp_port = int(a.trim_prefix("--mp-host="))
 		elif a.begins_with("--shot-depth="):
 			for d in a.trim_prefix("--shot-depth=").split(","):
 				_shot_depths.append(int(d))
@@ -96,6 +98,9 @@ func _ready() -> void:
 	if "--fish" in OS.get_cmdline_user_args():
 		SaveManager.data["fish"] = ["eel", "broth", "cod"]
 	Game.run_seed = seed_val
+	if _mp_port > 0 and not await _mp_host_wait():
+		get_tree().quit(1)
+		return
 	run = RUN.instantiate()
 	EventBus.room_entered.connect(func(r): _rooms_seen.append(RoomGraph.NAMES[run.room_type] + ":" + r.template.name))
 	EventBus.room_cleared.connect(func(_r):
@@ -153,6 +158,8 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if run == null:
+		return
 	tick += 1
 	if tick == _shot_tick:
 		_screenshot("sim_run.png")
@@ -650,6 +657,28 @@ func _save_recording() -> void:
 		print("sim_run: recorded %.0f s -> %s (%s)" % [clip.get_length(), _record_path, error_string(clip.save_to_wav(_record_path))])
 
 
+## Host a co-op night and wait for the guest bot: connect, both ready, start.
+func _mp_host_wait() -> bool:
+	if Net.host(_mp_port) != OK:
+		print("sim_net_host: could not host on %d" % _mp_port)
+		return false
+	var t0 := Time.get_ticks_msec()
+	while Net.state != NetSession.State.LOBBY:
+		if Time.get_ticks_msec() - t0 > 90000:
+			print("sim_net_host: no guest arrived")
+			return false
+		await get_tree().process_frame
+	Net.set_ready(true)
+	t0 = Time.get_ticks_msec()
+	while not Net.guest_ready:
+		if Time.get_ticks_msec() - t0 > 30000:
+			print("sim_net_host: guest never got ready")
+			return false
+		await get_tree().process_frame
+	print("sim_net_host: guest connected, starting the night")
+	return Net.start_game()
+
+
 func _finish() -> void:
 	# A night takes a breath after it ends (the last drops are collected, the board is
 	# judged, the ledger is written). Quitting on `ended` alone meant the bot never
@@ -664,6 +693,11 @@ func _finish() -> void:
 		float(tick) / 60.0, s.biome, s.depth, s.depth_total, s.rooms_cleared, s.kills, s.salt, s.pearls, s.tide.level,
 		player.health.hp, s.ended, s.victory, s.taken, player.weapon.id, _rescued])
 	print("sim_run: rooms: " + ", ".join(_rooms_seen))
+	if run.coop != null:
+		var ally: Player = run.coop.ally
+		print("sim_net_host: rooms=%d epoch=%d ally_hp=%d ally_dead=%s ally_pos=(%d,%d) acked_seq=%d" % [
+			_rooms_seen.size(), run.coop.epoch, ally.health.hp, ally.dead, int(ally.global_position.x), int(ally.global_position.y), run.coop.repl.ack_seq])
+		print("sim_net_host: stats %s" % [Net.transport.stats.report(Time.get_ticks_msec()) if Net.transport != null else {}])
 	if _perf != null:
 		_perf.report()
 	if _recording:
