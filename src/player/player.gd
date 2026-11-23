@@ -73,6 +73,10 @@ var in_water: bool = false
 var dead: bool = false
 ## Bots and tests set this to steer aim without a mouse. Vector2.ZERO = use the mouse.
 var aim_override: Vector2 = Vector2.ZERO
+## Networking: the guest's keeper on the host takes its intent from the wire, not the devices.
+var net_input: PlayerInput = null
+## A keeper that another machine drives (the guest's body on the host, puppets on the guest).
+var is_remote: bool = false
 var last_hit_tags: PackedStringArray = []
 var glow: float = 0.0
 var riptide_t: float = 0.0  # crit armed while > 0
@@ -263,13 +267,17 @@ func lunge(dir: Vector2, speed: float = 260.0) -> void:
 	_lunge_vel = dir.normalized() * speed
 
 
-func _physics_process(delta: float) -> void:
-	if dead:
-		velocity = velocity.move_toward(Vector2.ZERO, 400.0 * delta)
-		move_and_slide()
-		return
-
+## One tick of intent. A remote keeper (the guest, on the host) takes the network frame;
+## every other keeper reads the devices. Aim lands in `aim` / `aim_dist` either way.
+func _intent() -> PlayerInput:
+	if net_input != null:
+		if net_input.aim != Vector2.ZERO:
+			aim = net_input.aim.normalized()
+		aim_dist = 64.0
+		return net_input
+	var i := PlayerInput.new()
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	i.move = input
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	if aim_override != Vector2.ZERO:
 		aim = aim_override.normalized()
@@ -288,17 +296,35 @@ func _physics_process(delta: float) -> void:
 		aim = aim.normalized() if aim.length() > 0.5 else facing
 	if Settings.assist_aim() and aim_override == Vector2.ZERO:
 		aim = _aim_help(aim)
+	i.aim = aim
+	i.attack_held = Input.is_action_pressed("attack")
+	i.attack_pressed = Input.is_action_just_pressed("attack")
+	i.special_pressed = Input.is_action_just_pressed("special")
+	i.dash_pressed = Input.is_action_just_pressed("dash")
+	i.use_pressed = Input.is_action_just_pressed("use_item")
+	return i
 
-	attack_held = Input.is_action_pressed("attack")
-	if Input.is_action_just_pressed("attack"):
+
+func _physics_process(delta: float) -> void:
+	if dead:
+		velocity = velocity.move_toward(Vector2.ZERO, 400.0 * delta)
+		move_and_slide()
+		if net_input != null:
+			net_input.consume_edges()
+		return
+
+	var inp := _intent()
+	var input := inp.move
+	attack_held = inp.attack_held
+	if inp.attack_pressed:
 		if is_dashing() or _since_dash < LUNGE_WINDOW:
 			weapon.try_lunge()
 		else:
 			weapon.try_attack()
 	weapon.set_held(attack_held)
-	if Input.is_action_just_pressed("special"):
+	if inp.special_pressed:
 		weapon.try_special()
-	if Input.is_action_just_pressed("use_item") and glow_full():
+	if inp.use_pressed and glow_full():
 		flare()
 
 	if is_yanked():
@@ -308,7 +334,7 @@ func _physics_process(delta: float) -> void:
 		velocity = (target - global_position) / delta
 	elif is_dashing():
 		_dash_timer -= delta
-		velocity = _dash_dir * (DASH_DISTANCE * float(mods.dash_dist) * (2.0 if (mods.wet_stride and _dash_wet) else 1.0) / DASH_TIME)
+		velocity = PlayerMotor.dash_velocity(_dash_dir, float(mods.dash_dist) * (2.0 if (mods.wet_stride and _dash_wet) else 1.0))
 		if _dash_timer <= 0.0 and _wake.active:
 			_wake.deactivate()
 	else:
@@ -325,11 +351,11 @@ func _physics_process(delta: float) -> void:
 			if int(rooted_t * 6.0) != int((rooted_t + delta) * 6.0):
 				FX.burst(global_position, Color(0.85, 0.75, 0.55, 0.7), 2, 20.0)
 		else:
-			velocity = input * speed + _knockback + _lunge_vel
+			velocity = PlayerMotor.walk_velocity(input, speed) + _knockback + _lunge_vel
 			if input != Vector2.ZERO:
 				facing = input.normalized()
-		if Input.is_action_just_pressed("dash") and dash_charges > 0:
-			_start_dash(input.normalized() if input != Vector2.ZERO else facing)
+		if inp.dash_pressed and dash_charges > 0:
+			_start_dash(PlayerMotor.dash_direction(input, facing))
 
 	_since_dash = 0.0 if is_dashing() else _since_dash + delta
 	_water_visuals(delta)
@@ -353,6 +379,8 @@ func _physics_process(delta: float) -> void:
 	_recharge(delta)
 	move_and_slide()
 	_animate(input)
+	if net_input != null:
+		net_input.consume_edges()
 
 
 ## Aim help: the aim leans toward the nearest enemy within a narrow cone and a short reach.
