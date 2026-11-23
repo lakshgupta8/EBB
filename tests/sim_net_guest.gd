@@ -15,6 +15,7 @@ var _done: bool = false
 var _reached_coop: bool = false
 var _end_reason: String = ""
 var _pvp: bool = false
+var _samples: Array = []  # one stats report a second, averaged into the summary
 
 
 func _ready() -> void:
@@ -50,6 +51,8 @@ func _physics_process(_delta: float) -> void:
 	if _view == null or _done:
 		return
 	_ticks += 1
+	if _ticks % 60 == 0 and Net.transport != null:
+		_samples.append(Net.transport.stats.report(Time.get_ticks_msec()))
 	if _ticks >= _ticks_to_run or (_pvp and _view.pvp_match_over):
 		_finish()
 
@@ -81,6 +84,16 @@ func _bot(v: ClientView) -> PlayerInput:
 	return i
 
 
+func _mean_of(keys: Array) -> Dictionary:
+	var out := {}
+	for k in keys:
+		var total := 0.0
+		for s in _samples:
+			total += float(s.get(k, 0.0))
+		out[k] = total / float(_samples.size())
+	return out
+
+
 func _finish() -> void:
 	if _done:
 		return
@@ -102,6 +115,10 @@ func _finish() -> void:
 			int(_view.local.global_position.x), int(_view.local.global_position.y), _ticks, _end_reason])
 		if _pvp:
 			print("sim_net_guest: pvp_wins=(%d,%d)" % [int(_view.pvp_wins.x), int(_view.pvp_wins.y)])
+		if not _samples.is_empty():
+			var m := _mean_of(["rtt", "bytes_in", "bytes_out", "snaps_per_s", "corrections", "mean_correction", "underruns", "lost"])
+			print("sim_net_guest: summary rtt=%.1f bytes_in=%.0f bytes_out=%.0f snaps_per_s=%.1f corrections=%.1f mean_correction=%.2f underruns=%.1f lost=%.2f snaps=%d max_error=%.1f rooms=%d" % [
+				m.rtt, m.bytes_in, m.bytes_out, m.snaps_per_s, m.corrections, m.mean_correction, m.underruns, m.lost, _view.snaps, _view.max_error, _view.rooms_entered])
 		if Net.transport != null:
 			print("sim_net_guest: stats %s" % [Net.transport.stats.report(Time.get_ticks_msec())])
 	for f in fails:

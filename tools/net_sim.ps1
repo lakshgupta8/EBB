@@ -1,7 +1,7 @@
 # Co-op integration run: a host bot and a guest bot, two Godot processes, real UDP on loopback.
 #   .\tools\net_sim.ps1 [-Ticks 2400] [-Port 24680] [-NetSim "100,20,0.05"] [-Seed 1234]
 # Exit 0 when the guest bot says OK and neither process printed a script error.
-param([int]$Ticks = 2400, [int]$Port = 24680, [string]$NetSim = "", [int]$Seed = 1234, [string]$Out = "", [string]$Mode = "coop")
+param([int]$Ticks = 2400, [int]$Port = 24680, [string]$NetSim = "", [int]$Seed = 1234, [string]$Out = "", [string]$Mode = "coop", [switch]$GuestOnly)
 . "$PSScriptRoot\godot.ps1"
 $tmp = if ($Out) { $Out } else { Join-Path $env:TEMP "ebb_net_sim" }
 New-Item -ItemType Directory -Force $tmp | Out-Null
@@ -11,7 +11,7 @@ if ($Mode -eq 'pvp') {
     $h = @('--headless', '--path', $ProjectRoot, 'tests/sim_pvp_host.tscn', '--', "--port=$Port", "--max-ticks=$($Ticks * 6)")
     $g = @('--headless', '--path', $ProjectRoot, 'tests/sim_net_guest.tscn', '--', '--connect=127.0.0.1', "--port=$Port", "--ticks=$($Ticks * 6)", '--mode=pvp')
 }
-if ($NetSim) { $h += "--netsim=$NetSim"; $g += "--netsim=$NetSim" }
+if ($NetSim) { $g += "--netsim=$NetSim"; if (-not $GuestOnly) { $h += "--netsim=$NetSim" } }
 $ho = Join-Path $tmp "host.out"
 $go = Join-Path $tmp "guest.out"
 $hp = Start-Process $GodotExe -ArgumentList $h -RedirectStandardOutput $ho -RedirectStandardError "$ho.err" -PassThru -NoNewWindow
