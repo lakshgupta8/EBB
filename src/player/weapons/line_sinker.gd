@@ -238,8 +238,7 @@ func _arm_and_activate(lunge: bool) -> void:
 	hitbox.crit = crit
 	hitbox.damage_mult = arm_mult(_player, false, lunge, crit)
 	hitbox.activate()
-	Audio.play("swing", 0.3, -6.0)
-	Audio.play("stab", 0.4, -8.0)
+	Audio.play("line_crack", 0.06)  # the line's own set (audio Stage 09)
 
 
 func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
@@ -254,7 +253,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		Audio.play("crit", 0.05)
 	else:
-		Audio.play("hit", 0.2, -3.0)
+		Audio.play("line_hit", 0.08, -2.0)
 	if enemy and finisher and not enemy.is_boss and enemy.knockback_resist < 0.9:
 		enemy.pull_to(_player.global_position + _player.aim * 18.0, 0.12)
 		FX.text(enemy.global_position, "HAULED", Color(0.8, 0.9, 1.0))
@@ -273,7 +272,7 @@ func _start_throw() -> void:
 	var wall := get_world_2d().direct_space_state.intersect_ray(ray)
 	if wall:
 		target = wall.position - dir * 6.0
-	Audio.play("hook", 0.1, -4.0)
+	Audio.play("line_throw", 0.06)
 	sinker.visible = true
 	sinker.modulate = Color(1, 1, 1, 1)
 	sinker.global_position = origin + Vector2(0, -8)
@@ -306,7 +305,7 @@ func _land_sinker(at: Vector2) -> void:
 	FX.ring(at, Color(0.7, 0.75, 0.85), _sinker_radius / 30.0)
 	FX.burst(at, Color(0.6, 0.65, 0.75, 0.9), 10, 60.0)
 	EventBus.request_shake.emit(0.35)
-	Audio.play("heavy", 0.1, -6.0)
+	Audio.play("line_sink", 0.08)
 	if caught > 0:
 		FX.text(at + Vector2(0, -14), "SUNK" if caught == 1 else "SUNK x%d" % caught, Color(0.8, 0.85, 0.95))
 		EventBus.request_hitstop.emit(0.05)

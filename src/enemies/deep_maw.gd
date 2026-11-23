@@ -30,7 +30,6 @@ func _enter_state(s: StringName) -> void:
 			sprite.modulate = Color.WHITE
 			FX.burst(global_position, Color(0.5, 0.52, 0.6), 8, 40.0)
 			EventBus.request_shake.emit(0.2)
-			Audio.play_at(global_position, "wake", 0.2, -8.0)
 		&"bite":
 			play("bite")
 			hitbox.activate()

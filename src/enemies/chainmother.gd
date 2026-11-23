@@ -86,7 +86,6 @@ func _enter_state(s: StringName) -> void:
 				_drop_targets.append(player.global_position)
 				if phase == 1:
 					_drop_targets.append(player.global_position + player.velocity * 0.45)
-			Audio.play_at(global_position, "creak", 0.0, -2.0)
 		&"drop":
 			play("attack")
 			velocity = Vector2.ZERO
@@ -118,7 +117,6 @@ func _enter_state(s: StringName) -> void:
 			play("windup")
 			velocity = Vector2.ZERO
 			EventBus.request_shake.emit(0.3)
-			Audio.play_at(global_position, "creak", 0.1, -4.0)
 
 
 func _exit_state(s: StringName) -> void:

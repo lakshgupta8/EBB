@@ -230,7 +230,7 @@ func _arm_and_activate(lunge: bool) -> void:
 	hitbox.damage_mult = arm_mult(_player, false, lunge, crit)
 	hitbox.activate()
 	FX.stab(global_position, pivot.rotation, sprite.flip_v)
-	Audio.play("stab", 0.2, -2.0)
+	Audio.play("knife_stab", 0.06)  # the knife's own set (audio Stage 09)
 
 
 func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
@@ -246,7 +246,7 @@ func _on_hit_landed(target: Hurtbox, info: DamageInfo) -> void:
 		FX.ring(target.global_position, Color(1.0, 0.95, 0.7), 0.8)
 		Audio.play("crit", 0.05)
 	else:
-		Audio.play("hit", 0.2, -4.0 if not finisher else 0.0)
+		Audio.play("knife_cut" if finisher else "knife_hit", 0.08, -2.0)
 	if enemy and finisher:
 		enemy.apply_bleed((4 if _player.mods.bleed else 2) * (2 if aspect == "net_wren" else 1))
 		FX.text(target.global_position, "BLEED", Color(0.95, 0.4, 0.4))
@@ -263,7 +263,7 @@ func _start_throw() -> void:
 	var wall := get_world_2d().direct_space_state.intersect_ray(ray)
 	if wall:
 		target = wall.position - dir * 6.0
-	Audio.play("net", 0.1)
+	Audio.play("knife_net", 0.06)
 	net_sprite.visible = true
 	net_sprite.modulate = Color(1, 1, 1, 1)
 	net_sprite.global_position = origin

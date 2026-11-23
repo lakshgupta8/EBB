@@ -384,14 +384,39 @@ func face(dir_x: float) -> void:
 ## What each kind of enemy sounds like (audio Stage 09, STYLE.md 23 law 2): the tell for each state
 ## that winds up an attack, heard as the state begins and never the same for two enemies, and
 ## what its body is made of, for the layer under every hit and for its death. An enemy not
-## listed yet keeps the old shared death.
+## listed keeps the old shared death.
 const VOICES := {
+	# the Flats
 	"shellback": {"tells": {&"windup": "tell_shellback"}, "material": "shell"},
 	"gull": {"tells": {&"windup": "tell_gull"}, "material": "feather"},
 	"wrack_crab": {"tells": {&"windup": "tell_wrack_crab"}, "material": "shell"},
 	"tidewisp": {"tells": {&"windup": "tell_tidewisp"}, "material": "light"},
 	"netted": {"tells": {&"windup": "tell_netted_swing", &"throw_windup": "tell_netted_throw"}, "material": "flesh"},
 	"wreck": {"tells": {&"slam_windup": "tell_wreck_slam", &"charge_windup": "tell_wreck_charge", &"summon": "tell_wreck_call"}, "material": "wood"},
+	# the Harbour
+	"anchor": {"tells": {&"slam_windup": "tell_anchor_slam", &"chain_windup": "tell_anchor_chain"}, "material": "flesh"},
+	"barnacle": {"tells": {&"windup": "tell_barnacle"}, "material": "shell"},
+	"mooring": {"tells": {&"windup": "tell_mooring"}, "material": "flesh"},
+	"deckhand": {"tells": {&"windup": "tell_deckhand"}, "material": "flesh"},
+	"chainmother": {"tells": {&"sweep_windup": "tell_chainmother_sweep", &"drop_windup": "tell_chainmother_drop", &"haul_windup": "tell_chainmother_haul", &"slam_windup": "tell_chainmother_slam", &"summon": "tell_chainmother_call"}, "material": "metal"},
+	# the Reef
+	"coral_crab": {"tells": {&"windup": "tell_coral_crab"}, "material": "coral"},
+	"polyp_swarm": {"tells": {&"windup": "tell_polyp_swarm"}, "material": "coral"},
+	"reef_ray": {"tells": {&"windup": "tell_reef_ray"}, "material": "flesh"},
+	"reefwarden": {"tells": {&"windup": "tell_reefwarden", &"surge_windup": "tell_reefwarden_surge"}, "material": "metal"},
+	"tidewall": {"tells": {&"slam_windup": "tell_tidewall_slam", &"stone_windup": "tell_tidewall_stone", &"breach_windup": "tell_tidewall_breach", &"turn_windup": "tell_tidewall_turn", &"summon": "tell_tidewall_call"}, "material": "stone"},
+	# the Streets
+	"bell_ringer": {"tells": {&"windup": "tell_bell_ringer"}, "material": "flesh"},
+	"still_citizen": {"tells": {&"windup": "tell_still_citizen"}, "material": "stone"},
+	"swimmer": {"tells": {&"windup": "tell_swimmer"}, "material": "flesh"},
+	"choir": {"tells": {&"windup": "tell_choir"}, "material": "flesh"},
+	"bell": {"tells": {&"toll_windup": "tell_bell_toll", &"swing_windup": "tell_bell_swing", &"peal_windup": "tell_bell_peal"}, "material": "metal"},
+	# the Hall
+	"lamplighter": {"tells": {&"kindle_windup": "tell_lamplighter_kindle", &"throw_windup": "tell_lamplighter_throw"}, "material": "wax"},
+	"tallow": {"tells": {&"windup": "tell_tallow"}, "material": "wax"},
+	"deep_maw": {"tells": {&"windup": "tell_deep_maw"}, "material": "flesh"},
+	"keeper_shade": {"tells": {&"windup": "tell_keeper_shade"}, "material": "water"},
+	"ebb": {"tells": {&"wave_windup": "tell_ebb_wave", &"pull_windup": "tell_ebb_pull", &"slam_windup": "tell_ebb_slam", &"surge_windup": "tell_ebb_surge", &"summon": "tell_ebb_call"}, "material": "water"},
 }
 
 

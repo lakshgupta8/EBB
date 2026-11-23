@@ -101,7 +101,7 @@ func on_dash(dir: Vector2) -> void:
 	var give := 1.0 - _tethered.knockback_resist * 0.8
 	_tethered.pull_to(_tethered.global_position + dir * TETHER_DRAG * give, 0.15)
 	FX.burst(_tethered.global_position, Color(0.8, 0.9, 1.0, 0.8), 5, 40.0)
-	Audio.play("hook", 0.2, -6.0)
+	Audio.play("harpoon_drag", 0.1, -3.0)
 
 
 func _process(delta: float) -> void:
@@ -113,7 +113,7 @@ func _process(delta: float) -> void:
 		_reload_t -= delta
 		if _reload_t <= 0.0:
 			ammo = mag
-			Audio.play("reload", 0.05, -4.0)
+			Audio.play("harpoon_reload", 0.05, -2.0)
 			FX.text(_player.global_position + Vector2(0, -18), "LOADED", Color(0.85, 0.9, 1.0))
 	elif _held and ammo > 0 and _gap_t <= 0.0:
 		_fire(false)
@@ -126,7 +126,7 @@ func _start_reload() -> void:
 	if _reload_t > 0.0:
 		return
 	_reload_t = _reload
-	Audio.play("reload", 0.1, -8.0)
+	Audio.play("harpoon_reload", 0.1, -8.0)
 
 
 func _fire(snap: bool) -> void:
@@ -151,7 +151,7 @@ func _fire(snap: bool) -> void:
 	var tw := create_tween()
 	tw.tween_property(sprite, "position", Vector2(2, 0), 0.12)
 	FX.burst(muzzle, Color(0.9, 0.9, 1.0, 0.8), 3, 30.0)
-	Audio.play("harpoon", 0.12)
+	Audio.play("harpoon_fire", 0.06)  # the gun's own set (audio Stage 09)
 	EventBus.request_shake.emit(0.12)
 	if ammo <= 0:
 		_start_reload()
@@ -166,7 +166,7 @@ func _on_bolt_hit(target: Hurtbox, info: DamageInfo) -> void:
 		FX.text(target.global_position, "CRIT", Color(1.0, 0.95, 0.6))
 		Audio.play_at(target.global_position, "crit", 0.05)
 	else:
-		Audio.play_at(target.global_position, "hit", 0.2, -3.0)
+		Audio.play_at(target.global_position, "harpoon_hit", 0.08, -2.0)
 
 
 # --- tether ----------------------------------------------------------------------
@@ -200,7 +200,7 @@ func _throw_tether() -> void:
 		if d < best:
 			best = d
 			target = e
-	Audio.play("hook", 0.1)
+	Audio.play("harpoon_tether", 0.06)
 	FX.burst(origin + dir * 12.0, Color(0.85, 0.9, 1.0, 0.8), 4, 30.0)
 	if target == null:
 		_tether_cd_total = TETHER_MISS_COOLDOWN

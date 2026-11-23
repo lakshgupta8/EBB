@@ -63,7 +63,7 @@ def role_of(name):
         return "tell"
     if re.match(r"hit_[a-z]+_\d+$", name):
         return "layer"
-    if name.startswith(("die_", "gaff_")):
+    if name.startswith(("die_", "gaff_", "knife_", "harpoon_", "kbell_", "line_", "lantern_")):
         return "combat"
     base = re.sub(r"_\d+$", "", name)
     for r, names in ROLES.items():
