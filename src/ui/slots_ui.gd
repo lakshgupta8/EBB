@@ -23,6 +23,7 @@ func open() -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	_wipe_armed = false
 	get_tree().paused = true
 	visible = true
@@ -35,6 +36,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()
@@ -65,7 +67,7 @@ func pick(n: int) -> void:
 		return
 	Settings.set_value("slot", n)
 	SaveManager.use_slot(n)
-	Audio.play("buy")
+	Audio.play("ui_buy")
 	_wipe_armed = false
 	if _root:
 		_root.queue_free()

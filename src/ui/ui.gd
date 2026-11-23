@@ -222,11 +222,18 @@ static func hint_kind(l: Label, kind: String) -> void:
 
 ## A clickable row. Put labels inside it; it highlights on hover and fires `pressed`.
 ## `edge` paints a family colour as a 2 px left edge (never a full coloured border).
+## The mouse over a row is the cursor stepping to it (audio Stage 12).
+static func _on_row_hover(b: Button) -> void:
+	if not b.disabled:
+		Audio.play("ui_move", 0.02, -3.0, 60)
+
+
 static func row_button(edge: Color = NONE) -> Button:
 	var b := Button.new()
 	b.flat = false
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.mouse_entered.connect(_on_row_hover.bind(b))
 	b.add_theme_stylebox_override("normal", _row_style(0))
 	b.add_theme_stylebox_override("hover", _row_style(1))
 	b.add_theme_stylebox_override("pressed", _row_style(2))
@@ -502,7 +509,7 @@ class Cursor:
 		else:
 			index = wrapi(index + d, 0, buttons.size())
 		apply()
-		Audio.play("ui", 0.0, -14.0)
+		Audio.play("ui_move", 0.02, 0.0)
 
 	func apply() -> void:
 		if _marker == null:

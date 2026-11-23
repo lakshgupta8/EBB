@@ -27,6 +27,7 @@ func open(p: int = 0) -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	page = p
 	get_tree().paused = true
 	visible = true
@@ -39,6 +40,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()
@@ -89,7 +91,7 @@ func set_page(p: int) -> void:
 	if _root:
 		_root.queue_free()
 	_build()
-	Audio.play("ui", 0.0, -12.0)
+	Audio.play("ui_open", 0.03, -8.0)
 
 
 ## Start a mode, or say why not.
@@ -111,7 +113,7 @@ func pick(id: String) -> void:
 				seed_value = randi() % 2147483647 + 1
 				if _seed_edit:
 					_seed_edit.text = str(seed_value)
-	Audio.play("buy")
+	Audio.play("ui_buy")
 	start.emit(id, seed_value)
 	close()
 
@@ -119,7 +121,7 @@ func pick(id: String) -> void:
 func _say(text: String, good: bool) -> void:
 	_hint.text = text
 	UI.hint_kind(_hint, "ok" if good else "bad")
-	Audio.play("ui", 0.0, -6.0)
+	Audio.play("ui_confirm" if good else "ui_refuse")
 
 
 func _build() -> void:

@@ -56,6 +56,7 @@ func toggle() -> void:
 	_open = not _open
 	get_tree().paused = _open
 	visible = _open
+	Audio.play("ui_open" if _open else "ui_back", 0.03, -8.0 if _open else -2.0)
 	if _open and _root == null:
 		_build()
 	if _open:

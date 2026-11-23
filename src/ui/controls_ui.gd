@@ -25,6 +25,7 @@ func open() -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	listening = ""
 	get_tree().paused = true
 	visible = true
@@ -37,6 +38,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	listening = ""
 	get_tree().paused = false
 	visible = false
@@ -91,7 +93,7 @@ func _stop_listen(text: String) -> void:
 	listening = ""
 	_status.text = text
 	UI.hint_kind(_status, "ok")
-	Audio.play("ui", 0.0, -8.0)
+	Audio.play("ui_confirm")
 	_refresh()
 
 
@@ -170,7 +172,7 @@ func _build() -> void:
 		Settings.reset_bindings()
 		_status.text = "back to the keeper's own bindings"
 		UI.hint_kind(_status, "ok")
-		Audio.play("ui", 0.0, -8.0)
+		Audio.play("ui_confirm")
 		_refresh())
 	row.add_child(reset)
 	var leave := UI.text_button("Done   [Esc]")

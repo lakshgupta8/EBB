@@ -128,7 +128,7 @@ func play(name: String, pitch_var: float = 0.0, db: float = 0.0, min_gap_ms: int
 	if s == null:
 		return
 	# A stinger is music (audio Stage 08): the music slider holds it.
-	var bus := "Interface" if name in INTERFACE else ("Music" if name.begins_with("stinger_") else "Effects")
+	var bus := "Interface" if name in INTERFACE or name.begins_with("ui_") else ("Music" if name.begins_with("stinger_") else ("Voice" if name.begins_with("voice_") else "Effects"))
 	for p in _pool:
 		if not p.playing:
 			p.bus = bus

@@ -42,6 +42,7 @@ TARGETS = {
     "layer": ("momentary", -18.0, 2.0),   # a material's body under a weapon's hit (audio Stage 09)
     "world": ("momentary", -18.0, 2.0),
     "interface": ("momentary", -20.0, 2.0),
+    "voice": ("momentary", -20.0, 2.0),      # a syllable of a wordless voice (audio Stage 12)
 }
 PEAK_MAX = -1.0
 
@@ -62,6 +63,10 @@ def role_of(name):
         return "spot"
     if name.startswith("amb") :
         return "ambience"
+    if name.startswith("ui_"):
+        return "interface"
+    if name.startswith("voice_"):
+        return "voice"
     if name.startswith("tell_"):
         return "tell"
     if re.match(r"hit_[a-z]+_\d+$", name):
@@ -293,7 +298,7 @@ def write_sheet(rows, night_seconds, asked):
            "Loudness as the game plays it (mono counts twice). Targets: STYLE.md section 23.</p>"]
     if night_seconds:
         out.append(f"<p>Bot night: {night_seconds / 60:.1f} min. <i>per night</i> = how often the night asked for it.</p>")
-    order = ["music", "stinger", "ambience", "spot", "tell", "combat", "layer", "world", "interface"]
+    order = ["music", "stinger", "ambience", "spot", "tell", "combat", "layer", "world", "interface", "voice"]
     for role in order:
         rs = [r for r in rows if r["role"] == role]
         if not rs:

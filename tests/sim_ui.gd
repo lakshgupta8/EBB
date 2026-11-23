@@ -208,8 +208,10 @@ func _ready() -> void:
 	# M8: the controls page rebinds by pressing a key; another action takes the old one.
 	await _key(KEY_5)
 	_check(title.settings_ui.is_open, "5 opens settings")
+	# Sound, then Screen, then Play (audio Stage 02 put the Sound page first).
 	await _key(KEY_TAB)
-	_check(title.settings_ui.page == 1, "Tab turns to the play page")
+	await _key(KEY_TAB)
+	_check(title.settings_ui.page == 2, "Tab twice turns to the play page")
 	await _key(KEY_9)
 	_check(title.settings_ui._controls.is_open and not title.settings_ui.is_open, "the last row opens the controls page")
 	await _key(KEY_5)

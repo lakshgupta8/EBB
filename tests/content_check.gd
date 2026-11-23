@@ -96,6 +96,8 @@ func _check_sounds(sounds: Dictionary) -> void:
 			sounds["die_" + v.material] = "Enemy.VOICES." + id
 	for surface in Player.STEP_DB:
 		sounds["step_" + surface] = "Player.STEP_DB"
+	for who in Prop.PORTRAIT:  # each person's wordless voice (TalkUI)
+		sounds["voice_" + who] = "Prop.PORTRAIT." + who
 	for piece in Room.PIECE_SOUNDS:
 		sounds[Room.PIECE_SOUNDS[piece]] = "Room.PIECE_SOUNDS." + piece
 	for b in Run.BIOMES:  # a place with a bed in layers has all three (Audio.bed)

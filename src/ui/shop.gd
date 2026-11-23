@@ -42,6 +42,7 @@ func open() -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	get_tree().paused = true
 	visible = true
 	if _root:
@@ -53,6 +54,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()
@@ -90,6 +92,7 @@ func buy(i: int) -> bool:
 		if _hint:
 			_hint.text = "not enough salt" if _stock[i] > 0 else "sold out"
 			UI.hint_kind(_hint, "bad")
+		Audio.play("ui_refuse")
 		return false
 	var it: Dictionary = ITEMS[i]
 	_run.state.salt -= _price(i)
@@ -107,7 +110,7 @@ func buy(i: int) -> bool:
 			p.dash_charges = p.max_dash
 		"oil": p.add_glow(60.0)
 	FX.burst(p.global_position, Color(0.98, 0.85, 0.45), 8, 40.0)
-	Audio.play("buy")
+	Audio.play("ui_buy")
 	_refresh()
 	if _hint:
 		_hint.text = "bought %s" % it.name.to_lower()

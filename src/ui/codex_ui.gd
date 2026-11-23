@@ -25,6 +25,7 @@ func open(tab: int = 0) -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	_tab = clampi(tab, 0, Codex.TABS.size() - 1)
 	get_tree().paused = true
 	visible = true
@@ -37,6 +38,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()

@@ -36,6 +36,7 @@ func open() -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	get_tree().paused = true
 	visible = true
 	if _root:
@@ -47,6 +48,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()
@@ -85,11 +87,12 @@ func _buy(i: int) -> void:
 	if Ledger.buy(u.id):
 		_hint.text = "%s  tier %d" % [u.name.to_lower(), Ledger.tier(u.id)]
 		UI.hint_kind(_hint, "ok")
-		Audio.play("buy")
+		Audio.play("ui_buy")
 	else:
 		var why := Ledger.locked_reason(u.id)
 		_hint.text = "already complete" if Ledger.next_cost(u.id) < 0 else (why if why != "" else "not enough pearls")
 		UI.hint_kind(_hint, "bad")
+		Audio.play("ui_refuse")
 	_refresh()
 
 
@@ -217,7 +220,7 @@ func _cycle_tide() -> void:
 	var t := (int(SaveManager.data.get("tide_tier", 0)) + 1) % (unlocked + 1)
 	SaveManager.data["tide_tier"] = t
 	SaveManager.save_profile()
-	Audio.play("ui", 0.0, -8.0)
+	Audio.play("ui_move")
 	_hint.text = "calm water tonight" if t == 0 else "spring tide %d: %s" % [t, str(Run.TIERS[t - 1].name).to_lower()]
 	UI.hint_kind(_hint, "accent")
 	_refresh()

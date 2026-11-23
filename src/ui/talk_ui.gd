@@ -18,6 +18,12 @@ var _text: Label
 var _name: Label
 var _hint: Label
 var _portrait: TextureRect
+## The speaker's wordless voice (audio Stage 12): a syllable every few letters as the line types,
+## the pace each person's own. Not when a line is shown whole.
+const VOICE_EVERY := {"bram": 4, "wren": 3, "nessa": 3, "aldous": 6, "mason": 6, "maren": 5, "choir": 7, "pell": 4}
+const VOICE_DB := -10.0
+var _who: String = ""
+var _since: int = 0
 
 
 func _ready() -> void:
@@ -31,6 +37,7 @@ func talk(who: String, name: String, lines: Array, seen: bool = false) -> void:
 	if is_open or lines.is_empty():
 		return
 	is_open = true
+	_who = who
 	_lines = lines
 	_line = -1
 	_seen_before = seen
@@ -100,6 +107,7 @@ func _next() -> void:
 		return
 	_shown = 0
 	_acc = 0.0
+	_since = 99  # the first letter speaks
 	_text.text = ""
 	_hint.text = ""
 	if Settings.dialog_speed() <= 0.0 or (_seen_before and Settings.skip_seen()):
@@ -123,6 +131,11 @@ func _process(delta: float) -> void:
 	while _acc >= 1.0 and _shown < full.length():
 		_acc -= 1.0
 		_shown += 1
+		if full[_shown - 1] != " ":
+			_since += 1
+			if _since >= int(VOICE_EVERY.get(_who, 4)):
+				_since = 0
+				Audio.play("voice_" + _who, 0.03, VOICE_DB, 0)
 	_text.text = full.substr(0, _shown)
 	if _shown >= full.length():
 		_show_hint()

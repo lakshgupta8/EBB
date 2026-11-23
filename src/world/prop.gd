@@ -239,5 +239,5 @@ func _process(delta: float) -> void:
 			mark_used()
 		else:
 			_prompt.visible = false
-		Audio.play("ui", 0.0, -6.0)
+		Audio.play("ui_confirm", 0.0, -4.0)
 		used.emit(self)

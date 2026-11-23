@@ -65,6 +65,7 @@ func open() -> void:
 	if is_open:
 		return
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	get_tree().paused = true
 	visible = true
 	if _root:
@@ -76,6 +77,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()
@@ -117,7 +119,7 @@ func set_page(p: int) -> void:
 	if _root:
 		_root.queue_free()
 	_build()
-	Audio.play("ui", 0.0, -12.0)
+	Audio.play("ui_open", 0.03, -8.0)
 
 
 ## Step a row: volumes by 10%, shake off / low / full, booleans flip, choices cycle.
@@ -146,7 +148,7 @@ func _step(i: int, dir: int) -> void:
 			_cycle(r.key, [1.0, 0.75, 0.5], float(v), dir, 0)
 		"tint":
 			_cycle(r.key, Settings.WATER_TINTS.keys(), str(v), dir, 0)
-	Audio.play("ui", 0.0, -8.0)
+	Audio.play("ui_move")
 	_refresh()
 
 

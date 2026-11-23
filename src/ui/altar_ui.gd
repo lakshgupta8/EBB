@@ -25,6 +25,7 @@ func open(p_offers: Array, p_rerolls: int = 0) -> void:
 	offers = p_offers
 	rerolls = p_rerolls
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	get_tree().paused = true
 	visible = true
 	if _root:

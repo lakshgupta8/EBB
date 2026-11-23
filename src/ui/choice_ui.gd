@@ -33,6 +33,7 @@ func open(title: String, line: String, options: Array, selected: int, accent: Co
 	_accent = accent
 	_handler = handler
 	is_open = true
+	Audio.play("ui_open", 0.03, -8.0)
 	get_tree().paused = true
 	visible = true
 	if _root:
@@ -44,6 +45,7 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
+	Audio.play("ui_back", 0.02, -2.0)
 	get_tree().paused = false
 	visible = false
 	closed.emit()
@@ -71,12 +73,12 @@ func _pick(i: int) -> void:
 	if hint == "":
 		_hint.text = str(_options[i].get("fail", "not now"))
 		UI.hint_kind(_hint, "bad")
-		Audio.play("ui", 0.0, -6.0)
+		Audio.play("ui_refuse")
 		return
 	_selected = i
 	_hint.text = hint
 	UI.hint_kind(_hint, "ok")
-	Audio.play("buy")
+	Audio.play("ui_buy")
 	_refresh()
 
 

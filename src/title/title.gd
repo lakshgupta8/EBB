@@ -231,10 +231,12 @@ func _build_menu() -> void:
 	]
 	for i in items.size():
 		var b := _menu_button(items[i][0], i + 1)
+		b.pressed.connect(func(): Audio.play("ui_confirm"))
 		b.pressed.connect(items[i][1])
 		b.mouse_entered.connect(func():
 			if _cursor.index != i:
 				_cursor.index = i
+				Audio.play("ui_move", 0.02, -3.0, 60)
 				_apply_cursor())
 		_box.add_child(b)
 		_buttons.append(b)
