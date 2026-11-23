@@ -55,10 +55,14 @@ func test_event_room_enter_spawn_ping_round_trip() -> void:
 	assert_eq(e.a, 7)
 	assert_eq(e.b, 2)
 	assert_near(e.pos.x, 10.0, 0.5)
-	var r := NetProtocol.decode_room_enter(NetProtocol.encode_room_enter(5, 2, "arena_a", 987654321, true, 3))
+	var long_text := "#".repeat(60) + "
+"
+	long_text = long_text.repeat(60)  # 3660 bytes: well past one byte of length
+	var r := NetProtocol.decode_room_enter(NetProtocol.encode_room_enter(5, 2, "arena_a", long_text, 987654321, true, 3))
 	assert_eq(r.epoch, 5)
 	assert_eq(r.type, 2)
-	assert_eq(r.template, "arena_a")
+	assert_eq(r.name, "arena_a")
+	assert_eq(r.text, long_text)
 	assert_eq(r.room_seed, 987654321)
 	assert_eq(r.wet, true)
 	assert_eq(r.biome, 3)
@@ -84,7 +88,7 @@ func test_truncated_and_garbage_decode_to_empty() -> void:
 		"hello": NetProtocol.encode_hello("1.4.0"),
 		"snap": NetProtocol.encode_snapshot(9, 9, 1, [{"id": 1, "kind": 0, "pos": Vector2(1, 1), "hp": 1, "anim": 0, "flags": 0}]),
 		"event": NetProtocol.encode_event(0, 1, 2, Vector2.ZERO),
-		"room": NetProtocol.encode_room_enter(1, 0, "t", 5, false, 0),
+		"room": NetProtocol.encode_room_enter(1, 0, "t", "txt", 5, false, 0),
 		"spawn": NetProtocol.encode_spawn(1, 1, Vector2.ZERO, "gull"),
 		"despawn": NetProtocol.encode_despawn(1),
 		"ping": NetProtocol.encode_ping(1, false),

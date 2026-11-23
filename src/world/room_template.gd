@@ -84,6 +84,16 @@ func _current(line: String) -> void:
 	currents.append(pts)
 
 
+## The room as text, in the format `parse` reads: the rows, then the `@` and `~` lines. It is how a
+## generated room crosses the network (the guest has no file for it).
+func to_text() -> String:
+	var lines: PackedStringArray = rows.duplicate()
+	lines.append_array(directives)
+	return "
+".join(lines) + "
+"
+
+
 static func load_file(path: String) -> RoomTemplate:
 	var text := FileAccess.get_file_as_string(path)
 	return parse(text, path.get_file().get_basename())
