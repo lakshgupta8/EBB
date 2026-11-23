@@ -48,7 +48,7 @@ func _ready() -> void:
 ## Every literal Audio.play("x") / Audio.music("x") / Audio.ambient("x") / Story.whisper("x")
 ## in the source, with the file that asked for it.
 func _scan_source(sounds: Dictionary, music: Dictionary, whispers: Dictionary) -> void:
-	var play := RegEx.create_from_string('Audio\\.play(?:_at)?\\((?:[^"\\n]*, )?"([a-z0-9_]+)"')
+	var play := RegEx.create_from_string('Audio\\.play(?:_at|_loop)?\\((?:[^"\\n]*, )?"([a-z0-9_]+)"')
 	var mus := RegEx.create_from_string('Audio\\.(?:music|ambient)\\("([a-z0-9_]+)"')
 	var whis := RegEx.create_from_string('_whisper\\("([a-z0-9_]+)"')
 	for dir in SRC_DIRS:

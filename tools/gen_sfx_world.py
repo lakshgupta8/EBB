@@ -165,6 +165,59 @@ def drip(rng):
     return plink + clicks([0.0], n, 3000, rng, ratios=(1.0, 2.1), t60=0.004, amp=0.2)
 
 
+# ============================================================================= the rest (Stage 10)
+def step_cobble(rng):    # the Streets: a heel on a rounded stone, the next one rocking in its bed
+    n = n_of(0.22)
+    tap = clicks([0.0], n, rng.uniform(1300, 1700), rng, ratios=(1.0, 2.3, 3.8), t60=0.018, amp=0.8)
+    rock = clicks([rng.uniform(0.03, 0.05)], n, rng.uniform(700, 900), rng, ratios=(1.0, 2.6), t60=0.02, amp=0.35)
+    grit = bandpass(rng.normal(0, 1, n), 1500, 6000) * env(n, 0.005, r=0.08) * decay(n, 0.05) * 0.35
+    return tap + rock + grit + thump(n, 95, 0.03, rng) * 0.5
+
+
+def step_coral(rng):     # the Reef: dead coral crunching, brittle and many-voiced
+    n = n_of(0.24)
+    crunch = clicks(np.sort(rng.gamma(1.5, 0.012, 9)), n, rng.uniform(2200, 3000), rng, ratios=(1.0, 3.1, 6.3), t60=0.01, amp=0.35)
+    return crunch + grains(n, rng, 25, 2500, 8000, 0.03) * 0.6 + thump(n, 85, 0.03, rng) * 0.4
+
+
+def current(rng):        # the water running in a channel round Tam's legs: a loop, seamless
+    n = n_of(6.0)
+    tt = secs(n)
+    flow = rush(n, rng, 250, 2600) * (1 + 0.25 * np.sin(2 * np.pi * tt / 3.0))
+    burble = bubbles(n, np.sort(rng.uniform(0, 6.0, 40)), rng, 300, 900, 0.05) * 0.35
+    low = lowpass(rng.normal(0, 1, n), 180) * 0.6
+    return flow + burble + low
+
+
+def coral_cut(rng):      # living coral opening a leg: a quick rasp and a sting
+    n = n_of(0.3)
+    rasp = bandpass(rng.normal(0, 1, n), 2500, 9000) * np.abs(np.sin(2 * np.pi * 45 * secs(n))) * decay(n, 0.08)
+    return rasp + clicks(np.sort(rng.uniform(0, 0.05, 4)), n, 3200, rng, ratios=(1.0, 3.1), t60=0.008, amp=0.4)
+
+
+def fountain(rng):       # cupped hands in the fountain: water lifted and drunk, the basin ringing
+    n = n_of(1.2)
+    scoop = rush(n_of(0.4), rng, 400, 4000, env(n_of(0.4), 0.05, r=0.2))
+    out = at(np.zeros(n), scoop, 0.0)
+    at(out, bubbles(n_of(0.6), np.sort(rng.uniform(0, 0.4, 8)), rng, 400, 1000, 0.05) * 0.6, 0.25)
+    return at(out, fit(inst("glass", "E5", 1.0, 0.35, rng), n_of(0.9)), 0.3)
+
+
+def vault_open(rng):     # the vault's door swung on old iron, a bolt drawn, the hoard shifting
+    n = n_of(1.8)
+    bolt = clang(rng.uniform(380, 430), n_of(0.4), rng, 0.2)
+    groan = creak(n_of(1.0), 30, 70, rng, (120, 260, 600, 1300), 30) * env(n_of(1.0), 0.1, r=0.2) * 0.8
+    out = at(np.zeros(n), bolt, 0.0)
+    at(out, groan, 0.25)
+    return at(out, clicks(np.sort(rng.uniform(0, 0.5, 16)), n_of(0.6), 3600, rng, ratios=(1.0, 2.3, 3.9), t60=0.04, amp=0.25), 1.15)
+
+
+def vault_locked(rng):   # the bolt tried and holding: a rattle and a dead knock
+    n = n_of(0.5)
+    rattle = clicks([0.0, 0.06, 0.11], n, 900, rng, ratios=(1.0, 2.7, 5.2), t60=0.04, amp=0.8)
+    return rattle + at(np.zeros(n), thump(n_of(0.3), 90, 0.06, rng), 0.16)
+
+
 SOUNDS = [  # (name, fn, role, variants)
     ("step_sand", step_sand, "world", 6), ("step_wood", step_wood, "world", 6), ("step_stone", step_stone, "world", 6),
     ("step_shallow", step_shallow, "world", 6), ("step_deep", step_deep, "world", 4),
@@ -173,10 +226,30 @@ SOUNDS = [  # (name, fn, role, variants)
     ("pick_salt", pick_salt, "world", 4), ("pick_pearl", pick_pearl, "world", 3), ("pick_key", pick_key, "world", 1),
     ("pick_page", pick_page, "world", 2), ("pick_glass", pick_glass, "world", 1), ("pick_shell", pick_shell, "world", 2),
     ("pick_fish", pick_fish, "world", 2), ("drip", drip, "world", 4),
+    ("step_cobble", step_cobble, "world", 6), ("step_coral", step_coral, "world", 6),
+    ("coral_cut", coral_cut, "world", 3), ("fountain", fountain, "world", 1),
+    ("vault_open", vault_open, "world", 1), ("vault_locked", vault_locked, "world", 1),
 ]
 
 
-STEP_DB = {"sand": -4.0, "wood": -1.0, "stone": 0.0, "shallow": -3.0, "deep": -2.0}  # as Player.STEP_DB
+def current_loop():
+    """The current as an Ogg loop (played held, its volume ridden by how hard the water carries):
+    the tail crossfaded into the head so it has no seam."""
+    rng = np.random.default_rng(77)
+    x = current(rng)
+    k = n_of(1.0)
+    head = x[:k].copy()
+    w = np.linspace(0, 1, k)
+    x = x[k:]
+    x[-k:] = x[-k:] * (1 - w) + head * w
+    x = x - x.mean()
+    x = x / np.abs(x).max() * 0.5
+    _, mom, _ = c.loudness(SR, x[:, None])
+    x = x * 10 ** ((-18.0 - mom) / 20)  # the World level; the game rides it down
+    synth.save_ogg("current", np.stack([x, x], axis=1), c.OUT)
+
+
+STEP_DB = {"sand": -4.0, "wood": -1.0, "stone": 0.0, "cobble": 0.0, "coral": -4.0, "shallow": -3.0, "deep": -2.0}  # as Player.STEP_DB
 REF = os.path.join(c.ROOT, "assets", "reference", "audio", "world")
 
 
@@ -221,6 +294,8 @@ def main():
         for name, fn, role, k in SOUNDS:
             if not only or any(name.startswith(o) for o in only):
                 c.variants(name, fn, role, k, seed=10)
+        if not only or "current" in only:
+            current_loop()
         print("world sounds written")
     sheet()
 

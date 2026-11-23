@@ -498,8 +498,8 @@ func _recharge(delta: float) -> void:
 ## it lands in: the water's depth first, then the ground of the place. Each surface's level evens
 ## out a click against a crunch, and all of them sit well under the fight.
 const STEP_BY_LOOK := {Tiles.Look.FLATS: "sand", Tiles.Look.HUB: "sand", Tiles.Look.HARBOUR: "wood",
-	Tiles.Look.STREETS: "stone", Tiles.Look.DEEP: "stone", Tiles.Look.REEF: "stone"}
-const STEP_DB := {"sand": -4.0, "wood": -1.0, "stone": 0.0, "shallow": -3.0, "deep": -2.0}
+	Tiles.Look.STREETS: "cobble", Tiles.Look.DEEP: "stone", Tiles.Look.REEF: "coral"}
+const STEP_DB := {"sand": -4.0, "wood": -1.0, "stone": 0.0, "cobble": 0.0, "coral": -4.0, "shallow": -3.0, "deep": -2.0}
 const STEP_LEVEL := -10.0
 
 

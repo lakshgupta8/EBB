@@ -402,10 +402,32 @@ func _apply_water(delta: float) -> void:
 		_deep_tick = 0.0
 
 
+## The water running round Tam's legs (audio Stage 10): one held loop, louder the harder the
+## current carries, gone in still water and on dry ground.
+var _current_sound: AudioStreamPlayer
+const CURRENT_QUIET := -40.0
+const CURRENT_LOUD := -6.0
+
+
+func _ride_current(delta: float) -> void:
+	var push := room.current.push_at(player.global_position).length() if room.current != null and not player.dead else 0.0
+	if _current_sound == null:
+		if push <= 0.0:
+			return  # no water has run yet tonight
+		_current_sound = Audio.play_loop("current")
+		tree_exiting.connect(_current_sound.queue_free)
+	var k := clampf(push / Current.DEEP_PUSH, 0.0, 1.0)
+	var want := lerpf(CURRENT_QUIET, CURRENT_LOUD, sqrt(k)) if k > 0.0 else -80.0
+	_current_sound.volume_db = move_toward(_current_sound.volume_db, want, 60.0 * delta)
+
+
 ## Map Stage 11e: the Reef's current carries Tam and every drowned that walks; living coral cuts
 ## whoever it carries across it (Room.current, Current).
 func _apply_current(delta: float) -> void:
-	if room == null or room.current == null or player.dead:
+	if room == null:
+		return
+	_ride_current(delta)
+	if room.current == null or player.dead:
 		return
 	room.carry(player, delta * float(player.mods.current_mult))  # Hale's footing halves it
 	if room.current.cuts_at(player.global_position):
@@ -413,6 +435,7 @@ func _apply_current(delta: float) -> void:
 		_whisper("coral_cut", 0.2)   # once ever: what the living coral is
 		if _cut_tick >= CUT_TICK:
 			_cut_tick = 0.0
+			Audio.play("coral_cut", 0.08, -2.0)
 			var info := DamageInfo.make(CUT_DAMAGE, null, Vector2.ZERO, 0.0)
 			info.tags = PackedStringArray(["coral"])
 			info.hitstop = 0.0
@@ -805,7 +828,7 @@ func _end_challenge() -> void:
 func _on_vault(p: Prop) -> void:
 	if state.keys <= 0:
 		FX.text(p.global_position + Vector2(0, -16), "LOCKED: NO KEY", Color(0.9, 0.8, 0.6))
-		Audio.play("reload", 0.0, -6.0)
+		Audio.play_at(p.global_position, "vault_locked", 0.05, -2.0)
 		return
 	state.keys -= 1
 	EventBus.keys_changed.emit(state.keys)
@@ -818,7 +841,8 @@ func _on_vault(p: Prop) -> void:
 	state.count("vaults")
 	SaveManager.count("vaults")
 	FX.burst(p.global_position, Color(0.95, 0.85, 0.5), 20, 90.0)
-	Audio.play("altar")
+	Audio.play_at(p.global_position, "vault_open", 0.0, 0.0)
+	Audio.play("altar", 0.0, -4.0)
 	_offer_marks(3, str(SaveManager.data.get("blessed_family", "")))
 
 
@@ -1452,7 +1476,8 @@ func _on_tidemark_chosen(id: String) -> void:
 	Audio.play("altar")
 
 
-func _on_fountain(_p: Prop) -> void:
+func _on_fountain(p: Prop) -> void:
+	Audio.play_at(p.global_position, "fountain", 0.03, -2.0)
 	var amount := player.health.max_hp if state.full_fountain else 35
 	if state.tier >= 4:
 		amount = amount / 2

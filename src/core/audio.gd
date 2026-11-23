@@ -158,6 +158,22 @@ func _admit(name: String, min_gap_ms: int) -> bool:
 
 ## A clip heard from where it happens: panned and fading with its distance from the camera.
 ## When every placed voice is busy it takes the least important; a tell is never taken.
+## A clip looped and held by the caller, who rides its volume and stops it (audio Stage 10: the
+## Reef's current round Tam's legs). Starts silent.
+func play_loop(name: String, bus: String = "Effects") -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.bus = bus
+	p.volume_db = -80.0
+	var s := _stream(name)
+	if s is AudioStreamOggVorbis:
+		s = s.duplicate()
+		s.loop = true
+	p.stream = s
+	add_child(p)
+	p.play()
+	return p
+
+
 func play_at(pos: Vector2, name: String, pitch_var: float = 0.0, db: float = 0.0, min_gap_ms: int = 35) -> void:
 	var cam := get_viewport().get_camera_2d()
 	if cam == null:
