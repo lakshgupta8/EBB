@@ -14,6 +14,7 @@ const DEFAULTS := {
 	"ambience": 1.0,   # these three start at the old sound volume when the file has none
 	"interface": 1.0,
 	"voice": 1.0,
+	"mono": false,     # both speakers the same (audio Stage 13): one ear, one speaker, a phone
 	"shake": 1.0,      # 0 off, 0.5 low, 1 full
 	"flash": true,     # full-screen flashes (riptide, rescues, the flare)
 	"fullscreen": true,
@@ -90,6 +91,15 @@ func _ready() -> void:
 
 ## The mix (STYLE.md 23.5): the music ducks on its own amplifier; effects, ambience and
 ## voices share the place's reverb on Space; the interface is dry.
+## The mix's own balance under the sliders (audio Stage 13, STYLE.md 23.5): a full slider is this
+## many dB on its bus, set from whole bot nights in every place.
+const TRIM := {"Music": 4.0, "Effects": -8.0, "Ambience": -3.0}
+## The Master's last word: both speakers made one when asked (the stereo enhancer with no side
+## left), then a hard limit a decibel under full scale so a pile of blows never clips.
+const MONO_FX := 0
+const LIMIT_FX := 1
+const CEILING_DB := -1.0
+
 const BUSES := [["Music", "Master"], ["Space", "Master"], ["Effects", "Space"], ["Ambience", "Space"],
 	["Interface", "Master"], ["Voice", "Space"]]
 
@@ -113,6 +123,14 @@ func _make_buses() -> void:
 				AudioServer.add_bus_effect(i, r)
 	for pair in BUSES:
 		AudioServer.set_bus_send(AudioServer.get_bus_index(pair[0]), pair[1])
+	if AudioServer.get_bus_effect_count(0) == 0:
+		var mono := AudioEffectStereoEnhance.new()
+		mono.pan_pullout = 0.0
+		AudioServer.add_bus_effect(0, mono)  # MONO_FX
+		var lim := AudioEffectHardLimiter.new()
+		lim.ceiling_db = CEILING_DB
+		AudioServer.add_bus_effect(0, lim)  # LIMIT_FX
+	AudioServer.set_bus_effect_enabled(0, MONO_FX, false)
 
 
 func load_settings() -> void:
@@ -182,6 +200,7 @@ func apply() -> void:
 	_bus("Ambience", float(data.ambience))
 	_bus("Interface", float(data.interface))
 	_bus("Voice", float(data.voice))
+	AudioServer.set_bus_effect_enabled(0, MONO_FX, bool(data.mono))
 	apply_bindings()
 	var w := get_window()
 	if w == null:
@@ -200,7 +219,7 @@ func _bus(name: String, linear: float) -> void:
 	if i == -1:
 		return
 	AudioServer.set_bus_mute(i, linear <= 0.001)
-	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(linear, 0.001)))
+	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(linear, 0.001)) + float(TRIM.get(name, 0.0)))
 
 
 ## Camera shake multiplier (0, 0.5, 1); none at all under reduced motion.

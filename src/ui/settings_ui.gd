@@ -15,6 +15,7 @@ const PAGES := [
 		{"key": "ambience", "name": "Ambience", "kind": "volume", "note": "the sea and the place under it"},
 		{"key": "interface", "name": "Interface", "kind": "volume", "note": "menus, buying, pages"},
 		{"key": "voice", "name": "Voices", "kind": "volume", "note": "the people and the drowned"},
+		{"key": "mono", "name": "Mono", "kind": "bool", "note": "both speakers the same"},
 	]},
 	{"name": "SCREEN", "rows": [
 		{"key": "shake", "name": "Screen shake", "kind": "shake"},

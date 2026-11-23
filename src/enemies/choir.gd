@@ -55,7 +55,7 @@ func _start_hum() -> void:
 	s.loop = true
 	_hum = AudioStreamPlayer2D.new()
 	_hum.stream = s
-	_hum.bus = "Effects"
+	_hum.bus = "Voice"
 	_hum.max_distance = HUM_REACH
 	_hum.attenuation = 1.6
 	_hum.volume_db = -40.0

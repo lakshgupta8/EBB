@@ -18,6 +18,15 @@ const PAN := 1.4
 const TELLS := ["roar", "bell", "chain", "wave", "riptide", "wake", "flare", "ebb", "hymn", "net", "harpoon"]
 const PRI_TELL := 2
 const PRI_WORLD := 1
+## Placed sounds that are someone's voice go to the Voice bus (its slider: the people and the drowned).
+const VOICED := ["voice_", "breath_", "groan_", "choir_"]
+
+
+static func voiced(name: String) -> bool:
+	for v in VOICED:
+		if name.begins_with(v):
+			return true
+	return false
 ## Clips that belong to the menus play on the Interface bus, dry (STYLE.md 23.5).
 const INTERFACE := ["ui", "buy", "page", "gift"]
 ## The reverb of each place on the Space bus (STYLE.md 23.6): room size, damping, wet, pre-delay ms.
@@ -29,6 +38,9 @@ const SPACES := {
 	"streets": [0.65, 0.35, 0.14, 40.0],
 	"hall": [0.90, 0.3, 0.22, 50.0],
 }
+## What each place's Space is turned down by, so a big wet room is not louder than a dry one
+## (audio Stage 13: whole bot nights, the Hall 4 LU over the rest before).
+const SPACE_DB := {"hall": -4.0}
 
 var _streams: Dictionary = {}
 var _pool: Array[AudioStreamPlayer] = []
@@ -200,6 +212,7 @@ func play_at(pos: Vector2, name: String, pitch_var: float = 0.0, db: float = 0.0
 	p.max_distance = maxf(FAR, d * 1.8) if pri == PRI_TELL else FAR
 	p.global_position = pos
 	p.set_meta("pri", pri)
+	p.bus = "Voice" if voiced(name) else "Effects"
 	p.stream = s
 	p.pitch_scale = 1.0 + _rng.randf_range(-pitch_var, pitch_var)
 	p.volume_db = db
@@ -334,6 +347,11 @@ func space(name: String) -> void:
 	r.predelay_msec = v[3]
 	var tw := create_tween()
 	tw.tween_property(r, "wet", v[2], 1.5)
+	tw.parallel().tween_method(_space_db, AudioServer.get_bus_volume_db(bus), float(SPACE_DB.get(name, 0.0)), 1.5)
+
+
+func _space_db(db: float) -> void:
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Space"), db)
 
 
 ## The music steps back under a big moment (a boss's roar, a phase, a hit on Tam), then

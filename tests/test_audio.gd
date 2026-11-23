@@ -102,3 +102,23 @@ func test_the_drowned_breathe_and_the_choir_holds_its_note() -> void:
 	assert_true(c._hum != null and c._hum.playing, "the Choir's note is held from the start")
 	assert_true((c._hum.stream as AudioStreamOggVorbis).loop, "and never runs out")
 	c.free()
+
+
+## The mix's fixed parts (audio Stage 13): the trims sit under the sliders, the Master never clips,
+## and the mono switch makes both speakers one.
+func test_the_mix_is_trimmed_limited_and_can_be_mono() -> void:
+	var fx := AudioServer.get_bus_index("Effects")
+	var was = Settings.data.sfx
+	Settings.data.sfx = 1.0
+	Settings.apply()
+	assert_eq(AudioServer.get_bus_volume_db(fx), Settings.TRIM.Effects, "a full Effects slider is its trim")
+	assert_true(AudioServer.get_bus_effect(0, Settings.LIMIT_FX) is AudioEffectHardLimiter, "the Master ends on a limiter")
+	assert_true(AudioServer.is_bus_effect_enabled(0, Settings.LIMIT_FX), "always on")
+	Settings.data.mono = true
+	Settings.apply()
+	assert_true(AudioServer.is_bus_effect_enabled(0, Settings.MONO_FX), "mono on: the side taken out")
+	Settings.data.mono = false
+	Settings.data.sfx = was
+	Settings.apply()
+	assert_true(not AudioServer.is_bus_effect_enabled(0, Settings.MONO_FX), "mono off: stereo again")
+	assert_true(Audio.voiced("breath_drowned") and not Audio.voiced("gaff_hit"), "the drowned breathe on the Voice bus")
