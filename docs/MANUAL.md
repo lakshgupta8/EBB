@@ -42,7 +42,7 @@ which belongs to the machine, not to a keeper.
 **Sound**: the master volume and one for each part of the mix: music, effects (fights, steps, the
 world), ambience (the sea and the place under it), the interface, and voices. A settings file from
 before 1.5 keeps its volumes: its one sound volume becomes the effects, ambience, interface and
-voices.
+voices. **Mono** plays the same sound from both speakers (for one ear, or one speaker).
 
 **Screen**: screen shake (off, low, full), screen flashes, fullscreen, HUD size and text size (normal, large, largest), and reduced motion, which takes away
 shake, flashes, slow time and the coloured pulses at the edge of the screen.
@@ -265,8 +265,10 @@ in the floor; opens when you are near, hangs open and vulnerable after it bites)
 Echoes of Maren. The Ebb sends walls of water with one gap, hauls you in and slams, calls shades,
 and rises twice.
 
-## Music and art (M5)
-Five procedural loops in `tools/gen_music.py` (hub, flats, streets, hall, boss), on their own bus.
+## Music and art (M5, the score from 1.5)
+Each place has its own score (`tools/gen_score_<place>.py`, `data/music.json`): sections and stems
+that follow the night, the fight, the tide and the boss's phases. The rock, the title and the endings
+have theirs too; every sound is synthesised by the scripts in `tools/`.
 The title screen, enemy bodies that squash and fade, and the keeper falling when the night ends
 are the M5 polish pass; every sprite is still drawn by `tools/gen_sprites*.py`.
 
